@@ -21,10 +21,10 @@ class FMDataset(torch.utils.data.Dataset):
 
 class CFMDataset(torch.utils.data.Dataset):
     def __init__(self, source, target, pert_ids, pert_mat, size=int(1e4)):
-        self.source = source
-        self.target = target
-        self.pert_ids = pert_ids
-        self.pert_mat = pert_mat
+        self.source = np.array(source)
+        self.target = np.array(target)
+        self.pert_ids = np.array(pert_ids)
+        self.pert_mat = np.array(pert_mat)
         self.size = size
 
         assert len(self.target) == len(self.pert_ids)
