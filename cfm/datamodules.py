@@ -45,6 +45,9 @@ class SCFMDataset(torch.utils.data.Dataset):
         assert len(source) == len(source_strata)
         assert len(target) == len(target_strata)
         
+        source, target = np.array(source), np.array(target)
+        pert_ids, pert_mat = np.array(pert_ids), np.array(pert_mat)
+        
         self.size = size
         self.source_strata = source_strata
         self.target_strata = target_strata
