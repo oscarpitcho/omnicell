@@ -51,7 +51,7 @@ class CMLP(pl.LightningModule):
             torch.nn.SELU(),
             torch.nn.Linear(w1, w1),
             torch.nn.SELU(),
-            torch.nn.Linear(w1, w1)
+            torch.nn.Linear(w1, out_dim)
         )
         self.cond_net = torch.nn.Sequential(
             torch.nn.Linear(cond_dim, w2),
