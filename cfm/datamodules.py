@@ -40,7 +40,10 @@ class CFMDataset(torch.utils.data.Dataset):
         )
     
 class SCFMDataset(torch.utils.data.Dataset):
-    def __init__(self, source, target, pert_ids, pert_mat, source_strata, target_strata, probs=None, size=int(1e4)):
+    def __init__(
+        self, source, target, pert_ids, pert_mat, source_strata, target_strata, 
+        probs=None, size=int(1e4), batch_size=32
+    ):
         assert len(target) == len(pert_ids)
         assert len(source) == len(source_strata)
         assert len(target) == len(target_strata)
@@ -59,10 +62,16 @@ class SCFMDataset(torch.utils.data.Dataset):
         self.pert_ids = [pert_ids[target_strata == stratum] for stratum in self.strata] 
         self.pert_mat = pert_mat
         if probs is None:
-            probs = np.array([source_stratum.shape[0] for source_stratum in self.source]).astype(float)
+            probs = np.array([
+                self.source[stratum].shape[0] + self.target[stratum].shape[0] 
+                for stratum in range(self.num_strata)
+            ]).astype(float)
             probs /= probs.sum()
             print(probs)
         self.probs = probs
+        self.stratum = 0
+        self.batch_pos = 0
+        self.batch_size = batch_size
 
         
 
@@ -70,13 +79,15 @@ class SCFMDataset(torch.utils.data.Dataset):
         return self.size
 
     def __getitem__(self, idx):
-        stratum = np.random.choice(self.num_strata, p=self.probs)
-        sidx = idx % len(self.source[stratum])
-        tidx = idx % len(self.target[stratum])
+        if self.batch_pos % self.batch_size == 0:
+            self.stratum = np.random.choice(self.num_strata, p=self.probs)
+        self.batch_pos += 1
+        sidx = idx % len(self.source[self.stratum])
+        tidx = idx % len(self.target[self.stratum])
         return (
-            self.source[stratum][sidx],
-            self.target[stratum][tidx],
-            self.pert_mat[self.pert_ids[stratum][tidx]],
+            self.source[self.stratum][sidx],
+            self.target[self.stratum][tidx],
+            self.pert_mat[self.pert_ids[self.stratum][tidx]],
         )
 
 
