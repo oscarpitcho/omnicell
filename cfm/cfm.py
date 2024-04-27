@@ -89,7 +89,7 @@ if strat:
         batch_sampler=StratifiedBatchSampler(
             RandomSampler(dset), batch_size=batch_size, drop_last=True, 
             probs=dset.probs, num_strata=dset.num_strata
-        ), num_workers=80
+        )
     )
 else:
     raise NotImplemented
@@ -98,7 +98,7 @@ else:
 print("Training model")
 # Train the model
 trainer = pl.Trainer(
-    gpus=1,  # Specify the number of GPUs to use
+    accelerator='gpu', devices=1,  # Specify the number of GPUs to use
     max_epochs=max_epochs,  # Specify the maximum number of training epochs
     default_root_dir=save_path,
     callbacks=[TQDMProgressBar(refresh_rate=10)]
