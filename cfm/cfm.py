@@ -24,8 +24,8 @@ parser.add_argument('-b','--batch_size',help='Batch size', type=int, default=32)
 parser.add_argument('-m','--max_epochs',help='Max epochs', type=int, default=100)
 parser.add_argument('--dataset', help='Dataset adata file', type=str, required=True)
 parser.add_argument('--control_pert', help='Name of control in perturbation column', type=str, required=True)
-parser.add_argument('--holdout_cell', help='Name of hold out cell type in cell type column', type=str, required=True)
-parser.add_argument('--holdout_pert', help='Name of hold out perturbation in perturbation column', type=str, required=True)
+parser.add_argument('--holdout_cells', help='Name of hold out cell types in cell type column', nargs='+', required=True)
+parser.add_argument('--holdout_perts', help='Name of hold out perturbations in perturbation column', nargs='+', required=True)
 parser.add_argument('--cell_col', help='Name of cell type column', type=str, default="cell_type")
 parser.add_argument('--pert_col', help='Name of perturbation column', type=str, default="pert_type")
 parser.add_argument('-s', help='Stratify sample', action='store_true')
@@ -39,7 +39,7 @@ print(args)
 batch_size = args.batch_size
 max_epochs = args.max_epochs
 cell_col, pert_col = args.cell_col, args.pert_col
-control_pert, holdout_cell, holdout_pert = args.control_pert, args.holdout_cell, args.holdout_pert
+control_pert, holdout_cells, holdout_perts = args.control_pert, args.holdout_cells, args.holdout_perts
 embedding = args.embedding
 strat = args.s
 dataset = args.dataset # 'Seurat_object_TGFB_Perturb_seq.h5ad'
@@ -60,7 +60,7 @@ adata = sc.read_h5ad(f'/orcd/archive/abugoot/001/Projects/dlesman/datasets/{data
 
 print("Splitting dataset")
 control_idx, pert_idx, eval_idx, eval_cell_idx, eval_pert_idx = get_train_eval_idxs(
-    adata, control_pert, holdout_cell, holdout_pert, cell_col=cell_col, pert_col=pert_col
+    adata, control_pert, holdout_cells, holdout_perts, cell_col=cell_col, pert_col=pert_col
 )
 
 pert_ids, pert_mat, cell_types = get_identity_features(
@@ -101,7 +101,7 @@ trainer = pl.Trainer(
     accelerator='gpu', devices=1,  # Specify the number of GPUs to use
     max_epochs=max_epochs,  # Specify the maximum number of training epochs
     default_root_dir=save_path,
-    callbacks=[TQDMProgressBar(refresh_rate=10)]
+    callbacks=[TQDMProgressBar(refresh_rate=100)]
 )
 
 if arch.lower() == 'cmlp':
