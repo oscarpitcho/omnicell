@@ -2,8 +2,8 @@ import pandas as pd
 import numpy as np
 
 def get_train_eval_idxs(
-    adata, control_pert, holdout_cell, holdout_pert, 
-    cell_col='cell_type', pert_col='pert_type'
+    adata, control_pert, holdout_cells, holdout_perts, 
+    cell_col='cell_type', pert_col='pert_type', verbose=2
 ):
     # here we set up the train/eval and control/pert sets
     # set the idx of the controls
@@ -11,9 +11,11 @@ def get_train_eval_idxs(
     # set the idx of the perts (currently just "all not control")
     pert_idx = adata.obs[pert_col] != control_pert
     # set the hold out cell-type/pert
-    eval_cell_idx = adata.obs[cell_col] == holdout_cell
-    eval_pert_idx = adata.obs[pert_col] == holdout_pert
+    eval_cell_idx = adata.obs[cell_col].isin(holdout_cells)
+    eval_pert_idx = adata.obs[pert_col].isin(holdout_perts)
     eval_idx = eval_cell_idx & eval_pert_idx
+    if verbose > 0:
+        print(f"Controls: {(control_idx & ~eval_idx).sum()}, Perturbations: {(pert_idx & ~eval_idx).sum()},  Eval: {eval_idx.sum()}")
     return control_idx, pert_idx, eval_idx, eval_cell_idx, eval_pert_idx
 
 def get_identity_features(adata, cell_col='cell_type', pert_col='perturb', cell_type_features=True):
