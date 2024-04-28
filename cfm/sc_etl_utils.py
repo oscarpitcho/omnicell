@@ -11,6 +11,9 @@ def get_train_eval_idxs(
     # set the idx of the perts (currently just "all not control")
     pert_idx = adata.obs[pert_col] != control_pert
     # set the hold out cell-type/pert
+    eval_idx = control_idx & False
+    for holdout_cell, holdout_pert in zip(holdout_cells, holdout_perts):
+        eval_idx |= (adata.obs[cell_col] == holdout_cell) & (adata.obs[pert_col] == holdout_pert)
     eval_cell_idx = adata.obs[cell_col].isin(holdout_cells)
     eval_pert_idx = adata.obs[pert_col].isin(holdout_perts)
     eval_idx = eval_cell_idx & eval_pert_idx
