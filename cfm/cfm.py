@@ -22,6 +22,7 @@ import argparse
 parser = argparse.ArgumentParser(description='Fit fm.')
 parser.add_argument('-b','--batch_size',help='Batch size', type=int, default=32)
 parser.add_argument('-m','--max_epochs',help='Max epochs', type=int, default=100)
+parser.add_argument('-k', '--model_kwargs', help='Json formatted dict of model kwargs', type=json.loads)
 parser.add_argument('--dataset', help='Dataset adata file', type=str, required=True)
 parser.add_argument('--control_pert', help='Name of control in perturbation column', type=str, required=True)
 parser.add_argument('--holdout_cells', help='Name of hold out cell types in cell type column', nargs='+', required=True)
@@ -32,6 +33,7 @@ parser.add_argument('-s', help='Stratify sample', action='store_true')
 parser.add_argument('--exclude_ct', help='Exclude cell type from conditioning features', action='store_true')
 parser.add_argument('-e', '--embedding', help='Name of embedding', type=str, default="standard")
 parser.add_argument('-a', '--arch', help='Name of arch', type=str, default="cmlp")
+parser.add_argument('--fm', help='Type of flow matching', type=str, default="dcfm")
 
 args = parser.parse_args()
 print(args)
@@ -45,6 +47,7 @@ strat = args.s
 dataset = args.dataset # 'Seurat_object_TGFB_Perturb_seq.h5ad'
 arch = args.arch
 cell_type_features = not args.exclude_ct
+model_kwargs = args.model_kwargs
 
 hash_dir = hashlib.sha256(json.dumps(args.__dict__, sort_keys=True).encode()).hexdigest()
 save_path = f"{dataset}/{hash_dir}"
@@ -92,7 +95,12 @@ if strat:
         )
     )
 else:
-    raise NotImplemented
+    dset = CFMDataset(
+        control_train, pert_train, 
+        pert_ids_train, pert_mat, 
+        size=X.shape[0]
+    )
+    dl = torch.utils.data.DataLoader(dset, batch_size=batch_size, collate_fn=cfm_collate)
 
 
 print("Training model")
@@ -105,11 +113,12 @@ trainer = pl.Trainer(
 )
 
 if arch.lower() == 'cmlp':
-    model = CMLP(feat_dim=X.shape[1], cond_dim=pert_mat.shape[1], time_varying=True)
+    model = CMLP(feat_dim=X.shape[1], cond_dim=pert_mat.shape[1], time_varying=True, **model_kwargs)
 elif arch.lower() == 'cmha':
-    model = CMLP(feat_dim=X.shape[1], cond_dim=pert_mat.shape[1], time_varying=True)
+    model = CMHA(feat_dim=X.shape[1], cond_dim=pert_mat.shape[1], time_varying=True, **model_kwargs)
 else:
     raise NotImplemented
+    
     
 trainer.fit(model, dl)
 
