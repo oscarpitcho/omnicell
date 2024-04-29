@@ -70,9 +70,15 @@ pert_ids, pert_mat, cell_types = get_identity_features(
     adata, cell_col=cell_col, pert_col=pert_col, cell_type_features=cell_type_features
 )
 
-adata.obsm["standard"] = adata.X
+standard = adata.X
+if hasattr(standard, 'toarray'):
+    standard = standard.toarray()
+
+adata.obsm["standard"] = standard
+
 X = adata.obsm[embedding]
-X = X.toarray()
+if hasattr(X, 'toarray'):
+    X = adata.obsm[embedding] = X.toarray()
 
 control_train, pert_train, pert_ids_train, control_cell_types, pert_cell_types, control_eval, pert_eval, pert_ids_eval = get_train_eval(
     X, pert_ids, cell_types, control_idx, pert_idx, eval_idx, eval_cell_idx, eval_pert_idx
@@ -124,12 +130,25 @@ trainer.fit(model, dl)
 
 print("Computing predictions")
 
+cell_type_names = adata.obs[cell_col]
+pert_type_names = adata.obs[pert_col]
 # Save the predicted perturbation
-torch.cuda.empty_cache()
-traj = compute_conditional_flow(model, control_eval, pert_ids_eval, pert_mat)
-    
-print("Saving predictions")
-np.savez(
-    f"{save_path}/pred.npz", 
-    pred_pert=traj[-1, :, :], true_pert=pert_eval, control=control_eval
-)
+for cell_type in cell_type_names.unique():
+    preds = {}
+    for pert_type in pert_type_names.unique():
+        torch.cuda.empty_cache()
+        traj = compute_conditional_flow(
+            model, 
+            adata.obsm[embedding][cell_type_names == cell_type], 
+            pert_ids[(pert_type_names == pert_type) & (cell_type_names == cell_type)], 
+            pert_mat
+        )  
+        print(f"Saving {pert_type} predictions")
+        np.savez(
+            f"{save_path}/pred_{pert_type}_{cell_type}.npz", 
+            pred_pert=traj[-1, :, :], 
+            true_pert=adata.obsm["standard"][(pert_type_names == pert_type) & (cell_type_names == cell_type)], 
+            control=adata.obsm["standard"][cell_type_names == cell_type],
+            true_pert_embedding=adata.obsm[embedding][(pert_type_names == pert_type) & (cell_type_names == cell_type)], 
+            control_embedding=adata.obsm[embedding][cell_type_names == cell_type]
+        )
