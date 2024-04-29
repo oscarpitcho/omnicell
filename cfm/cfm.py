@@ -133,22 +133,23 @@ print("Computing predictions")
 cell_type_names = adata.obs[cell_col]
 pert_type_names = adata.obs[pert_col]
 # Save the predicted perturbation
-for cell_type in cell_type_names.unique():
-    preds = {}
-    for pert_type in pert_type_names.unique():
-        torch.cuda.empty_cache()
-        traj = compute_conditional_flow(
-            model, 
-            adata.obsm[embedding][cell_type_names == cell_type], 
-            pert_ids[(pert_type_names == pert_type) & (cell_type_names == cell_type)], 
-            pert_mat
-        )  
-        print(f"Saving {pert_type} predictions")
-        np.savez(
-            f"{save_path}/pred_{pert_type}_{cell_type}.npz", 
-            pred_pert=traj[-1, :, :], 
-            true_pert=adata.obsm["standard"][(pert_type_names == pert_type) & (cell_type_names == cell_type)], 
-            control=adata.obsm["standard"][cell_type_names == cell_type],
-            true_pert_embedding=adata.obsm[embedding][(pert_type_names == pert_type) & (cell_type_names == cell_type)], 
-            control_embedding=adata.obsm[embedding][cell_type_names == cell_type]
-        )
+for cell_type, pert_type in zip(holdout_cells, holdout_perts):
+    torch.cuda.empty_cache()
+    control_eval = adata.obsm[embedding][cell_type_names == cell_type]
+    pert_id = pert_ids[(pert_type_names == pert_type) & (cell_type_names == cell_type)][0]
+    traj = compute_conditional_flow(
+        model, 
+        control_eval, 
+        np.repeat(pert_id, control_eval.shape[0]), 
+        pert_mat,
+        n_batches = 5 
+    )  
+    print(f"Saving {pert_type} predictions")
+    np.savez(
+        f"{save_path}/pred_{pert_type}_{cell_type}.npz", 
+        pred_pert=traj[-1, :, :], 
+        true_pert=adata.obsm["standard"][(pert_type_names == pert_type) & (cell_type_names == cell_type)], 
+        control=adata.obsm["standard"][cell_type_names == cell_type],
+        true_pert_embedding=adata.obsm[embedding][(pert_type_names == pert_type) & (cell_type_names == cell_type)], 
+        control_embedding=adata.obsm[embedding][cell_type_names == cell_type]
+    )
