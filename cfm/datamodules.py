@@ -1,6 +1,6 @@
 import torch
 from torchcfm.conditional_flow_matching import (
-    ExactOptimalTransportConditionalFlowMatcher,
+    ExactOptimalTransportConditionalFlowMatcher,OTPlanSampler
 )
 
 from torch.utils.data import BatchSampler, SequentialSampler, Sampler
@@ -237,3 +237,18 @@ def cfm_collate(
         noises = torch.cat(noises)
         return t, xt, ut, noises
     return t, xt, ut, perturb
+
+
+def ot_collate(
+    batch,
+    return_noise=False,
+    ot_sampler = OTPlanSampler(method="exact")
+):
+
+    batch = list(zip(*batch))
+    batch = [torch.tensor(np.array(x)) for x in batch]
+    control, target = batch[:2]
+    
+    x0, x1 = ot_sampler.sample_plan(control, target)
+
+    return x0, x1, *batch[2:]
