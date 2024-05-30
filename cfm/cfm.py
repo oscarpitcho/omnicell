@@ -38,6 +38,7 @@ parser.add_argument('--fm', help='Type of flow matching', type=str, default="dcf
 args = parser.parse_args()
 print(args)
 
+args.model_type = "flow"
 batch_size = args.batch_size
 max_epochs = args.max_epochs
 cell_col, pert_col = args.cell_col, args.pert_col
@@ -119,9 +120,9 @@ trainer = pl.Trainer(
 )
 
 if arch.lower() == 'cmlp':
-    model = CMLP(feat_dim=X.shape[1], cond_dim=pert_mat.shape[1], time_varying=True, **model_kwargs)
+    model = CMLP(training_module=CFM, feat_dim=X.shape[1], cond_dim=pert_mat.shape[1], time_varying=True, **model_kwargs)
 elif arch.lower() == 'cmha':
-    model = CMHA(feat_dim=X.shape[1], cond_dim=pert_mat.shape[1], time_varying=True, **model_kwargs)
+    model = CMHA(training_module=CFM, feat_dim=X.shape[1], cond_dim=pert_mat.shape[1], time_varying=True, **model_kwargs)
 else:
     raise NotImplemented
     
@@ -153,3 +154,4 @@ for cell_type, pert_type in zip(holdout_cells, holdout_perts):
         true_pert_embedding=adata.obsm[embedding][(pert_type_names == pert_type) & (cell_type_names == cell_type)], 
         control_embedding=adata.obsm[embedding][cell_type_names == cell_type]
     )
+    del traj
