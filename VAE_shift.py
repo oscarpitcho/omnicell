@@ -290,8 +290,8 @@ for e in range(epochs):
                     avgcurpt.append(torch.mean(trainX_latent[ctx & pathways_idx[curptidx]],axis=0))
                 avgcurpt = torch.stack(avgcurpt)
                 avgcurpt = torch.mean(avgcurpt,axis=0)
-                curdelta = torch.unsqueeze(avgcurpt - avgctl,0)
-                #curdelta = 1
+                #curdelta = torch.unsqueeze(avgcurpt - avgctl,0)
+                curdelta = 1
                 ctrl_holdout_shifted = ctrl_holdout_latent + curdelta
                 ctrl_holdout_reparameterized = neteval.reparameterize(ctrl_holdout_shifted,ctrl_holdout_var)
                 ctrl_holdout_decoded = neteval.decode(ctrl_holdout_reparameterized )
