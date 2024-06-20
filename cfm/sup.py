@@ -1,9 +1,9 @@
 from pytorch_lightning.callbacks import TQDMProgressBar
-from datamodules import FMDataset, fm_collate, CFMDataset, SCFMDataset, cfm_collate, StratifiedBatchSampler
+from datamodules import FMDataset, fm_collate, CFMDataset, SCFMDataset, cfm_collate, ot_collate, StratifiedBatchSampler
 from torch.utils.data import RandomSampler
 from sc_etl_utils import *
 from arch import *
-from flow_utils import compute_conditional_flow
+from flow_utils import compute_conditional_flow, compute_supervised_preds
 import json
 
 import scvi
@@ -19,7 +19,7 @@ import scanpy as sc
 import hashlib
 
 import argparse
-parser = argparse.ArgumentParser(description='Fit fm.')
+parser = argparse.ArgumentParser(description='Fit ot-matched supervised model.')
 parser.add_argument('-b','--batch_size',help='Batch size', type=int, default=32)
 parser.add_argument('-m','--max_epochs',help='Max epochs', type=int, default=100)
 parser.add_argument('-k', '--model_kwargs', help='Json formatted dict of model kwargs', type=json.loads)
@@ -33,12 +33,11 @@ parser.add_argument('-s', help='Stratify sample', action='store_true')
 parser.add_argument('--exclude_ct', help='Exclude cell type from conditioning features', action='store_true')
 parser.add_argument('-e', '--embedding', help='Name of embedding', type=str, default="standard")
 parser.add_argument('-a', '--arch', help='Name of arch', type=str, default="cmlp")
-parser.add_argument('--fm', help='Type of flow matching', type=str, default="dcfm")
 
 args = parser.parse_args()
 print(args)
 
-args.model_type = "flow"
+args.model_type = "supervised"
 batch_size = args.batch_size
 max_epochs = args.max_epochs
 cell_col, pert_col = args.cell_col, args.pert_col
@@ -95,7 +94,7 @@ if strat:
         batch_size=batch_size, size=X.shape[0]
     )
     dl = torch.utils.data.DataLoader(
-        dset, collate_fn=cfm_collate, 
+        dset, collate_fn=ot_collate, 
         batch_sampler=StratifiedBatchSampler(
             RandomSampler(dset), batch_size=batch_size, drop_last=True, 
             probs=dset.probs, num_strata=dset.num_strata
@@ -107,7 +106,7 @@ else:
         pert_ids_train, pert_mat, 
         size=X.shape[0]
     )
-    dl = torch.utils.data.DataLoader(dset, batch_size=batch_size, collate_fn=cfm_collate)
+    dl = torch.utils.data.DataLoader(dset, batch_size=batch_size, collate_fn=ot_collate)
 
 
 print("Training model")
@@ -120,9 +119,9 @@ trainer = pl.Trainer(
 )
 
 if arch.lower() == 'cmlp':
-    model = CMLP(training_module=CFM, feat_dim=X.shape[1], cond_dim=pert_mat.shape[1], time_varying=True, **model_kwargs)
+    model = CMLP(training_module=MSE, feat_dim=X.shape[1], cond_dim=pert_mat.shape[1], time_varying=False, **model_kwargs)
 elif arch.lower() == 'cmha':
-    model = CMHA(training_module=CFM, feat_dim=X.shape[1], cond_dim=pert_mat.shape[1], time_varying=True, **model_kwargs)
+    model = CMHA(training_module=MSE, feat_dim=X.shape[1], cond_dim=pert_mat.shape[1], time_varying=False, **model_kwargs)
 else:
     raise NotImplemented
     
@@ -138,7 +137,8 @@ for cell_type, pert_type in zip(holdout_cells, holdout_perts):
     torch.cuda.empty_cache()
     control_eval = adata.obsm[embedding][cell_type_names == cell_type]
     pert_id = pert_ids[(pert_type_names == pert_type) & (cell_type_names == cell_type)][0]
-    traj = compute_conditional_flow(
+    pert_ids_eval = pert_mat[np.repeat(pert_id, control_eval.shape[0])]
+    preds = compute_supervised_preds(
         model, 
         control_eval, 
         np.repeat(pert_id, control_eval.shape[0]), 
@@ -148,10 +148,9 @@ for cell_type, pert_type in zip(holdout_cells, holdout_perts):
     print(f"Saving {pert_type} predictions")
     np.savez(
         f"{save_path}/pred_{pert_type}_{cell_type}.npz", 
-        pred_pert=traj[-1, :, :], 
+        pred_pert=preds, 
         true_pert=adata.obsm["standard"][(pert_type_names == pert_type) & (cell_type_names == cell_type)], 
         control=adata.obsm["standard"][cell_type_names == cell_type],
         true_pert_embedding=adata.obsm[embedding][(pert_type_names == pert_type) & (cell_type_names == cell_type)], 
         control_embedding=adata.obsm[embedding][cell_type_names == cell_type]
     )
-    del traj
