@@ -29,6 +29,7 @@ from matplotlib import pyplot as plt
 learning_rate = 0.001
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 inp = sc.read("input/nault.h5ad")
+sc.pp.normalize_total(inp)
 numvars = len(inp.var_names)
 
 
@@ -304,16 +305,13 @@ for e in range(epochs):
 
         
         pred_pert = anndata.AnnData(X=pred_dan)
-        sc.pp.normalize_total(pred_pert)
         pred_pert.obs['condition_key'] = 'predicted'
         
         true_pert = anndata.AnnData(X=pert_dan)
-        sc.pp.normalize_total(true_pert)
         true_pert.obs['condition_key'] = 'perturbed'
         
         
         control = anndata.AnnData(X=cont_dan)
-        sc.pp.normalize_total(control)
         control.obs['condition_key'] = 'control'
         
         allcon = ad.concat([pred_pert,true_pert,control])
