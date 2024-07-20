@@ -18,6 +18,9 @@ from torchcfm.conditional_flow_matching import *
 import scanpy as sc
 import hashlib
 
+from Encode import Encode
+from Decode import Decode
+
 import argparse
 parser = argparse.ArgumentParser(description='Fit fm.')
 parser.add_argument('-b','--batch_size',help='Batch size', type=int, default=32)
@@ -31,14 +34,14 @@ parser.add_argument('--cell_col', help='Name of cell type column', type=str, def
 parser.add_argument('--pert_col', help='Name of perturbation column', type=str, default="pert_type")
 parser.add_argument('-s', help='Stratify sample', action='store_true')
 parser.add_argument('--exclude_ct', help='Exclude cell type from conditioning features', action='store_true')
-parser.add_argument('-e', '--embedding', help='Name of embedding', type=str, default="standard")
+parser.add_argument('-e', '--embedding', help='Name of embedding', type=str, default="vae")
 parser.add_argument('-a', '--arch', help='Name of arch', type=str, default="cmlp")
 parser.add_argument('--fm', help='Type of flow matching', type=str, default="dcfm")
 
 args = parser.parse_args()
 print(args)
 
-args.model_type = "flow"
+args.model_type = "latent_flow"
 batch_size = args.batch_size
 max_epochs = args.max_epochs
 cell_col, pert_col = args.cell_col, args.pert_col
@@ -77,15 +80,24 @@ if hasattr(standard, 'toarray'):
 
 adata.obsm["standard"] = standard.astype(np.float32)
 
-X = adata.obsm[embedding]
+X = adata.obsm["standard"]
 if hasattr(X, 'toarray'):
-    X = adata.obsm[embedding] = X.toarray().astype(np.float32)
+    X = adata.obsm["standard"] = X.toarray().astype(np.float32)
+
+inp_mean, inp_var = Encode(X, model_name=f"{dataset}_vae")
+X = adata.obsm[embedding] = np.hstack([inp_mean, inp_var])
 
 control_train, pert_train, pert_ids_train, control_cell_types, pert_cell_types, control_eval, pert_eval, pert_ids_eval = get_train_eval(
     X, pert_ids, cell_types, control_idx, pert_idx, eval_idx, eval_cell_idx, eval_pert_idx
 )
 
-print(X.dtype)
+control_train, control_train_var = control_train[:, :inp_mean.shape[1]], control_train[:, inp_mean.shape[1]:]
+pert_train, pert_train_var = pert_train[:, :inp_mean.shape[1]], pert_train[:, inp_mean.shape[1]:]
+
+control_eval, control_eval_var = control_eval[:, :inp_mean.shape[1]], control_eval[:, inp_mean.shape[1]:]
+pert_eval, pert_eval_var = pert_eval[:, :inp_mean.shape[1]], pert_eval[:, inp_mean.shape[1]:]
+
+X = X[:, :inp_mean.shape[1]]
 
 print("Creating dataloader")
 if strat:
@@ -138,19 +150,20 @@ pert_type_names = adata.obs[pert_col]
 # Save the predicted perturbation
 for cell_type, pert_type in zip(holdout_cells, holdout_perts):
     torch.cuda.empty_cache()
-    control_eval = adata.obsm[embedding][cell_type_names == cell_type]
+    control_eval = adata.obsm[embedding][cell_type_names == cell_type][:, :inp_mean.shape[1]]
+    control_eval_var = adata.obsm[embedding][cell_type_names == cell_type][:, inp_mean.shape[1]:]
     pert_id = pert_ids[(pert_type_names == pert_type) & (cell_type_names == cell_type)][0]
     traj = compute_conditional_flow(
         model, 
         control_eval, 
         np.repeat(pert_id, control_eval.shape[0]), 
         pert_mat,
-        n_batches = 5 
+        n_batches = 10
     )  
     print(f"Saving {pert_type} predictions")
     np.savez(
         f"{save_path}/pred_{pert_type}_{cell_type}.npz", 
-        pred_pert=traj[-1, :, :], 
+        pred_pert=Decode(traj[-1, :, :], control_eval_var[:traj.shape[1], :], model_name=f"{dataset}_vae"), 
         true_pert=adata.obsm["standard"][(pert_type_names == pert_type) & (cell_type_names == cell_type)], 
         control=adata.obsm["standard"][cell_type_names == cell_type],
         true_pert_embedding=adata.obsm[embedding][(pert_type_names == pert_type) & (cell_type_names == cell_type)], 

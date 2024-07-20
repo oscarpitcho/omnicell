@@ -7,5 +7,10 @@
     },
 "kaggle_HVG":
     {"data_location": "/orcd/archive/abugoot/001/Projects/dlesman/datasets/kaggle_HVG.h5ad",
-    "results_location": "/orcd/archive/abugoot/001/Projects/njwfish/sandbox/cfm/kaggle_HVG"}
+    "results_location": "/orcd/archive/abugoot/001/Projects/njwfish/sandbox/cfm/kaggle_HVG"},
+"Satija_IFNB_HVG": {"data_location": "/orcd/archive/abugoot/001/Projects/dlesman/datasets/Satija_IFNB_HVG.h5ad",
+  "results_location": {"cfm": "/orcd/archive/abugoot/001/Projects/njwfish/sandbox/cfm/Satija_IFNB_HVG"}},
+ "nault": {"data_location": "/orcd/archive/abugoot/001/Projects/dlesman/datasets/nault.h5ad",
+  "results_location": {"cfm": "/orcd/archive/abugoot/001/Projects/njwfish/sandbox/cfm/nault"}}
+ 
 }
