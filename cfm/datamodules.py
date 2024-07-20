@@ -133,7 +133,8 @@ class SCFMDataset(torch.utils.data.Dataset):
         self.pert_mat = pert_mat
         if probs is None:
             probs = np.array([
-                self.source[stratum].shape[0] + self.target[stratum].shape[0] 
+                (self.source[stratum].shape[0] + self.target[stratum].shape[0]) \
+                * (self.source[stratum].shape[0] != 0) * (self.target[stratum].shape[0] != 0)
                 for stratum in range(self.num_strata)
             ]).astype(float)
             probs /= probs.sum()

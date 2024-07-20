@@ -23,8 +23,10 @@ def to_dense(X):
 
 def get_DEGs(control_adata, target_adata):
     temp_concat = anndata.concat([control_adata, target_adata], label = 'batch')
-    sc.tl.rank_genes_groups(temp_concat, 'batch', method='wilcoxon', 
-                                groups = ['1'], ref = '0', rankby_abs = True)
+    sc.tl.rank_genes_groups(
+        temp_concat, 'batch', method='wilcoxon', 
+        groups = ['1'], ref = '0', rankby_abs = True, tie_correct=True
+    )
 
     rankings = temp_concat.uns['rank_genes_groups']
     result_df = pd.DataFrame({'scores': rankings['scores']['1'],
@@ -211,10 +213,15 @@ for directory in result_dirs:
 
             true_DEGs_df = get_DEGs(control, true_pert)
             pred_DEGs_df = get_DEGs(control, pred_pert)
+            # print(pred_pert)
+            # print(pred_DEGs_df)
     
             r2_and_mse = get_eval(true_pert, pred_pert, true_DEGs_df, [100,50,20], 0.05)
+            # print(r2_and_mse)
             c_r_results = {p: get_DEG_Coverage_Recall(true_DEGs_df, pred_DEGs_df, p) for p in [x/P_VAL_ITERS for x in range(1,int(P_VAL_ITERS*MAX_P_VAL))]}
+            # print(c_r_results)
             DEGs_overlaps = get_DEGs_overlaps(true_DEGs_df, pred_DEGs_df, [100,50,20], 0.05)
+            # print(DEGs_overlaps)
 
             try:
                 with open(f'{directory}/{r2_mse_filename}', 'wb') as f:
