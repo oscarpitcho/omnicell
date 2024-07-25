@@ -43,10 +43,11 @@ class StratifiedBatchSampler(Sampler[List[int]]):
 
     def __iter__(self) -> Iterator[List[int]]:
         # Implemented based on the benchmarking in https://github.com/pytorch/pytorch/pull/76951
-        stratum = np.repeat(np.random.choice(self.num_strata, p=self.probs), self.batch_size)
+        
         if self.drop_last:
             sampler_iter = iter(self.sampler)
             while True:
+                stratum = np.repeat(np.random.choice(self.num_strata, p=self.probs), self.batch_size)
                 try:
                     batch = [next(sampler_iter) for _ in range(self.batch_size)]
                     yield zip(stratum, batch)
@@ -55,6 +56,7 @@ class StratifiedBatchSampler(Sampler[List[int]]):
         else:
             batch = [0] * self.batch_size
             idx_in_batch = 0
+            stratum = np.repeat(np.random.choice(self.num_strata, p=self.probs), self.batch_size)
             for idx in self.sampler:
                 batch[idx_in_batch] = idx
                 idx_in_batch += 1
@@ -62,8 +64,9 @@ class StratifiedBatchSampler(Sampler[List[int]]):
                     yield zip(stratum, batch)
                     idx_in_batch = 0
                     batch = [0] * self.batch_size
-            if idx_in_batch > 0:
-                yield zip(stratum, batch[:idx_in_batch])
+                    stratum = np.repeat(np.random.choice(self.num_strata, p=self.probs), self.batch_size)
+                if idx_in_batch > 0:
+                    yield zip(stratum, batch[:idx_in_batch])
 
     def __len__(self) -> int:
         # Can only be called if self.sampler has __len__ implemented
