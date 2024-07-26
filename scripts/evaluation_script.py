@@ -202,7 +202,7 @@ def get_DEG_Coverage_Recall(true_DEGs, pred_DEGs, p_cutoff):
         RECALL = None
     return COVERAGE, RECALL
 
-def get_DEGs_overlaps(true_DEGs, pred_DEGs, DEG_vals, pval_threshold, lfc_threshold = None):
+def get_DEGs_overlaps(true_DEGs, pred_DEGs, DEG_vals, pval_threshold, lfc_threshold):
     if lfc_threshold:
         significant_true_DEGs = true_DEGs[(true_DEGs['pvals_adj'] < pval_threshold) & (abs(true_DEGs['lfc']) > lfc_threshold)]
         significant_pred_DEGs = pred_DEGs[(pred_DEGs['pvals_adj'] < pval_threshold) & (abs(pred_DEGs['lfc']) > lfc_threshold)]
@@ -238,6 +238,8 @@ parser.add_argument('-d', '--dataset', type=str, help='name of dataset being ana
 parser.add_argument('-l', '--location_file', type=str, help='path to json file containing file locations', required=True)
 parser.add_argument('-r', '--round', action='store_true', help='Rounds values <=0.5 to 0 in addition to the clip')
 parser.add_argument('-o', '--overwrite', action='store_true', help='Overwrite pre-existing result files')
+parser.add_argument('-pval', '--pval_threshold', type=float, default=0.05, help='Sets maximum adjusted p value for a gene to be called as a DEG')
+parser.add_argument('-lfc', '--log_fold_change_threshold', type=float, default=None, help='Sets minimum absolute log fold change for a gene to be called as a DEG')
 
 args = parser.parse_args()
 
@@ -306,11 +308,11 @@ for directory in result_dirs:
             # print(pred_pert)
             # print(pred_DEGs_df)
     
-            r2_and_mse = get_eval(true_pert, pred_pert, true_DEGs_df, [100,50,20], 0.05)
+            r2_and_mse = get_eval(control, true_pert, pred_pert, true_DEGs_df, [100,50,20], args.pval_threshold, args.log_fold_change_threshold)
             # print(r2_and_mse)
             c_r_results = {p: get_DEG_Coverage_Recall(true_DEGs_df, pred_DEGs_df, p) for p in [x/P_VAL_ITERS for x in range(1,int(P_VAL_ITERS*MAX_P_VAL))]}
             # print(c_r_results)
-            DEGs_overlaps = get_DEGs_overlaps(true_DEGs_df, pred_DEGs_df, [100,50,20], 0.05)
+            DEGs_overlaps = get_DEGs_overlaps(true_DEGs_df, pred_DEGs_df, [100,50,20], args.pval_threshold, args.log_fold_change_threshold)
             # print(DEGs_overlaps)
 
             try:
