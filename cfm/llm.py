@@ -1,0 +1,175 @@
+import torch
+from torch import nn
+import timm
+import numpy as np
+
+from timm.models.layers import trunc_normal_
+from timm.models.vision_transformer import Block
+
+def random_indexes(size : int):
+    forward_indexes = np.arange(size)
+    np.random.shuffle(forward_indexes)
+    backward_indexes = np.argsort(forward_indexes)
+    return forward_indexes, backward_indexes
+
+def take_indexes(sequences, indexes):
+    return sequences[torch.arange(sequences.size(0)).unsqueeze(1), indexes]
+
+class GeneShuffle(torch.nn.Module):
+    def __init__(self, ratio) -> None:
+        super().__init__()
+        self.ratio = ratio
+
+    def forward(self, genes : torch.Tensor, mask=True):
+        B, T, C = genes.shape
+        remain_T = int(T * (1 - self.ratio))
+
+        indexes = [random_indexes(T) for _ in range(B)]
+        forward_indexes = torch.as_tensor(np.stack([i[0] for i in indexes], axis=0), dtype=torch.long).to(genes.device)
+        backward_indexes = torch.as_tensor(np.stack([i[1] for i in indexes], axis=0), dtype=torch.long).to(genes.device)
+
+        genes = take_indexes(genes, forward_indexes)
+        if mask:
+            genes = genes[:, :remain_T]
+
+        return genes, forward_indexes, backward_indexes
+    
+
+class BernoulliSampleLayer(nn.Module):
+    def __init__(self):
+        super(BernoulliSampleLayer, self).__init__()
+
+    def forward(self, probs):
+        sample = torch.bernoulli(probs)
+        return sample + probs - probs.detach()
+    
+class PosEmbedding(torch.nn.Module):
+    def __init__(self, input_dim, emb_dim=12):
+        super().__init__()
+        self.pos = torch.nn.Parameter(torch.zeros(1, input_dim, emb_dim))
+        trunc_normal_(self.pos, std=.02)
+
+class PertEmbedder(torch.nn.Module):
+    def __init__(self, encoder):
+        super().__init__()
+        _, input_dim, emb_dim = encoder.pos_embedding.pos.shape
+        self.encoder = encoder
+        self.pert_token = torch.nn.Parameter(torch.zeros(1, emb_dim))
+        trunc_normal_(self.pert_token, std=.02)
+        
+    def forward(self, pert_index, pert_expression):
+        pert_features = self.encoder.expression_embed(pert_expression.unsqueeze(-1))
+        pert_features = pert_features + self.encoder.pos_embedding.pos[:, pert_index, :] + self.pert_token
+        return pert_features
+
+class MAE_Encoder(torch.nn.Module):
+    def __init__(self,
+                 pos_embedding,
+                 num_layer=6,
+                 num_head=3,
+                 mask_ratio=0.75,
+                 ) -> None:
+        super().__init__()
+        
+        _, input_dim, emb_dim = pos_embedding.pos.shape
+        self.pos_embedding = pos_embedding
+        
+        self.shuffle = GeneShuffle(mask_ratio)
+
+        self.expression_embed = torch.nn.Linear(1, emb_dim)
+
+        self.transformer = torch.nn.Sequential(*[Block(emb_dim, num_head) for _ in range(num_layer)])
+
+        self.layer_norm = torch.nn.LayerNorm(emb_dim)
+
+
+    def forward(self, batch, mask=True):
+        genes = self.expression_embed(batch.unsqueeze(-1))
+        genes = genes + self.pos_embedding.pos
+
+        features, forward_indexes, backward_indexes = self.shuffle(genes, mask=mask)
+        features = self.layer_norm(self.transformer(features))
+
+        return features, backward_indexes
+
+class MAE_Decoder(torch.nn.Module):
+    def __init__(self,
+                 pos_embedding,
+                 emb_dim=12,
+                 num_layer=6,
+                 num_head=3,
+                 ) -> None:
+        super().__init__()
+        
+        _, input_dim, emb_dim = pos_embedding.pos.shape
+        self.pos_embedding = pos_embedding
+
+        self.mask_token = torch.nn.Parameter(torch.zeros(1, emb_dim))
+
+        self.transformer = torch.nn.Sequential(*[Block(emb_dim, num_head) for _ in range(num_layer)])
+
+        self.head = torch.nn.Linear(emb_dim, 2)
+        
+        trunc_normal_(self.mask_token, std=.02)
+
+
+    def forward(self, features, backward_indexes, pert_features=None):
+        T = features.shape[1]
+        features = torch.cat(
+            [features, self.mask_token.expand(features.shape[0], backward_indexes.shape[1] - features.shape[1], -1)], dim=1
+        )
+        features = take_indexes(features, backward_indexes)
+        features = features + self.pos_embedding.pos
+        
+        if pert_features is not None:
+            _, N, _ = pert_features.shape
+            features = torch.cat([pert_features, features], dim=1)
+
+        features = self.transformer(features)
+        
+        if pert_features is not None:
+            features = features[:, N:, :]
+        expression, sparsity = self.head(features).unbind(-1)
+        
+        mask = torch.zeros_like(expression)
+        mask[:, T:] = 1
+        mask = take_indexes(mask, backward_indexes)
+
+        return expression, sparsity, mask
+
+class MAE(torch.nn.Module):
+    def __init__(self,
+                 input_dim,
+                 emb_dim=48,
+                 encoder_layer=6,
+                 encoder_head=4,
+                 decoder_layer=6,
+                 decoder_head=4,
+                 mask_ratio=0.75,
+                 ) -> None:
+        super().__init__()
+        
+        self.pos_embedding = PosEmbedding(input_dim=input_dim)
+        self.encoder = MAE_Encoder(self.pos_embedding, encoder_layer, encoder_head, mask_ratio)
+        self.pert_embedding = PertEmbedder(self.encoder)
+        self.decoder = MAE_Decoder(self.pos_embedding, decoder_layer, decoder_head)
+        self.sigmoid = torch.nn.Sigmoid()
+        self.sparsity = BernoulliSampleLayer()
+
+    def forward(self, batch, mask=True, pert_index=None, pert_expr=None):
+        features, backward_indexes = self.encoder(batch, mask=mask)
+        if pert_index is not None and pert_expr is not None:
+            pert_features = self.pert_embedding(pert_index, pert_expr)
+            expr_logits, sparsity_logits, mask = self.decoder(
+                features, backward_indexes, pert_features=pert_features
+            )
+        else:
+            expr_logits, sparsity_logits, mask = self.decoder(features, backward_indexes)
+        
+        sparsity_probs = self.sigmoid(sparsity_logits)
+        expr_binary = self.sigmoid(expr_logits)
+        
+        sparsity = self.sparsity(sparsity_probs)
+        expr = expr_binary * sparsity
+        
+        return expr, sparsity_probs, mask
