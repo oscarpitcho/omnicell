@@ -1,10 +1,6 @@
 import torch
 from torch import nn
-import timm
 import numpy as np
-
-from timm.models.layers import trunc_normal_
-from timm.models.vision_transformer import Block
 
 def random_indexes(size : int):
     forward_indexes = np.arange(size)
@@ -47,7 +43,7 @@ class PosEmbedding(torch.nn.Module):
     def __init__(self, input_dim, emb_dim=12):
         super().__init__()
         self.pos = torch.nn.Parameter(torch.zeros(1, input_dim, emb_dim))
-        trunc_normal_(self.pos, std=.02)
+        nn.init.normal_(self.pos)
 
 class PertEmbedder(torch.nn.Module):
     def __init__(self, encoder):
@@ -55,7 +51,7 @@ class PertEmbedder(torch.nn.Module):
         _, input_dim, emb_dim = encoder.pos_embedding.pos.shape
         self.encoder = encoder
         self.pert_token = torch.nn.Parameter(torch.zeros(1, emb_dim))
-        trunc_normal_(self.pert_token, std=.02)
+        nn.init.normal_(self.pert_token)
         
     def forward(self, pert_index, pert_expression):
         pert_features = self.encoder.expression_embed(pert_expression.unsqueeze(-1))
@@ -68,6 +64,7 @@ class MAE_Encoder(torch.nn.Module):
                  num_layer=6,
                  num_head=3,
                  mask_ratio=0.75,
+                 ff_dim=128,
                  ) -> None:
         super().__init__()
         
@@ -78,7 +75,9 @@ class MAE_Encoder(torch.nn.Module):
 
         self.expression_embed = torch.nn.Linear(1, emb_dim)
 
-        self.transformer = torch.nn.Sequential(*[Block(emb_dim, num_head) for _ in range(num_layer)])
+        self.transformer = torch.nn.Sequential(
+            *[nn.TransformerEncoderLayer(emb_dim, num_head, dim_feedforward=ff_dim) for _ in range(num_layer)]
+        )
 
         self.layer_norm = torch.nn.LayerNorm(emb_dim)
 
@@ -95,9 +94,9 @@ class MAE_Encoder(torch.nn.Module):
 class MAE_Decoder(torch.nn.Module):
     def __init__(self,
                  pos_embedding,
-                 emb_dim=12,
                  num_layer=6,
                  num_head=3,
+                 ff_dim=128
                  ) -> None:
         super().__init__()
         
@@ -106,11 +105,13 @@ class MAE_Decoder(torch.nn.Module):
 
         self.mask_token = torch.nn.Parameter(torch.zeros(1, emb_dim))
 
-        self.transformer = torch.nn.Sequential(*[Block(emb_dim, num_head) for _ in range(num_layer)])
+        self.transformer = torch.nn.Sequential(
+            *[nn.TransformerEncoderLayer(emb_dim, num_head, dim_feedforward=ff_dim) for _ in range(num_layer)]
+        )
 
         self.head = torch.nn.Linear(emb_dim, 2)
         
-        trunc_normal_(self.mask_token, std=.02)
+        nn.init.normal_(self.mask_token, std=.02)
 
 
     def forward(self, features, backward_indexes, pert_features=None):
