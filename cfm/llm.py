@@ -76,7 +76,12 @@ class MAE_Encoder(torch.nn.Module):
         self.expression_embed = torch.nn.Linear(1, emb_dim)
 
         self.transformer = torch.nn.Sequential(
-            *[nn.TransformerEncoderLayer(emb_dim, num_head, dim_feedforward=ff_dim) for _ in range(num_layer)]
+            *[
+                nn.TransformerEncoderLayer(
+                    emb_dim, num_head, dim_feedforward=ff_dim, batch_first=True, dropout=0.
+                ) 
+                for _ in range(num_layer)
+            ]        
         )
 
         self.layer_norm = torch.nn.LayerNorm(emb_dim)
@@ -106,7 +111,12 @@ class MAE_Decoder(torch.nn.Module):
         self.mask_token = torch.nn.Parameter(torch.zeros(1, emb_dim))
 
         self.transformer = torch.nn.Sequential(
-            *[nn.TransformerEncoderLayer(emb_dim, num_head, dim_feedforward=ff_dim) for _ in range(num_layer)]
+            *[
+                nn.TransformerEncoderLayer(
+                    emb_dim, num_head, dim_feedforward=ff_dim, batch_first=True, dropout=0.
+                ) 
+                for _ in range(num_layer)
+            ]
         )
 
         self.head = torch.nn.Linear(emb_dim, 2)
