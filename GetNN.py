@@ -11,13 +11,8 @@ holdoutpert = 'TYK2'
 num_of_degs = 20
 pvalcut = 0.05
 
-
-#Assumption: at least 3 cell types
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-#device='cpu'
 datasetso = 'satija_IFN'
-#datasetso = 'kang'
-methodname = 'autoencodertest1'
 
 inp = sc.read(f'input/{datasetso}.h5ad')
 inp = inp[inp.obs['cell_type']=='A549']
