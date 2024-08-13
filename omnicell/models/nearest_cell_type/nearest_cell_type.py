@@ -55,6 +55,8 @@ print("Splitting dataset")
 
 
 def train(config):
+
+    
     task_config = config['task_config']
     control_pert = task_config['control_pert']
     holdout_cells = task_config['holdout_cells']
