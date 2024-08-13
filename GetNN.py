@@ -94,7 +94,7 @@ for sr in significant_reducers:
         bestnnscore = nnscore
 
 
-print('Nearest Neighbor Cell is: '+nnbr)
+print('Nearest neighbor perturbation is: '+nnbr)
 
 sys.exit()
     
