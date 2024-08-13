@@ -18,9 +18,6 @@ inp = sc.read(f'input/{datasetso}.h5ad')
 inp = inp[inp.obs['cell_type']=='A549']
 inp.var_names = inp.var['gene']
 
-sc.pp.normalize_total(inp,target_sum=10000)
-
-sc.pp.log1p(inp)
 
 
 # Extract the unique genes
