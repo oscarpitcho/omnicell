@@ -67,10 +67,12 @@ for ug in unique_genes_noholdout:
     GTOlist.append(GTO)
     
 significant_reducers = []
+significant_reducers_pval = []
 for genno in unique_genes_noholdout:
     rank = GTOlist[unique_genes_noholdout.index(genno)][torch.where(DEGSlist[unique_genes_noholdout.index(genno)] == np.where(inp.var_names==holdoutpert)[0][0])[0][0].item()]
     if ((0 <= rank) and (rank <= pvalcut)):
-       significant_reducers.append(genno) 
+       significant_reducers.append(genno)
+       significant_reducers_pval.append(rank) 
 
 reduced_DEGs = []    
 for sr in significant_reducers:
@@ -87,11 +89,22 @@ repeated_elements = unique_elements[counts > 1]
 duplicated_DEGs = torch.unique(reduced_DEGs[torch.isin(reduced_DEGs, repeated_elements)])
 
 bestnnscore = 0
-for sr in significant_reducers:
+bestpval = 0
+for jq, sr in enumerate(significant_reducers):
     nnscore = len(np.intersect1d(duplicated_DEGs.cpu().detach().numpy(),DEGSlist[unique_genes_noholdout.index(sr)][-num_of_degs:].cpu().detach().numpy()))
-    if nnscore >= bestnnscore:
+    
+        
+    if nnscore > bestnnscore:
         nnbr = sr
         bestnnscore = nnscore
+        bestpval = significant_reducers_pval[jq]
+    #pval as tie-break
+    if nnscore == bestnnscore:
+        if bestpval > significant_reducers_pval[jq]:
+            nnbr = sr
+            bestnnscore = nnscore
+            bestpval = significant_reducers_pval[jq]
+            
 
 
 print('Nearest Neighbor Cell is: '+nnbr)
