@@ -39,6 +39,8 @@ for ug in unique_genes_noholdout:
     pert = np.array(inp[inp.obs['gene'] == ug].X.todense())
     
     control = anndata.AnnData(X=cont)
+
+    
     
     control.obs['condition_key'] = 'control'
     
