@@ -107,6 +107,6 @@ for jq, sr in enumerate(significant_reducers):
             
 
 
-print('Nearest Neighbor Cell is: '+nnbr)
+print('Nearest neighbor perturbation is: '+nnbr)
     
     
