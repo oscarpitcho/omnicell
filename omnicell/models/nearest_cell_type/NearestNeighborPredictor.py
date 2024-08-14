@@ -89,6 +89,8 @@ class NearestNeighborPredictor():
 
     def predict_across_gene(self, heldout_pert_adata: sc.AnnData, cell_type: str) -> np.ndarray:
         """
+
+        TODO: Whats going on there, what are we making the prediction on
         Makes a prediction on a seen target cell type given some unseen perturbation.
         
         Takes the perturbation effect which is closest to the heldout perturbation and applies it to the heldout cell data.
@@ -102,6 +104,7 @@ class NearestNeighborPredictor():
 
 
         holdout_pert_id = heldout_pert_adata.obs['pert_type'].unique()[0]
+        num_of_degs = self.config['num_of_degs']
 
         unique_perturbations = self.train_adata.obs['pert_type'].unique()
         unique_genes_noholdout = unique_perturbations[unique_perturbations != CONTROL_PERT]
@@ -171,6 +174,45 @@ class NearestNeighborPredictor():
 
 
 
+
+        #We have the neighboring perturbation, now we find the effect of this perturbation on each cell type and then apply the corresponding to each cell in the heldout data.
+        nnbr_pert = nnbr
+
+
+        #Mean control state of each cell type
+
+        cell_types = self.train_adata.obs[CELL_TYPE_KEY].unique()
+
+        cell_type_to_index = {cell_type: i for i, cell_type in enumerate(cell_types)}
+
+
+        train_cell_type_ctrl_means = []
+
+        for cell_type in cell_types:
+            train_cell_type_ctrl_means.append(self.train_adata[(self.train_adata.obs[CELL_TYPE_KEY] == cell_type) & (self.train_adata.obs[PERT_KEY] == CONTROL_PERT)].X.mean(axis=0))
+
+        
+        nbr_pert_effect_per_cell_type = []
+        for cell_type in cell_types:
+            perturbed_cell_type = self.train_adata[(self.train_adata.obs[CELL_TYPE_KEY] == cell_type) & (self.train_adata.obs[PERT_KEY] == nnbr_pert)].X.mean(axis=0)
+            pert_effect = perturbed_cell_type - train_cell_type_ctrl_means[cell_type_to_index[cell_type]]
+            nbr_pert_effect_per_cell_type.append(pert_effect)
+
+        
+        nbr_pert_effect_per_cell_type = np.array(nbr_pert_effect_per_cell_type)
+        
+
+        #We now have the effect of the neighboring perturbation on each cell type. We can now apply this to the heldout cell data, choosing the correct effect based on the cell type of the heldout data.
+
+        holdout_pert_adatas_res = heldout_pert_adata.copy()
+        for cell_type in cell_types:
+
+            
+
+
+
+
+        
         return predicted_perts
         
 
