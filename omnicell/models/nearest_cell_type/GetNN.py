@@ -88,7 +88,7 @@ duplicated_DEGs = torch.unique(reduced_DEGs[torch.isin(reduced_DEGs, repeated_el
 
 bestnnscore = 0
 for sr in significant_reducers:
-    nnscore = len(np.intersect1d(duplicated_DEGs.cpu().detach().numpy(),DEGSlist[unique_genes_noholdout.index(sr)][-num_of_degs:].cpu().detach().numpy()))
+    nnscore = len(np.intersect1d(duplicated_DEGs.cpu().detach().numpy(), DEGSlist[unique_genes_noholdout.index(sr)][-num_of_degs:].cpu().detach().numpy()))
     if nnscore >= bestnnscore:
         nnbr = sr
         bestnnscore = nnscore
