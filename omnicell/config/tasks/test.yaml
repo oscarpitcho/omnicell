@@ -1,0 +1,18 @@
+data:
+  control: unst
+  target: LPS
+  pert_key: condition
+  path: datasets/scrna-crossspecies/hvg-top1k-train-only.h5ad
+
+dataloader:
+  batch_size: 128
+  shuffle: true
+
+datasplit:
+  pert_number_folds:
+  key: species 
+  groupby: ['species', 'condition']
+  name: toggle_ood
+  mode: ood
+  test_size: 500
+  random_state: 0

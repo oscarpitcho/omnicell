@@ -5,7 +5,7 @@ from sc_etl_utils import *
 from arch import *
 from flow_utils import compute_conditional_flow
 import json
-
+from ...constants import PERT_KEY, CELL_KEY, CONTROL_PERT
 import scvi
 import torch
 import numpy as np
@@ -26,7 +26,6 @@ parser.add_argument('--holdout_cells', help='Name of hold out cell types in cell
 parser.add_argument('--holdout_perts', help='Name of hold out perturbations in perturbation column', nargs='+', required=True)
 parser.add_argument('--cell_col', help='Name of cell type column', type=str, default="cell_type")
 parser.add_argument('--pert_col', help='Name of perturbation column', type=str, default="pert_type")
-parser.add_argument('-e', '--embedding', help='Name of embedding', type=str, default="standard")
 
 args = parser.parse_args()
 print(args)
@@ -54,9 +53,40 @@ print("Splitting dataset")
 
 
 
-def train(config):
+class NearestNeighbor:
+    def __init__(self):
+        self.adata = adata
+        self.embedding = embedding
+        self.cell_col = cell_col
+        self.pert_col = pert_col
 
+        self.train_means = None
+
+
+
+    def train(self, config):
+        task_config = config['task_config']
+        control_pert = task_config['control_pert']
+        holdout_cells = task_config['holdout_cells']
+        holdout_perts = task_config['holdout_perts']
+        cell_col = task_config['cell_col']
+        pert_col = task_config['pert_col']
+        embedding = task_config['embedding']
+        
+
+    def train(training_data):
+        control_train_types = np.unique(control_cell_types)
+        
+        
     
+    
+        train_means = np.zeros((control_train_types.shape[0], X.shape[1]))
+
+
+        #We might have big difference if the target cell type is included
+        for i, cell_type in enumerate(control_train_types):
+            train_means[i] = control_train[control_cell_types == cell_type].mean(axis=0)
+
     task_config = config['task_config']
     control_pert = task_config['control_pert']
     holdout_cells = task_config['holdout_cells']
@@ -66,7 +96,6 @@ def train(config):
     embedding = task_config['embedding']
 
     
-
         
 control_idx, pert_idx, eval_idx, eval_cell_idx, eval_pert_idx = get_train_eval_idxs(
     adata, control_pert, holdout_cells, holdout_perts, cell_col=cell_col, pert_col=pert_col
@@ -86,6 +115,7 @@ X = adata.obsm[embedding]
 if hasattr(X, 'toarray'):
     X = adata.obsm[embedding] = X.toarray().astype(np.float32)
 
+#He also returned the control cell_type
 control_train, pert_train, pert_ids_train, control_cell_types, pert_cell_types, control_eval, pert_eval, pert_ids_eval = get_train_eval(
     X, pert_ids, cell_types, control_idx, pert_idx, eval_idx, eval_cell_idx, eval_pert_idx
 )
@@ -95,15 +125,38 @@ print("Computing predictions")
 cell_type_names = adata.obs[cell_col]
 pert_type_names = adata.obs[pert_col]
 # Save the predicted perturbation
+
+#Getting the control cell types
 control_train_types = np.unique(control_cell_types)
 train_means = np.zeros((control_train_types.shape[0], X.shape[1]))
+
+
+#We might have big difference if the target cell type is included
 for i, cell_type in enumerate(control_train_types):
     train_means[i] = control_train[control_cell_types == cell_type].mean(axis=0)
-    
+
+
+#Question --> what does a pair represent?
+#These are folds not a split
+
+#Control doesn't include the 
+
+#Pretty arbitary, we exclude several but we only check specific pairs 
+
+#["A549", "MCF7", "PC3", "VCAP"]
+#['Pert1', Pert2, Pert3, Pert4]
+
+#--> 4 cell types will be excluded from all computations but we only compare pairs of cell types pert type
 for cell_type, pert_type in zip(holdout_cells, holdout_perts):
     torch.cuda.empty_cache()
-    control_eval = adata.obsm[embedding][cell_type_names == cell_type]
-    pert_id = pert_ids[(pert_type_names == pert_type) & (cell_type_names == cell_type)][0]
+
+    #ou know what --> Fuck this piece of code, why is there and random 0 
+    #Why do we need several control cell types? --> note we have 
+    #Get the control cell types, out of the embedding?
+
+    #We save a file for every run
+    control_eval = adata.obs[adata.obs[]][cell_type_names == cell_type]
+    
     control_eval_mean = control_eval.mean(axis=0)
     # todo: add more metrics
     mean_distances = np.mean((train_means - control_eval_mean[None, :])**2, axis=1)
