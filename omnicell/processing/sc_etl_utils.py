@@ -53,8 +53,22 @@ def generate_split_across_genes(adata: sc.AnnData, holdout_perts: str | List[str
     Perturbations that are not in the holdout set are in the training set.
     ctrl_frac_eval is the fraction of the control perturbations to be used for evaluation
 
-    returns - AnnData objects:
-      train_pert, ctrl_train, ctrl_eval, holdouts
+    Parameters
+    ----------
+    adata : AnnData
+        The AnnData object to split
+    holdout_perts : str | List[str]
+
+    allow_in_distribution : bool
+        NOT IMPLEMENTED YET
+    
+    ctrl_frac_eval : float
+
+    Returns
+    -------
+    Tuple[sc.AnnData, sc.AnnData, sc.AnnData, sc.AnnData]
+        Tuple of (train_pert, ctrl_train, ctrl_eval, holdouts)
+
     """
 
     holdout_perts = [holdout_perts] if isinstance(holdout_perts, str) else holdout_perts
@@ -75,14 +89,20 @@ def generate_random_split_across_genes(adata, folds = 5, ctrl_frac_eval = 0.1):
     """
     Generate a random split across genes for the holdout perturbations
 
-    Folds are generated with replacement
+    Parameters
+    ----------
+    adata : AnnData
+        The AnnData object to split
+    folds : int
+        The number of folds to generate, number of holdout perturbations per fold is ~ len(perturbations) / folds
 
-    returns - Array which contains a dict for each fold, with keys:
-        {
-            "fold": heldout_perts,
-            "data": [train_pert, ctrl_train, ctrl_eval, holdouts]
-        }
-       
+    ctrl_frac_eval : float
+
+    Returns
+    -------
+    List[Dict[str, sc.AnnData]]
+        List of dictionaries containing the fold number and the data for that fold
+        {'fold' : _perts_in_the_fold_ , 'data' : (train_pert, ctrl_train, ctrl_eval, holdouts)}
     """
 
     perturbations = adata.obs[PERT_KEY].unique()
@@ -92,9 +112,16 @@ def generate_random_split_across_genes(adata, folds = 5, ctrl_frac_eval = 0.1):
     return [{ 'fold' : fold, 'data' : generate_split_across_genes(adata, fold, ctrl_frac_eval)} for fold in folds]
 
 
-def generate_splt_across_cells(adata, houldout_cells: str | List[str], allow_in_distribution: bool):
+def generate_splt_across_cells(adata, holdout_cells: str | List[str], allow_in_distribution: bool):
 
-    return
+    holdout_cells = [holdout_cells] if isinstance(holdout_cells, str) else holdout_cells
+
+    holdout_idx = adata.obs[CELL_TYPE_KEY].isin(holdout_cells)
+    training_idx = ~holdout_idx
+
+
+    #This piece of code is completely perturbation agnostic, is that good or bad? 
+    return adata[training_idx], adata[holdout_idx]
 
 
 
@@ -155,6 +182,8 @@ def get_identity_features(adata, cell_col='cell_type', pert_col='perturb', cell_
     
     pert_ids = combo.argmax(axis=1)
     cell_types = cell_types.argmax(axis=1)
+
+    #Cell type is rlly just a fat one hot encoding matrix
     return pert_ids, pert_mat, cell_types
 
 def get_train_eval(

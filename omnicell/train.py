@@ -68,11 +68,13 @@ def main(*args):
         json.dump(config, f, indent=2)
         
 
-    train_func = None
+    #For data dep models we have access to datashapes and we can pass them when instantiating the model
+
+    #REGISTER YOUR MODELS HERE
+    model = None
     if args.model == 'nearest_cell_type':
-        from cellot.models.nearest_cell_type.nearest_cell_type import train
-        train_func = train
-    
+        from models.nearest_cell_type import NearestNeighborPredictor
+        model = NearestNeighborPredictor(config_model)    
     elif args.model == 'transformer':
         #from cellot.models.cfm import train
         train_func = train
@@ -84,6 +86,17 @@ def main(*args):
     else:
         raise ValueError('Unknown model name')
     
+
+    model.train(training_data)
+    
+    #Some task parsing
+
+
+    #Now we do the prediction tasks on the trained model
+    #We can predict across cells or across perturbations --> This should be defined in the task config
+
+    
+
 
 if __name__ == '__main__':
     main()

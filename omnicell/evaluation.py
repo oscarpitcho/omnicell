@@ -13,9 +13,6 @@ random.seed(42)
 
 def main(*args):
 
-    #Random note, we will have many downstream tasks that will be separate from the model and the initial pretraining.
-    #Need a way to run these tasks in a modular way and pass the model that we want to use.
-    #We will need also to be able to define some fine tuning tasks that will be separate from the initial training not just some prediction.
 
     parser = argparse.ArgumentParser(description='Analysis settings.')
 
