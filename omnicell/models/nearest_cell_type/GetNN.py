@@ -41,7 +41,6 @@ for ug in unique_genes_noholdout:
     control = anndata.AnnData(X=cont)
 
     
-    
     control.obs['condition_key'] = 'control'
     
     true_pert = anndata.AnnData(X=pert)

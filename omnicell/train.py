@@ -54,8 +54,6 @@ def main(*args):
     #Load the data according to the config: 
 
     hash_dir = hashlib.sha256(json.dumps(config).encode()).hexdigest()
-
-    if config_task['task'] == 'nearest_cell_type':
     
     #We should pass this to the model to load checkpoints (eventually)
     save_path = Path(f"./results/{hash_dir}").resolve()
@@ -65,7 +63,7 @@ def main(*args):
         os.makedirs(save_path)
 
     with open(f"{save_path}/config.json", 'w') as f:
-        json.dump(config, f, indent=2)
+        yaml.dump(config, f, indent=2)
         
 
     #For data dep models we have access to datashapes and we can pass them when instantiating the model
@@ -75,14 +73,14 @@ def main(*args):
     if args.model == 'nearest_cell_type':
         from models.nearest_cell_type import NearestNeighborPredictor
         model = NearestNeighborPredictor(config_model)    
+
     elif args.model == 'transformer':
         #from cellot.models.cfm import train
-        train_func = train
+        raise NotImplementedError()
 
     elif args.model == 'vae':
-        from cellot.models.vae import train
-        train_func = train
-
+        raise NotImplementedError()
+    
     else:
         raise ValueError('Unknown model name')
     
@@ -90,6 +88,10 @@ def main(*args):
     model.train(training_data)
     
     #Some task parsing
+
+
+    #So what kind of tasks do we have?
+    #Several folds, 
 
 
     #Now we do the prediction tasks on the trained model
