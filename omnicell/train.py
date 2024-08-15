@@ -8,6 +8,8 @@ import hashlib
 import json
 import numpy as np
 import random
+from .constants import PERT_KEY, CELL_TYPE_KEY, CONTROL_PERT
+
 
 random.seed(42)
 
@@ -64,6 +66,10 @@ def main(*args):
 
     with open(f"{save_path}/config.json", 'w') as f:
         yaml.dump(config, f, indent=2)
+
+
+
+    #We need to split the data according to the task config
         
 
     #For data dep models we have access to datashapes and we can pass them when instantiating the model
@@ -85,7 +91,46 @@ def main(*args):
         raise ValueError('Unknown model name')
     
 
-    model.train(training_data)
+    #Every fold corresponds to a training
+
+    for fold in folds:
+
+        training_data = fold['train']
+        control_data = fold['control']
+
+        #What if either of those are empty?
+        holdout_perts = fold['holdout_perts']
+        holdout_cells = fold['holdout_cells']
+
+        model.train(training_data)
+
+
+
+        #Each instance in this loop will define a task --> We need preds, ground truth and control
+        #Making preds across perts
+        for pert in holdout_perts:
+            #We need some ground truth data to save
+
+            #Problem is that it would be easier to let the model to all that shit but then we are not sure what was the 
+            ground_truth = training_data.obs[training_data.obs[]]
+            predict = model.predict_across_pert(pert)
+
+
+
+
+        """#TODO: Implement this later
+       
+       #Making preds across cells
+        for cell_type in holdout_cells:
+
+
+
+
+        #Making preds across cells and perts
+        for target in targets:
+            for cell in holdout_cells:
+        """
+
     
     #Some task parsing
 
