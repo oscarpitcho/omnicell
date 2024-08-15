@@ -87,23 +87,29 @@ class NearestNeighborPredictor():
     
 
 
-    def predict_across_gene(self, heldout_pert_adata: sc.AnnData, cell_type: str) -> np.ndarray:
+    #SO I want to predict across genes --> Two options either we provide the data or we don't provide the data on which the prediction is made
+    def predict_across_gene(self, target: str) -> np.ndarray:
         """
-
-        TODO: Whats going on there, what are we making the prediction on
-        Makes a prediction on a seen target cell type given some unseen perturbation.
+        Makes a prediction for an unseen perturbation using all training control data.
         
-        Takes the perturbation effect which is closest to the heldout perturbation and applies it to the heldout cell data.
+        Takes the perturbation effect which is closest to the heldout perturbation and applies it to the control data in the training set
+
+        Parameters
+        ----------
+        target : str
+            The target perturbation to predict
+
+        Returns
+        -------
+        np.ndarray
+            The predicted perturbation for the target using the control perturbation datapoints of the training.
 
         """
 
 
         assert self.train_adata is not None, "Model has not been trained yet"
-        assert heldout_pert_adata.obs['pert_type'].nunique() == 1, "Heldout pert data must contain only one perturbation"
-        assert heldout_pert_adata.obs['cell_type'].unique() not in self.train_adata.obs['cell_type'].unique(), "Heldout cell type must be unseen in training data"
-
-
-        holdout_pert_id = heldout_pert_adata.obs['pert_type'].unique()[0]
+        assert target not in self.train_adata.obs['pert_type'].unique(), "Target perturbation is already in the training data"
+        
         num_of_degs = self.config['num_of_degs']
 
         unique_perturbations = self.train_adata.obs['pert_type'].unique()
@@ -147,7 +153,7 @@ class NearestNeighborPredictor():
             
         significant_reducers = []
         for genno in unique_genes_noholdout:
-            rank = GTOlist[unique_genes_noholdout.index(genno)][torch.where(DEGSlist[unique_genes_noholdout.index(genno)] == np.where(inp.var_names==holdout_pert_id)[0][0])[0][0].item()]
+            rank = GTOlist[unique_genes_noholdout.index(genno)][torch.where(DEGSlist[unique_genes_noholdout.index(genno)] == np.where(inp.var_names==target)[0][0])[0][0].item()]
             if ((0 <= rank) and (rank <= self.config['pvalcut'])):
                 significant_reducers.append(genno) 
 
@@ -204,16 +210,15 @@ class NearestNeighborPredictor():
 
         #We now have the effect of the neighboring perturbation on each cell type. We can now apply this to the heldout cell data, choosing the correct effect based on the cell type of the heldout data.
 
-        holdout_pert_adatas_res = heldout_pert_adata.copy()
+        predictions = self.train_adata[(self.train_adata.obs[PERT_KEY] == CONTROL_PERT)].copy()
+
         for cell_type in cell_types:
-
-            
-
-
+            cell_type_effect = nbr_pert_effect_per_cell_type[cell_type_to_index[cell_type]]
+            predictions[predictions.obs[CELL_TYPE_KEY] == cell_type].X += cell_type_effect
 
 
-        
-        return predicted_perts
+        return predictions.X
+
         
 
     
