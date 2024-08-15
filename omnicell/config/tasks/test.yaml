@@ -4,15 +4,27 @@ data:
   pert_key: condition
   path: datasets/scrna-crossspecies/hvg-top1k-train-only.h5ad
 
-dataloader:
-  batch_size: 128
-  shuffle: true
+
+data: 
+
+  #This is are crucial
+  cell_type_key: cell_type
+  pert_key: condition
+  control: unst
 
 datasplit:
-  pert_number_folds:
+  holdout_cells : 
+  holdout_perts: #Thi
   key: species 
-  groupby: ['species', 'condition']
+  
+  Something like this later on
+  #groupby: ['species', 'condition']
   name: toggle_ood
   mode: ood
   test_size: 500
   random_state: 0
+
+    
+dataloader:
+  batch_size: 128
+  shuffle: true
