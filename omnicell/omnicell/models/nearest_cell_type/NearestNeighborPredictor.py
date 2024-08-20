@@ -22,6 +22,7 @@ class NearestNeighborPredictor:
         #Mode across perturbations
 
     
+    #Why does it see the gt data when making the prediction
     def predict_across_cell(self, heldout_cell_adata: sc.AnnData, target_pert: str) -> np.ndarray:
         """
         Makes a prediction for a seen target perturbation given some unseen cell type. 
@@ -31,7 +32,7 @@ class NearestNeighborPredictor:
         Parameters
         ----------
         heldout_cell_adata : AnnData
-            The AnnData object containing the unseen cell type (and only that cell type) with control and target perturbations
+            The AnnData object containing the unseen cell type (and only that cell type) with control perturbation
         target_pert : str
             The target perturbation to predict
 
@@ -44,6 +45,9 @@ class NearestNeighborPredictor:
 
         assert self.train_adata is not None, "Model has not been trained yet"
         assert heldout_cell_adata.obs['cell_type'].nunique() == 1, "Heldout cell data must contain only one cell type"
+        assert heldout_cell_adata.obs[PERT_KEY].nunique() == 1, "Heldout cell data must contain only control data"
+        assert heldout_cell_adata.obs[PERT_KEY].unique()[0] == CONTROL_PERT, "Heldout cell data must contain only control data"
+
 
         cell_types = self.train_adata.obs['cell_type'].unique()
 
@@ -53,22 +57,34 @@ class NearestNeighborPredictor:
             train_cell_type_ctrl_means.append(self.train_adata[(self.train_adata.obs[CELL_KEY] == cell_type) & (self.train_adata.obs[PERT_KEY] == CONTROL_PERT)].X.mean(axis=0))
 
         
-        train_cell_type_ctrl_means = np.array(train_cell_type_ctrl_means)
+        train_cell_type_ctrl_means = np.squeeze(np.array(train_cell_type_ctrl_means))
 
 
 
 
         #Mean control state of the heldout cell
-        heldout_cell_ctrl_mean = heldout_cell_adata.obs[heldout_cell_adata.obs[PERT_KEY] == CONTROL_PERT].X.mean(axis=0)
+        heldout_cell_ctrl_mean = heldout_cell_adata.X.mean(axis=0)
 
-        closest_cell_type_idx = np.argmin(np.sum((train_cell_type_ctrl_means - heldout_cell_ctrl_mean)**2, axis=1))
+        print(heldout_cell_ctrl_mean.shape)
+        print(train_cell_type_ctrl_means.shape)
+
+        diffs = train_cell_type_ctrl_means - heldout_cell_ctrl_mean
+
+        #Applying L2 distance, could be changed to L1
+        squared_diffs = np.square(diffs)
+
+        distances_to_heldout = np.sum(squared_diffs, axis=1)
+
+        closest_cell_type_idx = np.argmin(distances_to_heldout)
         closest_cell_type = cell_types[closest_cell_type_idx]
 
         perturbed_closest_cell_type = self.train_adata[(self.train_adata.obs[CELL_KEY] == closest_cell_type) & (self.train_adata.obs[PERT_KEY] == target_pert)].X.mean(axis=0)
 
         pert_effect = perturbed_closest_cell_type - train_cell_type_ctrl_means[closest_cell_type_idx]
 
-        predicted_perts = heldout_cell_adata.obs[heldout_cell_adata.obs[PERT_KEY] == CONTROL_PERT].X + pert_effect
+
+        #Apply the perturbation effect to the heldout cell data
+        predicted_perts = heldout_cell_adata[heldout_cell_adata.obs[PERT_KEY] == CONTROL_PERT].X + pert_effect
 
         return predicted_perts
     
