@@ -8,8 +8,8 @@ import hashlib
 import json
 import numpy as np
 import random
-from datasplits.Splitter import Splitter
-from .constants import PERT_KEY, CELL_TYPE_KEY, CONTROL_PERT
+from omnicell.datasplits.Splitter import Splitter
+from omnicell.constants import PERT_KEY, CELL_KEY, CONTROL_PERT
 
 
 random.seed(42)
@@ -25,22 +25,30 @@ def main(*args):
     args = parser.parse_args()
 
 
-    model_path = Path(args.model).resolve()
-    task_path = Path(args.task).resolve()
+    model_path = Path(args.model_config).resolve()
+    task_path = Path(args.task_config).resolve()
 
 
 
-    config_model = yaml.load(open(model_path), Loader=yaml.UnsafeLoader).to_dict()
-    config_task = yaml.load(open(task_path), Loader=yaml.UnsafeLoader).to_dict()
+    config_model = yaml.load(open(model_path), Loader=yaml.UnsafeLoader)
+    config_task = yaml.load(open(task_path), Loader=yaml.UnsafeLoader)
 
     #Store the config and the paths to the config to make reproducibility easier. 
     config = {'args': args.__dict__, 'model_config': config_model, 'task_config': config_task}
 
 
     #This is part of the processing, should put it someplace else
-    adata = sc.read_h5ad(config_task['dataset'])
-    adata = adata.obs.rename({config_task['pert_col']: PERT_KEY, config_task['cell_col']: CELL_TYPE_KEY}, inplace=True)
+    adata = sc.read_h5ad(config_task['data']['path'])
+    print(adata.obs.columns)
 
+    adata.obs[PERT_KEY] = adata.obs[config_task['data']['pert_key']]
+    adata.obs[CELL_KEY] = adata.obs[config_task['data']['cell_key']]
+
+
+    adata.obs.rename({config_task['data']['pert_key']: PERT_KEY, config_task['data']['cell_key']: CELL_KEY}, inplace=True)
+
+
+    print(adata.obs.columns)
     """ pert_types = adata.obs[config_task['pert_col']].unique()
     cell_types = adata.obs[config_task['cell_col']].unique()
 
@@ -58,17 +66,9 @@ def main(*args):
 
     #Load the data according to the config: 
 
-    hash_dir = hashlib.sha256(json.dumps(config).encode()).hexdigest()
-    
-    #We should pass this to the model to load checkpoints (eventually)
-    save_path = Path(f"./results/{hash_dir}").resolve()
 
 
-    if not os.path.exists(save_path):
-        os.makedirs(save_path)
 
-    with open(f"{save_path}/config.json", 'w') as f:
-        yaml.dump(config, f, indent=2)
 
 
 
@@ -78,8 +78,23 @@ def main(*args):
     #REGISTER YOUR MODELS HERE
     model = None
     model_name = config_model['name']
-    if model_name == 'nearest_cell_type':
-        from models.nearest_cell_type import NearestNeighborPredictor
+
+            
+    hash_dir = hashlib.sha256(json.dumps(config).encode()).hexdigest()
+        
+    #We should pass this to the model to load checkpoints (eventually)
+    save_path = Path(f"./results/{model_name}/{hash_dir}").resolve()
+
+
+    if not os.path.exists(save_path):
+        os.makedirs(save_path)
+
+    with open(f"{save_path}/config.json", 'w+') as f:
+        yaml.dump(config, f, indent=2)
+
+    if model_name == 'nearest_neighbor':
+        from omnicell.models.nearest_cell_type.NearestNeighborPredictor import NearestNeighborPredictor
+
         model = NearestNeighborPredictor(config_model)
 
     elif model_name == 'transformer':
@@ -93,26 +108,20 @@ def main(*args):
         raise ValueError('Unknown model name')
     
 
-        
-    hash_dir = hashlib.sha256(json.dumps(config).encode()).hexdigest()
-        
-    #We should pass this to the model to load checkpoints (eventually)
-    save_path = Path(f"./results/{model_name}").resolve()
 
 
-    if not os.path.exists(save_path):
-        os.makedirs(save_path)
-
-    with open(f"{save_path}/config.json", 'w') as f:
-        yaml.dump(config, f, indent=2)
     #Every fold corresponds to a training
     #We need to split the data according to the task config
     splitter = Splitter(config_task)
     folds = splitter.split(adata)
         
 
-    for i, adata_train, adata_eval, holdout_perts, holdout_cells in enumerate(folds):
+    for i, (adata_train, adata_eval, holdout_perts, holdout_cells) in enumerate(folds):
         fold_save = save_path / f"fold_{i}"
+
+        if not os.path.exists(fold_save):
+            os.makedirs(fold_save)
+
 
 
         #TODO: We will need to see how we handle the checkpointing logic with folds and stuff
@@ -120,11 +129,11 @@ def main(*args):
 
 
         #If we have random splitting we need to save the holdout perts and cells as these will not be the same for each fold
-        with open(fold_save / f"holdout_perts.json", 'w') as f:
-            json.dump(holdout_perts)
+        with open(fold_save / f"holdout_perts.json", 'w+') as f:
+            json.dump(holdout_perts, f)
 
-        with open(fold_save / f"holdout_cells.json", 'w') as f:
-            json.dump(holdout_cells)
+        with open(fold_save / f"holdout_cells.json", 'w+') as f:
+            json.dump(holdout_cells, f)
 
 
 
@@ -132,22 +141,18 @@ def main(*args):
         #Each instance in this loop will define a task --> We need preds, ground truth and control
         #Making preds across perts
         for pert in holdout_perts:
+            print(f"Making predictions for perturbation {pert}")
             #We need some ground truth data to save
 
             #Problem is that it would be easier to let the model to all that shit but then we are not sure what was the 
 
-            adata_ground_truth = adata_eval.obs[(adata_eval.obs[PERT_KEY] == pert) & (adata_eval.obs[CELL_TYPE_KEY] not in holdout_cells)]
+            adata_ground_truth = adata_eval.obs[(adata_eval.obs[PERT_KEY] == pert) & (adata_eval.obs[CELL_KEY] not in holdout_cells)]
 
 
             #TODO: Across genes the control data is also in the training data, should we exclude some to have it separate?
             adata_control = adata_train.obs[adata_train.obs[PERT_KEY] == CONTROL_PERT]            
             
             adata_predictions = model.predict_across_pert(pert)
-
-            folds_save = save_path / f"fold_{i}"
-
-            if not os.path.exists(folds_save):
-                os.makedirs(folds_save)
 
             np.savez(
                     f"{save_path}/pred_{pert}_no_cell_holdout.npz", 

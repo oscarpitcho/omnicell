@@ -7,13 +7,13 @@ data:
 
 data: 
   path: /orcd/archive/abugoot/001/Projects/dlesman/datasets/satija_IFNB_HVG_and_perturbed_genes_normed.h5ad
-  cell_type_key: cell_type
-  pert_key: pert_type
-  control: unst
+  cell_key: cell_type
+  pert_key: gene
+  control: NT
 
 datasplit:
   #holdout_cells: [xxx]
-  holdout_perts: #Thi
+  holdout_perts: [IFNAR1, IFNAR2, USP18]
   
   #test_size: 0.2
   #Something like this later on, i.e. stratification

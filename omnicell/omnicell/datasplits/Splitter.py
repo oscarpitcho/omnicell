@@ -1,4 +1,4 @@
-from ..constants import PERT_KEY, CELL_TYPE_KEY, CONTROL_PERT
+from omnicell.constants import PERT_KEY, CELL_KEY, CONTROL_PERT
 import numpy as np
 import scanpy as sc
 from typing import List, Tuple, Dict
@@ -19,8 +19,8 @@ class Splitter:
     def __init__(self, task_config):
         self.config = task_config
 
-        self.holdout_cells = self.config.get('cell_holdout', [])
-        self.holdout_perts = self.config.get('pert_holdout', [])
+        self.holdout_cells = self.config['datasplit'].get('holdout_cells', [])
+        self.holdout_perts = self.config['datasplit'].get('holdout_perts', [])
 
 
     def split(self, data: sc.AnnData)-> List[Tuple[sc.AnnData, sc.AnnData, List[str], List[str]]]:
@@ -56,9 +56,9 @@ class Splitter:
 
         #TODO: Implement random folds
 
-        train_mask = (data.obs[PERT_KEY] not in self.holdout_perts) & (data.obs[CELL_TYPE_KEY] not in self.holdout_cells)
-        adata_train = data.obs[train_mask]
-        adata_eval = data.obs[~train_mask]
+        train_mask = (~data.obs[PERT_KEY].isin(self.holdout_perts)) & (~data.obs[CELL_KEY].isin(self.holdout_cells))
+        adata_train = data[train_mask]
+        adata_eval = data[~train_mask]
 
 
         return [(adata_train, adata_eval, self.holdout_perts, self.holdout_cells)]
