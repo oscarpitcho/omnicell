@@ -123,6 +123,7 @@ def main(*args):
     folds = splitter.split(adata)
         
 
+    #What will happen when we have a pretrained model? All this logic will no longer be adequate
     for i, (adata_train, adata_eval, holdout_perts, holdout_cells) in enumerate(folds):
         fold_save = save_path / f"fold_{i}"
 
