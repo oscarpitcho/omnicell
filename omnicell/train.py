@@ -39,14 +39,19 @@ def main(*args):
 
     #This is part of the processing, should put it someplace else
     adata = sc.read_h5ad(config_task['data']['path'])
+
+    #Making it faster for testing
+    adata = adata[:10000]
     print(adata.obs.columns)
 
+
+    #Standardizing column names and key values
     adata.obs[PERT_KEY] = adata.obs[config_task['data']['pert_key']]
     adata.obs[CELL_KEY] = adata.obs[config_task['data']['cell_key']]
+    adata.obs[PERT_KEY] = adata.obs[PERT_KEY].cat.rename_categories({config_task['data']['control'] : CONTROL_PERT})
 
 
-    adata.obs.rename({config_task['data']['pert_key']: PERT_KEY, config_task['data']['cell_key']: CELL_KEY}, inplace=True)
-
+    print(adata.obs[PERT_KEY].unique())
 
     print(adata.obs.columns)
     """ pert_types = adata.obs[config_task['pert_col']].unique()
@@ -141,37 +146,47 @@ def main(*args):
         #Should all this logic be put in the splitter idk
         #Each instance in this loop will define a task --> We need preds, ground truth and control
         #Making preds across perts
+        across_perts_save = fold_save / "across_perts"
+        if not os.path.exists(across_perts_save):
+            os.makedirs(across_perts_save)
         for pert in holdout_perts:
             print(f"Making predictions for perturbation {pert}")
             #We need some ground truth data to save
 
             #Problem is that it would be easier to let the model to all that shit but then we are not sure what was the 
 
-            adata_ground_truth = adata_eval.obs[(adata_eval.obs[PERT_KEY] == pert) & (adata_eval.obs[CELL_KEY] not in holdout_cells)]
+            adata_ground_truth = adata_eval[(adata_eval.obs[PERT_KEY] == pert) & (~adata_eval.obs[CELL_KEY].isin(holdout_cells))]
 
 
             #TODO: Across genes the control data is also in the training data, should we exclude some to have it separate?
-            adata_control = adata_train.obs[adata_train.obs[PERT_KEY] == CONTROL_PERT]            
+            adata_control = adata_train[adata_train.obs[PERT_KEY] == CONTROL_PERT]            
             
             adata_predictions = model.predict_across_pert(pert)
 
             np.savez(
-                    f"{save_path}/pred_{pert}_no_cell_holdout.npz", 
+                    f"{across_perts_save}/pred_{pert}.npz", 
                     pred_pert=adata_predictions, 
-                    true_pert=adata_ground_truth, 
-                    control=adata_control,
+                    true_pert=adata_ground_truth.X, 
+                    control=adata_control.X,
                 )
             
 
-        """#TODO: Implement this later
-       
-       #Making preds across cells
-        for cell_type in holdout_cells:
+        across_cells_save = fold_save / "across_cells"
+        if not os.path.exists(across_cells_save):
+            os.makedirs(across_cells_save)
+
+        for ho_cell in holdout_cells:
+
+
+            #Seen perturbation on a completely unseen cell type
+            adata_ground_truth = adata_eval.obs[(~adata_eval.obs[PERT_KEY].isin(holdout_perts)) & (adata_eval.obs[CELL_KEY] == ho_cell)]
+
+            adata_control = adata_train.obs[adata_train.obs[PERT_KEY] == CONTROL_PERT]
 
 
 
 
-        #Making preds across cells and perts
+        """ #Making preds across cells and perts
         for target in targets:
             for cell in holdout_cells:
         """
