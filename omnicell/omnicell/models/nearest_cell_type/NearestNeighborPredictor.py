@@ -95,11 +95,11 @@ class NearestNeighborPredictor:
 
 
         assert self.train_adata is not None, "Model has not been trained yet"
-        assert target not in self.train_adata.obs['pert_type'].unique(), "Target perturbation is already in the training data"
+        assert target not in self.train_adata.obs[PERT_KEY].unique(), "Target perturbation is already in the training data"
         
         num_of_degs = self.config['num_of_degs']
 
-        unique_perturbations = self.train_adata.obs['pert_type'].unique()
+        unique_perturbations = self.train_adata.obs[PERT_KEY].unique()
         unique_genes_noholdout = unique_perturbations[unique_perturbations != CONTROL_PERT]
 
         DEGSlist = []

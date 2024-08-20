@@ -1,0 +1,21 @@
+args:
+  model_config: ./config/models/nearest_neighbor.yaml
+  task_config: ./config/tasks/test.yaml
+model_config:
+  name: nearest_neighbor
+  num_of_degs: 20
+  pvalcut: 0.05
+task_config:
+  data:
+    cell_key: cell_type
+    control: NT
+    path: /orcd/archive/abugoot/001/Projects/dlesman/datasets/satija_IFNB_HVG_and_perturbed_genes_normed.h5ad
+    pert_key: gene
+  dataloader:
+    batch_size: 128
+    shuffle: true
+  datasplit:
+    holdout_perts:
+    - IFNAR1
+    - IFNAR2
+    - USP18
