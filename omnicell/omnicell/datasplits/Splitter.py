@@ -19,8 +19,8 @@ class Splitter:
     def __init__(self, task_config):
         self.config = task_config
 
-        self.holdout_cells = self.config['datasplit'].get('holdout_cells', [])
-        self.holdout_perts = self.config['datasplit'].get('holdout_perts', [])
+        self.holdout_cells = self.config['datasplit']['training'].get('holdout_cells', [])
+        self.holdout_perts = self.config['datasplit']['training'].get('holdout_perts', [])
 
 
     def split(self, data: sc.AnnData)-> List[Tuple[sc.AnnData, sc.AnnData, List[str], List[str]]]:

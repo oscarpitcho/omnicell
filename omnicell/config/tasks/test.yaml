@@ -1,10 +1,3 @@
-data:
-  control: unst
-  target: LPS
-  pert_key: condition
-  path: /orcd/archive/abugoot/001/Projects/dlesman/datasets/satija_IFNB_HVG_and_perturbed_genes_normed.h5ad
-
-
 data: 
   path: /orcd/archive/abugoot/001/Projects/dlesman/datasets/satija_IFNB_HVG_and_perturbed_genes_normed.h5ad
   cell_key: cell_type
@@ -12,8 +5,19 @@ data:
   control: NT
 
 datasplit:
+  training:
+    #Random folds need to be implemented
+    holdout_cells: [A549, BXPC3]
+  task:
+
+    #What if there was a random fold before
+
+    #Targets on which we evaluate when we do the holdout, can be ALL
+    #If these are also heldout then we are evaluating on unseen cell + unseen pert
+    across_cells_targets: [IFNAR1, IFNAR2, USP18]
+
+
   #holdout_cells: [xxx]
-  holdout_perts: [IFNAR1, IFNAR2, USP18]
   
   #test_size: 0.2
   #Something like this later on, i.e. stratification

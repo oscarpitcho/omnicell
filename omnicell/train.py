@@ -49,7 +49,8 @@ def main(*args):
     adata.obs[PERT_KEY] = adata.obs[config_task['data']['pert_key']]
     adata.obs[CELL_KEY] = adata.obs[config_task['data']['cell_key']]
     adata.obs[PERT_KEY] = adata.obs[PERT_KEY].cat.rename_categories({config_task['data']['control'] : CONTROL_PERT})
-
+    print(adata.obs[CELL_KEY].unique())
+    adata = adata[:10000]
 
     print(adata.obs[PERT_KEY].unique())
 
@@ -94,7 +95,7 @@ def main(*args):
     if not os.path.exists(save_path):
         os.makedirs(save_path)
 
-    with open(f"{save_path}/config.json", 'w+') as f:
+    with open(f"{save_path}/config.yaml", 'w+') as f:
         yaml.dump(config, f, indent=2)
 
     if model_name == 'nearest_neighbor':
@@ -175,13 +176,28 @@ def main(*args):
         if not os.path.exists(across_cells_save):
             os.makedirs(across_cells_save)
 
+
+        #Nothing happens here if we do not have holdout cells
         for ho_cell in holdout_cells:
 
+            across_cells_targets = config_task['datasplit']['task']['across_cells_targets']
 
-            #Seen perturbation on a completely unseen cell type
-            adata_ground_truth = adata_eval.obs[(~adata_eval.obs[PERT_KEY].isin(holdout_perts)) & (adata_eval.obs[CELL_KEY] == ho_cell)]
+            for target in across_cells_targets:
+                adata_control = adata_eval[(adata_eval.obs[CELL_KEY] == ho_cell) & (adata_eval.obs[PERT_KEY] == CONTROL_PERT)]
+                adata_ground_truth = adata_eval[(adata_eval.obs[CELL_KEY] == ho_cell) & (adata_eval.obs[PERT_KEY] == target)]
 
-            adata_control = adata_train.obs[adata_train.obs[PERT_KEY] == CONTROL_PERT]
+                #We pass data on the unseen cell type to the model
+                adata_predictions = model.predict_across_cell(adata_control, target)
+                np.savez(
+                    f"{across_cells_save}/pred_{ho_cell}_{target}.npz", 
+                    pred_pert=adata_predictions, 
+                    true_pert=adata_ground_truth.X, 
+                    control=adata_control.X,
+                )
+            #So here is the thing, we can evaluate the result on the holdout cell type on many different perturbation types and these can be in or out of distribution
+
+
+            
 
 
 
