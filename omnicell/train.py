@@ -18,8 +18,8 @@ def main(*args):
 
     parser = argparse.ArgumentParser(description='Analysis settings.')
 
-    parser.add_argument('--task', type=str, default='', help='Path to yaml config file of the task.')
-    parser.add_argument('--model', type=str, default='', help='Path to yaml config file of the model.')
+    parser.add_argument('--task_config', type=str, default='', help='Path to yaml config file of the task.')
+    parser.add_argument('--model_config', type=str, default='', help='Path to yaml config file of the model.')
 
 
     args = parser.parse_args()
@@ -36,9 +36,12 @@ def main(*args):
     #Store the config and the paths to the config to make reproducibility easier. 
     config = {'args': args.__dict__, 'model_config': config_model, 'task_config': config_task}
 
-    adata = sc.read_h5ad(config_task['dataset'])
 
-    pert_types = adata.obs[config_task['pert_col']].unique()
+    #This is part of the processing, should put it someplace else
+    adata = sc.read_h5ad(config_task['dataset'])
+    adata = adata.obs.rename({config_task['pert_col']: PERT_KEY, config_task['cell_col']: CELL_TYPE_KEY}, inplace=True)
+
+    """ pert_types = adata.obs[config_task['pert_col']].unique()
     cell_types = adata.obs[config_task['cell_col']].unique()
 
 
@@ -47,9 +50,8 @@ def main(*args):
         pert_holdout_fraction = pert_holdout_fraction
 
         pert_holdout = np.random.choice(pert_types, int(pert_holdout_fraction * len(pert_types)), replace=False)
-
-    #TODO: Implement if a single holdout pert
-    """    elif config_task.get('pert_holdout', None) is not None:
+     #TODO: Implement if a single holdout pert
+    elif config_task.get('pert_holdout', None) is not None:
         pert_holdout = pert_holdout"""
     
     #We need to load the data at this level and pass it on to the model 
@@ -75,15 +77,16 @@ def main(*args):
 
     #REGISTER YOUR MODELS HERE
     model = None
-    if args.model == 'nearest_cell_type':
+    model_name = config_model['name']
+    if model_name == 'nearest_cell_type':
         from models.nearest_cell_type import NearestNeighborPredictor
         model = NearestNeighborPredictor(config_model)
 
-    elif args.model == 'transformer':
+    elif model_name == 'transformer':
         #from cellot.models.cfm import train
         raise NotImplementedError()
 
-    elif args.model == 'vae':
+    elif model_name == 'vae':
         raise NotImplementedError()
     
     else:
@@ -94,7 +97,7 @@ def main(*args):
     hash_dir = hashlib.sha256(json.dumps(config).encode()).hexdigest()
         
     #We should pass this to the model to load checkpoints (eventually)
-    save_path = Path(f"./results/{args.model}").resolve()
+    save_path = Path(f"./results/{model_name}").resolve()
 
 
     if not os.path.exists(save_path):
