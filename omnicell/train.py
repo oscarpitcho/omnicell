@@ -78,7 +78,6 @@ def main(*args):
     if args.model == 'nearest_cell_type':
         from models.nearest_cell_type import NearestNeighborPredictor
         model = NearestNeighborPredictor(config_model)
-        path = save_path / 'model'
 
     elif args.model == 'transformer':
         #from cellot.models.cfm import train
@@ -104,30 +103,29 @@ def main(*args):
     with open(f"{save_path}/config.json", 'w') as f:
         yaml.dump(config, f, indent=2)
     #Every fold corresponds to a training
-
-
     #We need to split the data according to the task config
     splitter = Splitter(config_task)
     folds = splitter.split(adata)
         
 
-    for i, fold in enumerate(folds):
-
-        #Here we need to save the fold of the config --> Like what were the genes that were held out
-
-        training_data = fold['train']
-        control_data = fold['control']
-
-        #What if either of those are empty?
-        holdout_perts = fold['holdout_perts']
-        holdout_cells = fold['holdout_cells']
+    for i, adata_train, adata_eval, holdout_perts, holdout_cells in enumerate(folds):
+        fold_save = save_path / f"fold_{i}"
 
 
         #TODO: We will need to see how we handle the checkpointing logic with folds and stuff
-        model.train(training_data)
+        model.train(adata_train)
+
+
+        #If we have random splitting we need to save the holdout perts and cells as these will not be the same for each fold
+        with open(fold_save / f"holdout_perts.json", 'w') as f:
+            json.dump(holdout_perts)
+
+        with open(fold_save / f"holdout_cells.json", 'w') as f:
+            json.dump(holdout_cells)
 
 
 
+        #Should all this logic be put in the splitter idk
         #Each instance in this loop will define a task --> We need preds, ground truth and control
         #Making preds across perts
         for pert in holdout_perts:
@@ -135,19 +133,26 @@ def main(*args):
 
             #Problem is that it would be easier to let the model to all that shit but then we are not sure what was the 
 
-            #THis is wrong --> The model shouldn't have seen the ground truth
-            ground_truth = training_data.obs[training_data.obs[PERT_KEY] == pert]
-            control = training_data.obs[training_data.obs[PERT_KEY] == CONTROL_PERT]
-            predict = model.predict_across_pert(pert)
+            adata_ground_truth = adata_eval.obs[(adata_eval.obs[PERT_KEY] == pert) & (adata_eval.obs[CELL_TYPE_KEY] not in holdout_cells)]
 
 
+            #TODO: Across genes the control data is also in the training data, should we exclude some to have it separate?
+            adata_control = adata_train.obs[adata_train.obs[PERT_KEY] == CONTROL_PERT]            
+            
+            adata_predictions = model.predict_across_pert(pert)
 
+            folds_save = save_path / f"fold_{i}"
 
+            if not os.path.exists(folds_save):
+                os.makedirs(folds_save)
 
-        
-
-
-
+            np.savez(
+                    f"{save_path}/pred_{pert}_no_cell_holdout.npz", 
+                    pred_pert=adata_predictions, 
+                    true_pert=adata_ground_truth, 
+                    control=adata_control,
+                )
+            
 
         """#TODO: Implement this later
        
