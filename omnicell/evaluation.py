@@ -9,6 +9,9 @@ import json
 import numpy as np
 import random
 
+
+#Evaluation takes a target model and runs evals on it 
+
 random.seed(42)
 
 def main(*args):
