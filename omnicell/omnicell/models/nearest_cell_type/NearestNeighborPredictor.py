@@ -3,34 +3,21 @@ import scanpy as sc
 import numpy as np
 import pandas as pd
 import torch
-from ...constants import PERT_KEY, CELL_TYPE_KEY, CONTROL_PERT
+from omnicell.constants import PERT_KEY, CELL_KEY, CONTROL_PERT
 
 
 
-class NearestNeighborPredictor():
+class NearestNeighborPredictor:
     def __init__(self, config):
-        self.mode = config['mode']
         self.config = config
         self.train_adata = None
 
 
-
-
+        #TODO: We can compute means here for some extra perf
 
     def train(self, adata):
 
         self.train_adata = adata
-
-        #Mode across cells
-        cell_types = adata.obs['cell_type'].unique()
-        train_cell_type_means = []
-
-        for cell_type in cell_types:
-            train_cell_type_means.append(adata[adata.obs['cell_type'] == cell_type].X.mean(axis=0))
-
-
-        train_cell_type_ctrl_means = np.array(train_cell_type_means)
-
 
         #Mode across perturbations
 
@@ -63,7 +50,7 @@ class NearestNeighborPredictor():
         train_cell_type_ctrl_means = []
 
         for cell_type in cell_types:
-            train_cell_type_ctrl_means.append(self.train_adata[(self.train_adata.obs[CELL_TYPE_KEY] == cell_type) & (self.train_adata.obs[PERT_KEY] == CONTROL_PERT)].X.mean(axis=0))
+            train_cell_type_ctrl_means.append(self.train_adata[(self.train_adata.obs[CELL_KEY] == cell_type) & (self.train_adata.obs[PERT_KEY] == CONTROL_PERT)].X.mean(axis=0))
 
         
         train_cell_type_ctrl_means = np.array(train_cell_type_ctrl_means)
@@ -77,7 +64,7 @@ class NearestNeighborPredictor():
         closest_cell_type_idx = np.argmin(np.sum((train_cell_type_ctrl_means - heldout_cell_ctrl_mean)**2, axis=1))
         closest_cell_type = cell_types[closest_cell_type_idx]
 
-        perturbed_closest_cell_type = self.train_adata[(self.train_adata.obs[CELL_TYPE_KEY] == closest_cell_type) & (self.train_adata.obs[PERT_KEY] == target_pert)].X.mean(axis=0)
+        perturbed_closest_cell_type = self.train_adata[(self.train_adata.obs[CELL_KEY] == closest_cell_type) & (self.train_adata.obs[PERT_KEY] == target_pert)].X.mean(axis=0)
 
         pert_effect = perturbed_closest_cell_type - train_cell_type_ctrl_means[closest_cell_type_idx]
 
@@ -88,7 +75,7 @@ class NearestNeighborPredictor():
 
 
     #SO I want to predict across genes --> Two options either we provide the data or we don't provide the data on which the prediction is made
-    def predict_across_gene(self, target: str) -> np.ndarray:
+    def predict_across_pert(self, target: str) -> np.ndarray:
         """
         Makes a prediction for an unseen perturbation using all training control data.
         
@@ -187,7 +174,7 @@ class NearestNeighborPredictor():
 
         #Mean control state of each cell type
 
-        cell_types = self.train_adata.obs[CELL_TYPE_KEY].unique()
+        cell_types = self.train_adata.obs[CELL_KEY].unique()
 
         cell_type_to_index = {cell_type: i for i, cell_type in enumerate(cell_types)}
 
@@ -195,12 +182,12 @@ class NearestNeighborPredictor():
         train_cell_type_ctrl_means = []
 
         for cell_type in cell_types:
-            train_cell_type_ctrl_means.append(self.train_adata[(self.train_adata.obs[CELL_TYPE_KEY] == cell_type) & (self.train_adata.obs[PERT_KEY] == CONTROL_PERT)].X.mean(axis=0))
+            train_cell_type_ctrl_means.append(self.train_adata[(self.train_adata.obs[CELL_KEY] == cell_type) & (self.train_adata.obs[PERT_KEY] == CONTROL_PERT)].X.mean(axis=0))
 
         
         nbr_pert_effect_per_cell_type = []
         for cell_type in cell_types:
-            perturbed_cell_type = self.train_adata[(self.train_adata.obs[CELL_TYPE_KEY] == cell_type) & (self.train_adata.obs[PERT_KEY] == nnbr_pert)].X.mean(axis=0)
+            perturbed_cell_type = self.train_adata[(self.train_adata.obs[CELL_KEY] == cell_type) & (self.train_adata.obs[PERT_KEY] == nnbr_pert)].X.mean(axis=0)
             pert_effect = perturbed_cell_type - train_cell_type_ctrl_means[cell_type_to_index[cell_type]]
             nbr_pert_effect_per_cell_type.append(pert_effect)
 
@@ -214,7 +201,7 @@ class NearestNeighborPredictor():
 
         for cell_type in cell_types:
             cell_type_effect = nbr_pert_effect_per_cell_type[cell_type_to_index[cell_type]]
-            predictions[predictions.obs[CELL_TYPE_KEY] == cell_type].X += cell_type_effect
+            predictions[predictions.obs[CELL_KEY] == cell_type].X += cell_type_effect
 
 
         return predictions.X

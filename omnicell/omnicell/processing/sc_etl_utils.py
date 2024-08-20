@@ -3,7 +3,7 @@ import numpy as np
 import scanpy as sc
 from typing import List
 
-from ..constants import PERT_KEY, CELL_TYPE_KEY, CONTROL_PERT
+from ..utils.constants import PERT_KEY, CELL_TYPE_KEY, CONTROL_PERT
 
 
 """
