@@ -100,7 +100,7 @@ class NearestNeighborPredictor:
         num_of_degs = self.config['num_of_degs']
 
         unique_perturbations = self.train_adata.obs[PERT_KEY].unique()
-        unique_genes_noholdout = unique_perturbations[unique_perturbations != CONTROL_PERT]
+        unique_genes_noholdout = [ug for ug in unique_perturbations if ug!=target]
 
         DEGSlist = []
         GTOlist = []
@@ -111,13 +111,9 @@ class NearestNeighborPredictor:
             pert = np.array(inp[inp.obs[PERT_KEY] == ug].X.todense())
             
             control = sc.AnnData(X=cont)
-            
-            control.obs['condition_key'] = 'control'
-            
+                        
             true_pert = sc.AnnData(X=pert)
-            
-            true_pert.obs['condition_key'] = 'perturbed'
-            
+        
             
             control.obs_names = control.obs_names+'-1'
             control.X[0,(control.X.var(axis=0)==0)] += np.amin(control.X[np.nonzero(control.X)])
