@@ -2,21 +2,20 @@ data:
   control: unst
   target: LPS
   pert_key: condition
-  path: datasets/scrna-crossspecies/hvg-top1k-train-only.h5ad
+  path: /orcd/archive/abugoot/001/Projects/dlesman/datasets/satija_IFNB_HVG_and_perturbed_genes_normed.h5ad
 
 
 data: 
-
-  #This is are crucial
+  path: /orcd/archive/abugoot/001/Projects/dlesman/datasets/satija_IFNB_HVG_and_perturbed_genes_normed.h5ad
   cell_type_key: cell_type
-  pert_key: condition
+  pert_key: pert_type
   control: unst
 
 datasplit:
-  holdout_cells : 
+  #holdout_cells: [xxx]
   holdout_perts: #Thi
-  key: species 
   
+  #test_size: 0.2
   #Something like this later on, i.e. stratification
   #groupby: ['species', 'condition']
 
