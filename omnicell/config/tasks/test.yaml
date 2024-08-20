@@ -17,12 +17,8 @@ datasplit:
   holdout_perts: #Thi
   key: species 
   
-  Something like this later on
+  #Something like this later on, i.e. stratification
   #groupby: ['species', 'condition']
-  name: toggle_ood
-  mode: ood
-  test_size: 500
-  random_state: 0
 
     
 dataloader:
