@@ -8,6 +8,7 @@ import hashlib
 import json
 import numpy as np
 import random
+from datasplits.Splitter import Splitter
 from .constants import PERT_KEY, CELL_TYPE_KEY, CONTROL_PERT
 
 
@@ -69,8 +70,6 @@ def main(*args):
 
 
 
-    #We need to split the data according to the task config
-        
 
     #For data dep models we have access to datashapes and we can pass them when instantiating the model
 
@@ -78,7 +77,8 @@ def main(*args):
     model = None
     if args.model == 'nearest_cell_type':
         from models.nearest_cell_type import NearestNeighborPredictor
-        model = NearestNeighborPredictor(config_model)    
+        model = NearestNeighborPredictor(config_model)
+        path = save_path / 'model'
 
     elif args.model == 'transformer':
         #from cellot.models.cfm import train
@@ -91,9 +91,29 @@ def main(*args):
         raise ValueError('Unknown model name')
     
 
+        
+    hash_dir = hashlib.sha256(json.dumps(config).encode()).hexdigest()
+        
+    #We should pass this to the model to load checkpoints (eventually)
+    save_path = Path(f"./results/{args.model}").resolve()
+
+
+    if not os.path.exists(save_path):
+        os.makedirs(save_path)
+
+    with open(f"{save_path}/config.json", 'w') as f:
+        yaml.dump(config, f, indent=2)
     #Every fold corresponds to a training
 
-    for fold in folds:
+
+    #We need to split the data according to the task config
+    splitter = Splitter(config_task)
+    folds = splitter.split(adata)
+        
+
+    for i, fold in enumerate(folds):
+
+        #Here we need to save the fold of the config --> Like what were the genes that were held out
 
         training_data = fold['train']
         control_data = fold['control']
@@ -102,6 +122,8 @@ def main(*args):
         holdout_perts = fold['holdout_perts']
         holdout_cells = fold['holdout_cells']
 
+
+        #TODO: We will need to see how we handle the checkpointing logic with folds and stuff
         model.train(training_data)
 
 
@@ -112,8 +134,17 @@ def main(*args):
             #We need some ground truth data to save
 
             #Problem is that it would be easier to let the model to all that shit but then we are not sure what was the 
-            ground_truth = training_data.obs[training_data.obs[]]
+
+            #THis is wrong --> The model shouldn't have seen the ground truth
+            ground_truth = training_data.obs[training_data.obs[PERT_KEY] == pert]
+            control = training_data.obs[training_data.obs[PERT_KEY] == CONTROL_PERT]
             predict = model.predict_across_pert(pert)
+
+
+
+
+
+        
 
 
 
