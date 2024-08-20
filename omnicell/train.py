@@ -96,6 +96,7 @@ def main(*args):
         from omnicell.models.nearest_cell_type.NearestNeighborPredictor import NearestNeighborPredictor
 
         model = NearestNeighborPredictor(config_model)
+        print(f"Model {model}")
 
     elif model_name == 'transformer':
         #from cellot.models.cfm import train
