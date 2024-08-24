@@ -1,4 +1,6 @@
-
+import torch 
+import scanpy as sc
+import numpy as np
 #Bit of a guide so I don't forget what I'm doing
 
 class TemplateModel():
@@ -21,6 +23,7 @@ class TemplateModel():
     
 
     #I mean to we need to evaluate anything? 
-    def evaluate():
+    def make_predict(self, adata: sc.AnnData | torch.DataLoader, pert_id: str, cell_type: str) -> np.ndarray:
+        pass 
 
 

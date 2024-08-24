@@ -1,3 +1,5 @@
+name: test
+
 data: 
   path: /orcd/archive/abugoot/001/Projects/dlesman/datasets/satija_IFNB_HVG_and_perturbed_genes_normed.h5ad
   cell_key: cell_type
@@ -7,14 +9,19 @@ data:
 datasplit:
   training:
     #Random folds need to be implemented
-    holdout_cells: [A549, BXPC3]
-  task:
+    #TODO: More complex splits
+
+    #Annoying part is if we have random splits how will we define the tasks? -
+    holdout_cells: [A549]
+
+  evals:
 
     #What if there was a random fold before
 
     #Targets on which we evaluate when we do the holdout, can be ALL
     #If these are also heldout then we are evaluating on unseen cell + unseen pert
-    across_cells_targets: [IFNAR1, IFNAR2, USP18]
+    #Set the combinations to evaluate on, we can implement more complex commands later on
+    evaluation_targets: [[A549, USP18], [A549, IFNAR1], [A549, IFNAR2]]
 
 
   #holdout_cells: [xxx]

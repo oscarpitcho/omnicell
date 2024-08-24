@@ -46,93 +46,6 @@ Bullet points are sorted by increasing difficulty
 
 """
 
-def generate_split_across_genes(adata: sc.AnnData, holdout_perts: str | List[str], allow_in_distribution: bool, ctrl_frac_eval: float = 0.1):
-    """
-    Generate a split across genes for the holdout perturbations
-
-    Perturbations that are not in the holdout set are in the training set.
-    ctrl_frac_eval is the fraction of the control perturbations to be used for evaluation
-
-    Parameters
-    ----------
-    adata : AnnData
-        The AnnData object to split
-    holdout_perts : str | List[str]
-
-    allow_in_distribution : bool
-        NOT IMPLEMENTED YET
-    
-    ctrl_frac_eval : float
-
-    Returns
-    -------
-    Tuple[sc.AnnData, sc.AnnData, sc.AnnData, sc.AnnData]
-        Tuple of (train_pert, ctrl_train, ctrl_eval, holdouts)
-
-    """
-
-    holdout_perts = [holdout_perts] if isinstance(holdout_perts, str) else holdout_perts
-    
-    
-    holdout_idx = adata.obs[PERT_KEY].isin(holdout_perts)
-    ctrl_idx = adata.obs[PERT_KEY] == CONTROL_PERT
-
-    ctrl_eval_idx = ctrl_idx & np.random.choice([True, False], size=ctrl_idx.shape, p=[ctrl_frac_eval, 1-ctrl_frac_eval])
-    ctrl_train_idx = ctrl_idx & ~ctrl_eval_idx
-
-    train_pert_idx = ~holdout_idx & ~ctrl_eval_idx
-
-    return adata[train_pert_idx], adata[ctrl_train_idx], adata[ctrl_eval_idx], adata[holdout_idx]
-
-
-def generate_random_split_across_genes(adata, folds = 5, ctrl_frac_eval = 0.1):
-    """
-    Generate a random split across genes for the holdout perturbations
-
-    Parameters
-    ----------
-    adata : AnnData
-        The AnnData object to split
-    folds : int
-        The number of folds to generate, number of holdout perturbations per fold is ~ len(perturbations) / folds
-
-    ctrl_frac_eval : float
-
-    Returns
-    -------
-    List[Dict[str, sc.AnnData]]
-        List of dictionaries containing the fold number and the data for that fold
-        {'fold' : _perts_in_the_fold_ , 'data' : (train_pert, ctrl_train, ctrl_eval, holdouts)}
-    """
-
-    perturbations = adata.obs[PERT_KEY].unique()
-
-    folds = [np.random.choice(perturbations, size=int(len(perturbations) / folds), replace=False) for _ in range(folds)]
-
-    return [{ 'fold' : fold, 'data' : generate_split_across_genes(adata, fold, ctrl_frac_eval)} for fold in folds]
-
-
-def generate_splt_across_cells(adata, holdout_cells: str | List[str], allow_in_distribution: bool):
-
-    holdout_cells = [holdout_cells] if isinstance(holdout_cells, str) else holdout_cells
-
-    holdout_idx = adata.obs[CELL_TYPE_KEY].isin(holdout_cells)
-    training_idx = ~holdout_idx
-
-
-    #This piece of code is completely perturbation agnostic, is that good or bad? 
-    return adata[training_idx], adata[holdout_idx]
-
-
-
-
-
-
-
-
-
-
-
 
 
     
@@ -150,12 +63,6 @@ def get_train_eval_idxs(
     pert_idx = adata.obs[pert_col] != control_pert
     # set the hold out cell-type/pert
     eval_idx = control_idx & False
-
-    #What does the zipping do? 
-    #This piece of code is in fact useless
-    for holdout_cell, holdout_pert in zip(holdout_cells, holdout_perts):
-        eval_idx |= (adata.obs[cell_col] == holdout_cell) & (adata.obs[pert_col] == holdout_pert)
-
     
     eval_cell_idx = adata.obs[cell_col].isin(holdout_cells)
     eval_pert_idx = adata.obs[pert_col].isin(holdout_perts)

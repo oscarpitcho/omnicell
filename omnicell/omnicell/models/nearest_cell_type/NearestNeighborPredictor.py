@@ -7,10 +7,12 @@ from omnicell.constants import PERT_KEY, CELL_KEY, CONTROL_PERT
 
 
 
-class NearestNeighborPredictor:
+class NearestNeighborPredictor():
     def __init__(self, config):
         self.config = config
         self.train_adata = None
+        self.seen_cell_types = None
+        self.seen_perts = None
 
 
         #TODO: We can compute means here for some extra perf
@@ -19,11 +21,29 @@ class NearestNeighborPredictor:
 
         self.train_adata = adata
 
+        self.seen_cell_types = adata.obs[CELL_KEY].unique()
+        self.seen_perts = adata.obs[PERT_KEY].unique()
+
         #Mode across perturbations
 
     
-    #Why does it see the gt data when making the prediction
-    def predict_across_cell(self, heldout_cell_adata: sc.AnnData, target_pert: str) -> np.ndarray:
+    #TODO: Add cell id
+    def make_predict(self, adata: sc.AnnData, pert_id: str, cell_type: str) -> np.ndarray:
+        assert self.train_adata is not None, "Model has not been trained yet"
+    
+        if cell_type in self.seen_cell_types:
+            if pert_id in self.seen_perts:
+                raise NotImplementedError("Both cell type and perturbation are in the training data, in distribution prediction not implemented yet")
+            else:
+                return self._predict_across_pert(pert_id)
+        else:
+            if pert_id in self.seen_perts:
+                return self._predict_across_cell(adata, pert_id, cell_type)
+            else:
+                raise NotImplementedError("Both cell type and perturbation are not in the training data, out of distribution prediction not implemented yet")
+               
+
+    def _predict_across_cell(self, heldout_cell_adata: sc.AnnData, target_pert: str, cell_id: str) -> np.ndarray:
         """
         Makes a prediction for a seen target perturbation given some unseen cell type. 
         
@@ -34,7 +54,7 @@ class NearestNeighborPredictor:
         heldout_cell_adata : AnnData
             The AnnData object containing the unseen cell type (and only that cell type) with control perturbation
         target_pert : str
-            The target perturbation to predict
+            The target perturbation ID to predict
 
         Returns
         -------
@@ -65,8 +85,6 @@ class NearestNeighborPredictor:
         #Mean control state of the heldout cell
         heldout_cell_ctrl_mean = heldout_cell_adata.X.mean(axis=0)
 
-        print(heldout_cell_ctrl_mean.shape)
-        print(train_cell_type_ctrl_means.shape)
 
         diffs = train_cell_type_ctrl_means - heldout_cell_ctrl_mean
 
@@ -91,7 +109,7 @@ class NearestNeighborPredictor:
 
 
     #SO I want to predict across genes --> Two options either we provide the data or we don't provide the data on which the prediction is made
-    def predict_across_pert(self, target: str) -> np.ndarray:
+    def _predict_across_pert(self, target: str) -> np.ndarray:
         """
         Makes a prediction for an unseen perturbation using all training control data.
         
