@@ -50,7 +50,7 @@ def main(*args):
         pert_holdout = np.random.choice(pert_types, int(pert_holdout_fraction * len(pert_types)), replace=False)
 
     #TODO: Implement if a single holdout pert
-    """    elif config_task.get('pert_holdout', None) is not None:
+    """elif config_task.get('pert_holdout', None) is not None:
         pert_holdout = pert_holdout"""
     
     #We need to load the data at this level and pass it on to the model 

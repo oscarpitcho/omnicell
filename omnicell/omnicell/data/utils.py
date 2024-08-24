@@ -1,13 +1,15 @@
 import scanpy as sc
 
 #Importing union type
-from typing import Either, List, Tuple
+from typing import List, Tuple, Union
+from omnicell.constants import PERT_KEY, CELL_KEY, CONTROL_PERT
 
 
+def prediction_filename(pert, cell):
+    return f'pred_{pert}_{cell}.npz'
 
 
-
-def split_anndata(adata: sc.AnnData, holdout_perts: str | List[str], holdout_cells: str | List[str], pert_key: str, control_pert: str, cell_key: str) -> Tuple[sc.AnnData, sc.AnnData]:
+def split_anndata(adata: sc.AnnData, holdout_perts: Union[str, List[str]], holdout_cells: Union[str, List[str]], pert_key: str, cell_key: str) -> Tuple[sc.AnnData, sc.AnnData]:
     """
     Splits anndata object into two based on holdout perturbations and holdout cell types
     
@@ -26,3 +28,19 @@ def split_anndata(adata: sc.AnnData, holdout_perts: str | List[str], holdout_cel
     idx_train = ~idx_eval
 
     return adata[idx_train], adata[idx_eval]
+
+
+def get_pert_cell_data(adata: sc.AnnData, pert: str, cell: str) -> sc.AnnData:
+    """
+    Returns a view of the anndata object with only the specified perturbation on the specified cell type.
+    """
+
+    return adata[(adata.obs[PERT_KEY] == pert) & (adata.obs[CELL_KEY] == cell)]
+
+
+def get_cell_ctrl_data(adata: sc.AnnData, cell: str) -> sc.AnnData:
+    """
+    Returns a view of the anndata object with only the specified control data for the specified cell type. 
+    """
+
+    return adata[(adata.obs[CELL_KEY] == cell) & (adata.obs[PERT_KEY] == CONTROL_PERT)]
