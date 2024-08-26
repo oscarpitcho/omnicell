@@ -8,24 +8,24 @@ from typing import Iterator, Iterable, Optional, Sequence, List, TypeVar, Generi
 
 import numpy as np
 
+
+import torch
+from torchcfm.conditional_flow_matching import (
+    ExactOptimalTransportConditionalFlowMatcher,OTPlanSampler
+)
+
+from torch.utils.data import BatchSampler, SequentialSampler, Sampler
+from typing import Iterator, Iterable, Optional, Sequence, List, TypeVar, Generic, Sized, Union
+
+import numpy as np
+
+
+from torch.utils.data import BatchSampler, SequentialSampler, Sampler
+from typing import Iterator, Iterable, Optional, Sequence, List, TypeVar, Generic, Sized, Union
+
 class StratifiedBatchSampler(Sampler[List[int]]):
-    r"""Wraps another sampler to yield a mini-batch of indices.
-
-    Args:
-        sampler (Sampler or Iterable): Base sampler. Can be any iterable object
-        batch_size (int): Size of mini-batch.
-        drop_last (bool): If ``True``, the sampler will drop the last batch if
-            its size would be less than ``batch_size``
-
-    Example:
-        >>> list(BatchSampler(SequentialSampler(range(10)), batch_size=3, drop_last=False))
-        [[0, 1, 2], [3, 4, 5], [6, 7, 8], [9]]
-        >>> list(BatchSampler(SequentialSampler(range(10)), batch_size=3, drop_last=True))
-        [[0, 1, 2], [3, 4, 5], [6, 7, 8]]
-    """
-
     def __init__(
-        self, sampler: Union[Sampler[int], Iterable[int]], batch_size: int, drop_last: bool, probs, num_strata
+        self, ns, batch_size: int
     ) -> None:
         # Since collections.abc.Iterable does not check for `__getitem__`, which
         # is one way for an object to be an iterable, we don't do an `isinstance`
@@ -33,85 +33,37 @@ class StratifiedBatchSampler(Sampler[List[int]]):
         if not isinstance(batch_size, int) or isinstance(batch_size, bool) or \
                 batch_size <= 0:
             raise ValueError(f"batch_size should be a positive integer value, but got batch_size={batch_size}")
-        if not isinstance(drop_last, bool):
-            raise ValueError(f"drop_last should be a boolean value, but got drop_last={drop_last}")
-        self.sampler = sampler
+        
+        self.num_strata = np.prod(ns.shape)
+        self.ns = ns
+        self.probs = ns.flatten() / np.sum(ns)
+        print("Strata probs", np.sort(self.probs))
         self.batch_size = batch_size
-        self.drop_last = drop_last
-        self.probs = probs
-        self.num_strata = num_strata
+        self.batch_sizes = np.minimum(ns, batch_size)
+    
+    def get_random_stratum(self):
+        linear_idx = np.random.choice(self.num_strata, p=self.probs)
+        stratum = np.unravel_index(linear_idx, self.ns.shape)
+        return stratum
 
     def __iter__(self) -> Iterator[List[int]]:
         # Implemented based on the benchmarking in https://github.com/pytorch/pytorch/pull/76951
-        
-        if self.drop_last:
-            sampler_iter = iter(self.sampler)
-            while True:
-                stratum = np.repeat(np.random.choice(self.num_strata, p=self.probs), self.batch_size)
-                try:
-                    batch = [next(sampler_iter) for _ in range(self.batch_size)]
-                    yield zip(stratum, batch)
-                except StopIteration:
-                    break
-        else:
-            batch = [0] * self.batch_size
-            idx_in_batch = 0
-            stratum = np.repeat(np.random.choice(self.num_strata, p=self.probs), self.batch_size)
-            for idx in self.sampler:
-                batch[idx_in_batch] = idx
-                idx_in_batch += 1
-                if idx_in_batch == self.batch_size:
-                    yield zip(stratum, batch)
-                    idx_in_batch = 0
-                    batch = [0] * self.batch_size
-                    stratum = np.repeat(np.random.choice(self.num_strata, p=self.probs), self.batch_size)
-                if idx_in_batch > 0:
-                    yield zip(stratum, batch[:idx_in_batch])
+        while True:
+            stratum = self.get_random_stratum()
+            try:
+                batch_stratum = np.repeat(np.array(stratum)[None, :], self.batch_sizes[stratum], axis=0)
+                batch = np.random.choice(self.ns[stratum], self.batch_sizes[stratum], replace=False)
+                yield zip(batch_stratum, batch)
+            except StopIteration:
+                break
 
     def __len__(self) -> int:
         # Can only be called if self.sampler has __len__ implemented
         # We cannot enforce this condition, so we turn off typechecking for the
         # implementation below.
         # Somewhat related: see NOTE [ Lack of Default `__len__` in Python Abstract Base Classes ]
-        if self.drop_last:
-            return len(self.sampler) // self.batch_size  # type: ignore[arg-type]
-        else:
-            return (len(self.sampler) + self.batch_size - 1) // self.batch_size  # type: ignore[arg-type]
+        return np.sum(self.ns) // self.batch_size
 
-
-class FMDataset(torch.utils.data.Dataset):
-    def __init__(self, source, target, size=int(1e4)):
-        self.source = source
-        self.target = target
-        self.size = size
-
-    def __len__(self):
-        return self.size
-
-    def __getitem__(self, idx):
-        return self.source[idx], self.target[idx]
-
-
-class CFMDataset(torch.utils.data.Dataset):
-    def __init__(self, source, target, pert_ids, pert_mat, size=int(1e4)):
-        self.source = np.array(source)
-        self.target = np.array(target)
-        self.pert_ids = np.array(pert_ids)
-        self.pert_mat = np.array(pert_mat)
-        self.size = size
-
-        assert len(self.target) == len(self.pert_ids)
-
-    def __len__(self):
-        return self.size
-
-    def __getitem__(self, idx):
-        return (
-            self.source[idx % len(self.source)],
-            self.target[idx % len(self.target)],
-            self.pert_mat[self.pert_ids[idx % len(self.pert_ids)]],
-        )
-    
 class SCFMDataset(torch.utils.data.Dataset):
     def __init__(
         self, source, target, pert_ids, pert_mat, source_strata, target_strata, 
@@ -130,19 +82,22 @@ class SCFMDataset(torch.utils.data.Dataset):
         self.strata = np.unique(source_strata)
         self.num_strata = len(self.strata)
         
+        self.pert_ids = np.unique(pert_ids)
+        
         self.source = [source[source_strata == stratum] for stratum in self.strata]
-        self.target = [target[target_strata == stratum] for stratum in self.strata]
-        self.pert_ids = [pert_ids[target_strata == stratum] for stratum in self.strata] 
+        self.target = [
+            [
+                target[target_strata == stratum][pert_ids[target_strata == stratum] == pert_id] 
+                for pert_id in self.pert_ids
+            ] for stratum in self.strata
+        ]
+        self.pert_ids = [
+            [
+                pert_ids[target_strata == stratum][pert_ids[target_strata == stratum] == pert_id] 
+                for pert_id in self.pert_ids
+            ] for stratum in self.strata
+        ]
         self.pert_mat = pert_mat
-        if probs is None:
-            probs = np.array([
-                (self.source[stratum].shape[0] + self.target[stratum].shape[0]) \
-                * (self.source[stratum].shape[0] != 0) * (self.target[stratum].shape[0] != 0)
-                for stratum in range(self.num_strata)
-            ]).astype(float)
-            probs /= probs.sum()
-            print(probs)
-        self.probs = probs
         
 
     def __len__(self):
@@ -150,15 +105,12 @@ class SCFMDataset(torch.utils.data.Dataset):
 
     def __getitem__(self, strata_idx):
         stratum, idx = strata_idx
-        sidx = idx % len(self.source[stratum])
-        tidx = idx % len(self.target[stratum])
+        sidx = np.random.choice(self.source[stratum[0]].shape[0])
         return (
-            self.source[stratum][sidx],
-            self.target[stratum][tidx],
-            self.pert_mat[self.pert_ids[stratum][tidx]],
+            self.source[stratum[0]][sidx],
+            self.target[stratum[0]][stratum[1]][idx],
+            self.pert_mat[self.pert_ids[stratum[0]][stratum[1]][idx]],
         )
-
-
 
 class torch_wrapper(torch.nn.Module):
     def __init__(self, model, perturbation=None):
