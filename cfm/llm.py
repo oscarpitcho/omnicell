@@ -55,7 +55,9 @@ class PertEmbedder(torch.nn.Module):
         
     def forward(self, pert_index, pert_expression):
         pert_features = self.encoder.expression_embed(pert_expression.unsqueeze(-1))
-        pert_features = pert_features + self.encoder.pos_embedding.pos[:, pert_index, :] + self.pert_token
+        # pert_features = pert_features + self.encoder.pos_embedding.pos[:, pert_index, :] + self.pert_token
+        pert_pos = self.encoder.pos_embedding.pos[:, pert_index, :][0].unsqueeze(1)
+        pert_features = pert_features + pert_pos + self.pert_token
         return pert_features
 
 class MAE_Encoder(torch.nn.Module):
@@ -101,7 +103,9 @@ class MAE_Decoder(torch.nn.Module):
                  pos_embedding,
                  num_layer=6,
                  num_head=3,
-                 ff_dim=128
+                 ff_dim=128,
+                 true_sparsity=True,
+                 expr_activation='sigmoid'
                  ) -> None:
         super().__init__()
         
@@ -120,6 +124,15 @@ class MAE_Decoder(torch.nn.Module):
         )
 
         self.head = torch.nn.Linear(emb_dim, 2)
+        self.sigmoid = torch.nn.Sigmoid()
+        self.sparsity = BernoulliSampleLayer()
+        self.true_sparsity = true_sparsity
+        if expr_activation == 'sigmoid':
+            self.expr_activation = torch.nn.Sigmoid()
+        elif expr_activation == 'identity':
+            self.expr_activation = lambda x: x
+        else:
+            print("Error: expr_activation must be sigmoid or identity")
         
         nn.init.normal_(self.mask_token, std=.02)
 
@@ -140,47 +153,58 @@ class MAE_Decoder(torch.nn.Module):
         
         if pert_features is not None:
             features = features[:, N:, :]
-        expression, sparsity = self.head(features).unbind(-1)
+        expr_logits, sparsity_logits = self.head(features).unbind(-1)
         
-        mask = torch.zeros_like(expression)
+        mask = torch.zeros_like(expr_logits)
         mask[:, T:] = 1
         mask = take_indexes(mask, backward_indexes)
+        
+        expr = self.sigmoid(expr_logits)
+        
+        if self.true_sparsity:
+            sparsity_probs = self.sigmoid(sparsity_logits)
+            sparsity = self.sparsity(sparsity_probs)
+            expr = expr * sparsity
+            return expr, sparsity_probs, mask
 
-        return expression, sparsity, mask
+        return expr, mask
 
 class MAE(torch.nn.Module):
     def __init__(self,
                  input_dim,
+                 ff_dim=128,
                  emb_dim=48,
                  encoder_layer=6,
                  encoder_head=4,
                  decoder_layer=6,
                  decoder_head=4,
                  mask_ratio=0.75,
+                 true_sparsity=True,
+                 expr_activation='sigmoid'
                  ) -> None:
         super().__init__()
         
         self.pos_embedding = PosEmbedding(input_dim=input_dim)
-        self.encoder = MAE_Encoder(self.pos_embedding, encoder_layer, encoder_head, mask_ratio)
+        self.encoder = MAE_Encoder(self.pos_embedding, encoder_layer, encoder_head, mask_ratio, ff_dim=ff_dim)
         self.pert_embedding = PertEmbedder(self.encoder)
-        self.decoder = MAE_Decoder(self.pos_embedding, decoder_layer, decoder_head)
-        self.sigmoid = torch.nn.Sigmoid()
-        self.sparsity = BernoulliSampleLayer()
+        self.decoder = MAE_Decoder(
+            self.pos_embedding, decoder_layer, decoder_head, ff_dim=ff_dim,
+            true_sparsity=true_sparsity, expr_activation=expr_activation
+        )
 
-    def forward(self, batch, mask=True, pert_index=None, pert_expr=None):
+    def forward(self, batch, mask=True, pert_index=None, pert_expr=None, recon_and_pert=False):
         features, backward_indexes = self.encoder(batch, mask=mask)
         if pert_index is not None and pert_expr is not None:
             pert_features = self.pert_embedding(pert_index, pert_expr)
-            expr_logits, sparsity_logits, mask = self.decoder(
-                features, backward_indexes, pert_features=pert_features
-            )
+            if recon_and_pert:
+                recon_out = self.decoder(features, backward_indexes)
+                pert_out = self.decoder(
+                    features, backward_indexes, pert_features=pert_features
+                )
+                return recon_out, pert_out
+            else:            
+                return self.decoder(
+                    features, backward_indexes, pert_features=pert_features
+                )
         else:
-            expr_logits, sparsity_logits, mask = self.decoder(features, backward_indexes)
-        
-        sparsity_probs = self.sigmoid(sparsity_logits)
-        expr_binary = self.sigmoid(expr_logits)
-        
-        sparsity = self.sparsity(sparsity_probs)
-        expr = expr_binary * sparsity
-        
-        return expr, sparsity_probs, mask
+            return self.decoder(features, backward_indexes)
