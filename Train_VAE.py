@@ -85,7 +85,7 @@ def Train_VAE(inp, model_path='Models/', model_name='VAE', epochs=300, batsize=3
     datalen = inp.shape[0]
     indices = np.random.permutation(datalen)
     train = inp[indices[:np.int32(datalen*0.9)]]  # 90% training data
-    valid = inp[indices[np.int32(datalen*0.9):]]  # 10% validation data
+    valid = inp[np.int32(datalen*0.9):]  # 10% validation data
     
     trainlen = train.shape[0]
     validlen = valid.shape[0]
