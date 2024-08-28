@@ -224,8 +224,6 @@ class LLMPredictor:
     def train(self, data):
         pass
 
-
-
     def make_predict(self, adata: sc.AnnData | torch.DataLoader, pert_id: str, cell_type: str) -> np.ndarray:
             
 

@@ -1,23 +1,20 @@
 from os import listdir
-import scipy
 from scipy.sparse import issparse
 import anndata
 import scanpy as sc
 import numpy as np
 import pandas as pd
-import json
-import pickle 
-import argparse
+
 from scipy.stats import pearsonr
 
 def r2_mse_filename(pert, cell):
-    return f'r2_and_mse_{pert}_{cell}.pkl'
+    return f'r2_and_mse_{pert}_{cell}.json'
 
 def c_r_filename(pert, cell):
-    return f'c_r_results_{pert}_{cell}.pkl'
+    return f'c_r_results_{pert}_{cell}.json'
 
 def DEGs_overlap_filename(pert, cell):   
-    return f'DEGs_overlaps_{pert}_{cell}.pkl'
+    return f'DEGs_overlaps_{pert}_{cell}.json'
 
 
 def get_DEG_with_direction(gene, score):

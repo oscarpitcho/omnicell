@@ -8,11 +8,11 @@ use_active_weights: True
 
 model:
   ff_dim: 128
-  emb_dim: 48
-  encoder_layer: 6
-  encoder_head: 4
-  decoder_layer: 6
-  decoder_head: 4
+  emb_dim: 24
+  encoder_layer: 4
+  encoder_head: 3
+  decoder_layer: 4
+  decoder_head: 3
   mask_ratio: 0.75
   true_sparsity: True
   expr_activation: 'sigmoid'
