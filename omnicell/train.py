@@ -6,6 +6,7 @@ import sys
 import os
 import hashlib
 import json
+import logging
 import numpy as np
 import random
 from omnicell.data.splitter import Splitter
@@ -13,23 +14,30 @@ from omnicell.constants import PERT_KEY, CELL_KEY, CONTROL_PERT
 from omnicell.data.utils import get_pert_cell_data, get_cell_ctrl_data, prediction_filename
 from omnicell.config.config import Config
 
+logger = logging.getLogger(__name__)
+
 
 random.seed(42)
 
 def main(*args):
 
+    logging.basicConfig(filename= 'output.log', filemode= 'w', level=args.loglevel, format='%(asctime)s - %(levelname)s - %(message)s')
+    logger.info("Application started")
+
+
+
+    
+
     parser = argparse.ArgumentParser(description='Analysis settings.')
 
     parser.add_argument('--task_config', type=str, default='', help='Path to yaml config file of the task.')
     parser.add_argument('--model_config', type=str, default='', help='Path to yaml config file of the model.')
-
-
+    parser.add_argument('-l', '--log', dest='log_level', default='INFO', choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'], help='Logging level')
     args = parser.parse_args()
 
 
     model_path = Path(args.model_config).resolve()
     task_path = Path(args.task_config).resolve()
-
 
 
     config_model = yaml.load(open(model_path), Loader=yaml.UnsafeLoader)
@@ -70,13 +78,12 @@ def main(*args):
     with open(f"{save_path}/config.yaml", 'w+') as f:
         yaml.dump(config.to_dict(), f, indent=2, default_flow_style=False)
 
-
+    logger
     #Register your models here
     if model_name == 'nearest_neighbor':
         from omnicell.models.nearest_cell_type.NearestNeighborPredictor import NearestNeighborPredictor
-
+        logger.info("Nearest Neighbor model selected")
         model = NearestNeighborPredictor(config_model)
-        print(f"Model {model}")
 
     elif model_name == 'transformer':
         #from cellot.models.cfm import train
@@ -84,7 +91,7 @@ def main(*args):
 
     elif model_name == 'vae':
         from omnicell.models.VAE.vae import VAEPredictor
-
+        logger.info("VAE model selected")
         model = VAEPredictor(config_model)
     
     else:
@@ -126,22 +133,13 @@ def main(*args):
 
 
         for cell, pert in eval_targets:
-            print(f"Making predictions for perturbation {pert} on cell type {cell}")
-
+            logger.debug(f"Making predictions for {cell} and {pert}")
 
             #NOTE : These are taken on the entire data
             adata_ground_truth = get_pert_cell_data(adata, pert, cell)
             adata_control = get_cell_ctrl_data(adata, cell)
             preds = model.make_predict(adata_control, pert, cell)
 
-            print(f"Type of predictions {type(preds)}")
-            print(f"Type of adata_ground_truth.X {type(adata_ground_truth.X)}")
-            print(f"Type of adata_control.X {type(adata_control.X)}")
-
-
-            print(preds.shape)  
-            print(adata_ground_truth.X.shape)
-            print(adata_control.X.shape)
 
             np.savez(
                     f"{fold_save}/{prediction_filename(pert, cell)}",

@@ -4,6 +4,9 @@ import torch.nn.functional as F
 from torch import optim
 from numpy import genfromtxt
 import numpy as np
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class Net(nn.Module):
@@ -83,6 +86,12 @@ class VAEPredictor():
         
         self.epochs = self.training_config['epochs']
         self.batsize = self.training_config['batsize']
+
+        self.model_eval = Net(input_dim, self.model_config['hidden_dim'],
+                         self.model_config['latent_dim'], 
+                         self.training_config['alpha'],
+                         self.model_config['dropout_rate'],
+                         self.training_config['learning_rate'])
         
         self.model.eval()
         self.model.to(device)
@@ -102,11 +111,9 @@ class VAEPredictor():
         trainlen = train.shape[0]
         validlen = valid.shape[0]
 
-
-        num_genes = train.shape[1]
-        net = Net(num_genes)  
+        net = self.model
         net.to(device)  # Model for training
-        neteval = Net(num_genes)  # Model for evaluation
+        neteval = self.model_eval  # Model for evaluation
         neteval.to(device)
         neteval.eval()  # Set evaluation mode
 
@@ -130,8 +137,8 @@ class VAEPredictor():
                 loss.backward() 
                 running_loss += loss.item()
                 optimizer.step() 
-            print(f'Epoch {e+1}/{epochs}')
-            print(f'Train loss: {running_loss/1000000}')
+            logger.info(f'Epoch {e+1}/{epochs}')
+            logger.info(f'Train loss: {running_loss/1000000}')
         
             running_loss = 0
             state_dict = net.state_dict()
@@ -146,12 +153,7 @@ class VAEPredictor():
                     out, mu, logvar = neteval(batch)
                     loss = neteval.loss_function(out, batch, mu, logvar)
                     running_loss += loss.item()
-                print(f'Valid loss: {running_loss/1000000}')
-        
-
-    print(f'Saving model to {model_path}{model_name}.pth')
-    torch.save(net.state_dict(), f'{model_path}{model_name}.pth')  # Save model weights
-    params = [epochs, batsize, latent_dim, hidden_dim, dropout_rate, learning_rate, alpha, num_genes]
+                logger.info(f'Valid loss: {running_loss/1000000}')
         
 
     def make_predict(self, adata):
