@@ -11,6 +11,7 @@ import random
 from omnicell.data.splitter import Splitter
 from omnicell.constants import PERT_KEY, CELL_KEY, CONTROL_PERT
 from omnicell.data.utils import get_pert_cell_data, get_cell_ctrl_data, prediction_filename
+from omnicell.config.config import Config
 
 
 random.seed(42)
@@ -34,29 +35,30 @@ def main(*args):
     config_model = yaml.load(open(model_path), Loader=yaml.UnsafeLoader)
     config_task = yaml.load(open(task_path), Loader=yaml.UnsafeLoader)
 
+    config = Config.empty().add_model_config(config_model).add_task_config(config_task).add_train_args(args.__dict__)
+
     #Store the config and the paths to the config to make reproducibility easier. 
-    config = {'args': args.__dict__, 'model_config': config_model, 'task_config': config_task}
 
 
     #This is part of the processing, should put it someplace else
-    adata = sc.read_h5ad(config_task['data']['path'])
+    adata = sc.read_h5ad(config.get_data_path())
 
     #Making it faster for testing
 
 
     #Standardizing column names and key values
-    adata.obs[PERT_KEY] = adata.obs[config_task['data']['pert_key']]
-    adata.obs[CELL_KEY] = adata.obs[config_task['data']['cell_key']]
-    adata.obs[PERT_KEY] = adata.obs[PERT_KEY].cat.rename_categories({config_task['data']['control'] : CONTROL_PERT})
+    adata.obs[PERT_KEY] = adata.obs[config.get_pert_key()]
+    adata.obs[CELL_KEY] = adata.obs[config.get_cell_key()]
+    adata.obs[PERT_KEY] = adata.obs[PERT_KEY].cat.rename_categories({config.get_control_pert() : CONTROL_PERT})
     adata = adata[:100000]
 
 
     model = None
-    model_name = config_model['name']
-    task_name = config_task['name']
+    model_name = config.get_model_name()
+    task_name = config.get_task_name()
 
             
-    hash_dir = hashlib.sha256(json.dumps(config).encode()).hexdigest()
+    hash_dir = hashlib.sha256(json.dumps(config.to_dict()).encode()).hexdigest()
     
     save_path = Path(f"./results/{model_name}/{task_name}/{hash_dir}").resolve()
 
@@ -66,7 +68,7 @@ def main(*args):
         os.makedirs(save_path)
 
     with open(f"{save_path}/config.yaml", 'w+') as f:
-        yaml.dump(config, f, indent=2, default_flow_style=False)
+        yaml.dump(config.to_dict(), f, indent=2, default_flow_style=False)
 
 
     #Register your models here
@@ -81,7 +83,9 @@ def main(*args):
         raise NotImplementedError()
 
     elif model_name == 'vae':
-        raise NotImplementedError()
+        from omnicell.models.VAE.vae import VAEPredictor
+
+        model = VAEPredictor(config_model)
     
     else:
         raise ValueError('Unknown model name')
@@ -110,7 +114,7 @@ def main(*args):
         #TODO: When random folds and whatnots are implemented modify the config to reflect the concrete fold and save that 
 
         with open(fold_save / f"config.yaml", 'w+') as f:
-            yaml.dump(config, f, indent=2)
+            yaml.dump(config.to_dict(), f, indent=2)
 
 
         #If we have random splitting we need to save the holdout perts and cells as these will not be the same for each fold

@@ -7,3 +7,7 @@
  - Saving the data such that we can modify the plot generating stuff 
  - don't name dirs as .sth --> creates issues with cluster
  - Having an instance is useful, models might want to create instances of oder models and whatnot to use the logic within them
+ 
+
+ # Important 
+  - VAE Code breaks if we start passing dataloader, it assumes it receives all then training 

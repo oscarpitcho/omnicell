@@ -1,19 +1,22 @@
 import argparse
 import scanpy as sc
 import yaml
+import json
 from pathlib import Path
 import sys
 from scanpy import AnnData as AnnData
 from os import listdir
 from omnicell.evaluation.utils import get_DEGs, get_eval, get_DEG_Coverage_Recall, get_DEGs_overlaps, c_r_filename, DEGs_overlap_filename, r2_mse_filename
 from omnicell.data.utils import prediction_filename
+from omnicell.config.config import Config
+from statistics import mean
+from utils.encoder import NumpyTypeEncoder
 
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
 import random
 import yaml
-import pickle
 
 random.seed(42)
 
@@ -23,14 +26,24 @@ def generate_evaluation(dir, args):
     with open(f'{dir}/config.yaml') as f:
         config = yaml.load(f, yaml.SafeLoader)
     
+    print(f"direc: {dir}")  
+    print(f"config: {config}")
+    
+
     #We save the evaluation config in the run directory
     with open(f'{dir}/eval_config.yaml', 'w+') as f:
         yaml.dump(args.__dict__, f, indent=2)
 
+    config = Config(config)
+
+    print(config.to_dict())
+
+    config = config.add_eval_config(args.__dict__)
+
     #TODO: Do we want to restructure the code to make this config handling centralized? --> Yes probably because this will get very brittle very quickly
     #TODO: Core issue --> The code is dependent on the underlying config structure, which is not good.
-    eval_targets = config["task_config"]["datasplit"]["evals"]["evaluation_targets"]
-    raw_data = sc.read_h5ad(config["task_config"]["data"]["path"])
+    eval_targets = config.get_eval_targets()
+    raw_data = sc.read_h5ad(config.get_data_path())
     
     for (cell, pert) in eval_targets:
         pred_file_fn = prediction_filename(pert, cell)
@@ -68,19 +81,112 @@ def generate_evaluation(dir, args):
             c_r_results = {p: get_DEG_Coverage_Recall(true_DEGs_df, pred_DEGs_df, p) for p in [x/args.pval_iters for x in range(1,int(args.pval_iters*args.max_p_val))]}
             DEGs_overlaps = get_DEGs_overlaps(true_DEGs_df, pred_DEGs_df, [100,50,20], args.pval_threshold, args.log_fold_change_threshold)
 
-            try:
-                with open(f'{dir}/{r2_mse_filename}', 'wb') as f:
-                    pickle.dump(r2_and_mse, f)
-    
-                with open(f'{dir}/{c_r_filename}', 'wb') as f:
-                    pickle.dump(c_r_results, f)
-        
-                with open(f'{dir}/{DEGs_overlap_filename}', 'wb') as f:
-                    pickle.dump(DEGs_overlaps, f)
-            except Exception as error:
-                print('An error occured:', error)
+            print(f"DEGs Overlaps {DEGs_overlaps}")
+            with open(f'{dir}/{r2_and_mse_fn}', 'w+') as f:
+                json.dump(r2_and_mse, f, indent=2, cls=NumpyTypeEncoder)
+
+            with open(f'{dir}/{c_r_fn}', 'w+') as f:
+                json.dump(c_r_results, f, indent=2, cls=NumpyTypeEncoder)
+            
+            with open(f'{dir}/{DEGs_overlap_fn}', 'w+') as f:
+                json.dump(DEGs_overlaps, f, indent=2, cls=NumpyTypeEncoder)
+
+
 
 #Evaluation takes a target model and runs evals on it 
+def average_shared_keys(dict_list):
+    if not dict_list:
+        return {}
+    
+
+    print(f"")
+    # Find the intersection of all keys
+    common_keys = set.intersection(*map(set, dict_list))
+
+    #Remove keys which are None or empty
+    valid_keys = []
+    for key in common_keys:
+        values = [d[key] for d in dict_list]
+
+        #keeping only the keys which are shared and never None
+        if all([v is not None for v in values]):
+            valid_keys.append(key)
+    
+    # Calculate averages for common keys
+    result = {}
+    for key in valid_keys:
+        values = [d[key] for d in dict_list]  # Removed the unnecessary check
+        result[key] = sum(values) / len(values)
+    
+    return result
+
+
+def average_fold(fold_dir):
+    config = Config(yaml.load(open(f'{fold_dir}/config.yaml'), Loader=yaml.SafeLoader))
+
+    eval_targets = config.get_eval_targets()
+
+    degs_dicts  = []
+    r2_mse_dicts = []
+    c_r_dicts = []
+
+    for (cell, pert) in eval_targets:
+        with open(f'{fold_dir}/{DEGs_overlap_filename(pert, cell)}', 'rb') as f:
+            DEGs_overlaps = json.load(f)
+            degs_dicts.append(DEGs_overlaps)
+        
+        with open(f'{fold_dir}/{r2_mse_filename(pert, cell)}', 'rb') as f:
+            r2_mse = json.load(f)
+            r2_mse_dicts.append(r2_mse)
+        
+        """        with open(f'{fold_dir}/{c_r_filename(pert, cell)}', 'rb') as f:
+            c_r = pickle.load(f)"""
+
+
+
+    avg_DEGs_overlaps = average_shared_keys(degs_dicts)
+    avg_r2_mse = average_shared_keys(r2_mse_dicts)
+    #avg_c_r = average_shared_keys(c_r_dicts)
+
+    with open(f'{fold_dir}/avg_DEGs_overlaps.json', 'w+') as f:
+        json.dump(avg_DEGs_overlaps, f, indent=2, cls=NumpyTypeEncoder)
+    
+    with open(f'{fold_dir}/avg_r2_mse.json', 'w+') as f:
+        json.dump(avg_r2_mse, f, indent=2, cls=NumpyTypeEncoder)
+    
+    """with open(f'{fold_dir}/avg_c_r.pkl', 'wb') as f:
+        pickle.dump(avg_c_r, f)"""
+
+
+
+def average_run(run_dir):
+    """Assumes we have already run average for each fold in the run directory and aggregates the results"""
+
+    folds = [x for x in run_dir.iterdir() if x.is_dir()]
+
+    degs_dicts  = []
+    r2_mse_dicts = []
+    for fold in folds:
+        with open(f'{fold}/avg_DEGs_overlaps.json', 'rb') as f:
+            DEGs_overlaps = json.load(f)
+            degs_dicts.append(DEGs_overlaps)
+        
+        with open(f'{fold}/avg_r2_mse.json', 'rb') as f:
+            r2_mse = json.load(f)
+            r2_mse_dicts.append(r2_mse)
+
+    avg_DEGs_overlaps = average_shared_keys(degs_dicts)
+    avg_r2_mse = average_shared_keys(r2_mse_dicts)
+
+    with open(f'{run_dir}/avg_DEGs_overlaps.json', 'w+') as f:
+        json.dump(avg_DEGs_overlaps, f, cls=NumpyTypeEncoder)
+    
+    with open(f'{run_dir}/avg_r2_mse.json', 'w+') as f:
+        json.dump(avg_r2_mse, f, cls=NumpyTypeEncoder) 
+
+    #Do they have a nested structure? Nope
+
+    #We want to average the results of the folds
 
 
 def main(*args):
@@ -100,19 +206,26 @@ def main(*args):
 
     args = parser.parse_args()
 
-    root_dir = Path(f"./results/plots/{args.model_name}/{args.task_name}").resolve()
+    root_dir = Path(f"./results/{args.model_name}/{args.task_name}").resolve()
 
 
     #Get all subdirectories of the model and task, each dir is a run and each run might have several folds
 
     run_dirs = [x for x in root_dir.iterdir() if x.is_dir()]
 
-    
 
     for rd in run_dirs:
         folds = [x for x in rd.iterdir() if x.is_dir()]
         for fold in folds:
             generate_evaluation(fold, args)
+            average_fold(fold)
+
+        average_run(rd)
+        
+
+
+
+            #We want to generate average stats per fold and per run
         
         
     
