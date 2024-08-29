@@ -71,6 +71,10 @@ class Config:
     def get_control_pert(self)-> str:
         return self.task_config['data']['control']
 
+
+    def get_test_mode(self)-> bool:
+        return self.train_args['test_mode']
+
     def set_target_evaluations(self, eval_targets: List[Tuple[str, str]])-> 'Config':
         config = self.copy()
 

@@ -12,6 +12,7 @@ import random
 from omnicell.data.splitter import Splitter
 from omnicell.constants import PERT_KEY, CELL_KEY, CONTROL_PERT
 from omnicell.data.utils import get_pert_cell_data, get_cell_ctrl_data, prediction_filename
+from omnicell.data.preprocessing import preprocess
 from omnicell.config.config import Config
 
 logger = logging.getLogger(__name__)
@@ -33,6 +34,7 @@ def main(*args):
     parser.add_argument('--task_config', type=str, default='', help='Path to yaml config file of the task.')
     parser.add_argument('--model_config', type=str, default='', help='Path to yaml config file of the model.')
     parser.add_argument('-l', '--log', dest='log_level', default='INFO', choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'], help='Logging level')
+    parser.add_argument('--test_mode', action='store_true', help='Run in test mode, datasetsize will be capped at 10000')
     args = parser.parse_args()
 
 
@@ -50,16 +52,7 @@ def main(*args):
 
     #This is part of the processing, should put it someplace else
     adata = sc.read_h5ad(config.get_data_path())
-
-    #Making it faster for testing
-
-
-    #Standardizing column names and key values
-    adata.obs[PERT_KEY] = adata.obs[config.get_pert_key()]
-    adata.obs[CELL_KEY] = adata.obs[config.get_cell_key()]
-    adata.obs[PERT_KEY] = adata.obs[PERT_KEY].cat.rename_categories({config.get_control_pert() : CONTROL_PERT})
-    adata = adata[:100000]
-
+    adata = preprocess(adata, config)
 
     model = None
     model_name = config.get_model_name()
