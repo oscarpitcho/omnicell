@@ -116,9 +116,9 @@ inp = sc.read(f'input/{datasetso}.h5ad')
 
 inp.var_names = inp.var['gene']
 
-hold = 'IFNAR1'
+hold = 'IFNAR2'
 
-#inp = inp[inp.obs['gene']!='IFNAR2']
+inp = inp[inp.obs['gene']!=hold]
 
 
 # Convert sparse matrix to dense
@@ -136,7 +136,12 @@ ot_mappings, valid_perturbed_indices = compute_ot_mapping(inp, cost_threshold=0.
 print(f"First five control indices for cell_type=BXPC3, perturbation=IFNAR1 are: {ot_mappings[('BXPC3','IFNAR1')]['perturbed_indices'][:5]}")
 print(f"First five pert indices for cell_type=BXPC3, perturbation=IFNAR1 are: {ot_mappings[('BXPC3','IFNAR1')]['control_indices'][:5]}")
 
+
+
 #example usage of dataloader: 
+
+dataset = OTMappingDataset(inp, ot_mappings, valid_perturbed_indices)
+dataloader = DataLoader(dataset, batch_size=8, shuffle=True)
 #for control, pert, pert_index, pert_expr in (pbar := tqdm(dataloader, desc="Loading Batches")): 
     #... etc
 
