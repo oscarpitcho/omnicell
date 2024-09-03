@@ -35,7 +35,7 @@ class NearestNeighborPredictor():
             if pert_id in self.seen_perts:
                 raise NotImplementedError("Both cell type and perturbation are in the training data, in distribution prediction not implemented yet")
             else:
-                return self._predict_across_pert(pert_id)
+                return self._predict_across_pert(adata, pert_id, cell_type)
         else:
             if pert_id in self.seen_perts:
                 return self._predict_across_cell(adata, pert_id, cell_type)
@@ -109,11 +109,11 @@ class NearestNeighborPredictor():
 
 
     #SO I want to predict across genes --> Two options either we provide the data or we don't provide the data on which the prediction is made
-    def _predict_across_pert(self, cell_id: str, target: str) -> np.ndarray:
+    def _predict_across_pert(self, adata: sc.AnnData, cell_id: str, target: str) -> np.ndarray:
         """
-        Makes a prediction for an unseen perturbation using all training control data.
+        Makes a prediction for an unseen perturbation using all training data.
         
-        Takes the perturbation effect which is closest to the heldout perturbation and applies it to the control data in the training set
+        Takes the perturbation effect which is closest to the heldout perturbation and applies it to the given control data
 
         Parameters
         ----------
@@ -231,7 +231,7 @@ class NearestNeighborPredictor():
 
         #We now have the effect of the neighboring perturbation on each cell type. We can now apply this to the heldout cell data, choosing the correct effect based on the cell type of the heldout data.
 
-        predictions = self.train_adata[(self.train_adata.obs[PERT_KEY] == CONTROL_PERT)].copy()
+        predictions = adata.copy()
 
         for cell_type in cell_types:
             cell_type_effect = nbr_pert_effect_per_cell_type[cell_type_to_index[cell_type]]
