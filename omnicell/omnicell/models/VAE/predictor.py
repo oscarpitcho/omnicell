@@ -19,7 +19,7 @@ class VAEPredictor():
         self.model = Net(input_dim, self.model_config['hidden_dim'],
                          self.model_config['latent_dim'], 
                          self.training_config['alpha'],
-                         self.model_config['dropout_rate'],
+                         self.training_config['dropout_rate'],
                          self.training_config['learning_rate'])
         
         self.epochs = self.training_config['epochs']
@@ -28,7 +28,7 @@ class VAEPredictor():
         self.model_eval = Net(input_dim, self.model_config['hidden_dim'],
                          self.model_config['latent_dim'], 
                          self.training_config['alpha'],
-                         self.model_config['dropout_rate'],
+                         self.training_config['dropout_rate'],
                          self.training_config['learning_rate'])
         
         self.model.to(device)
@@ -63,11 +63,17 @@ class VAEPredictor():
         neteval.to(device)
         neteval.eval()  # Set evaluation mode
 
-        optimizer = optim.Adam(net.parameters(), lr=self.learning_rate)
+        optimizer = optim.Adam(net.parameters(), lr=self.training_config['learning_rate'])  # Adam optimizer
         running_loss = 0
 
-        train = torch.from_numpy(train.X.astype(np.float32)).to(device)  # Convert train data to torch tensor and move to device
-        valid = torch.from_numpy(valid.X.astype(np.float32)).to(device)  # Convert validation data to torch tensor and move to device
+        train = train.X.toarray() if not isinstance(train.X, np.ndarray) else train
+        valid = valid.X.toarray() if not isinstance(valid.X, np.ndarray) else valid
+
+        train = torch.from_numpy(train.astype(np.float32)).to(device)  # Convert train data to torch tensor and move to device
+        valid = torch.from_numpy(valid.astype(np.float32)).to(device)  # Convert validation data to torch tensor and move to device
+
+        combined = torch.cat((train, valid), 0)
+
         
         # Training loop
         for e in range(epochs):
@@ -109,36 +115,50 @@ class VAEPredictor():
                 break
 
 
-        total_enc = net(adata)
-        mean_enc = total_enc.mean(axis=0)
+        mu, var = net.encode(combined)
+
+
+        mean_enc = mu.mean(axis=0).cpu().detach()
 
         pert_means = []
         for i in range(len(self.perts)):
             pert = self.perts[i]
-            pert_adata = adata[adata.obs['perturbation'] == pert]
-            pert_enc = net(pert_adata)
-            pert_mean = pert_enc.mean(axis=0)
+            pert_adata = adata[adata.obs[PERT_KEY] == pert]
+            pert_data = torch.from_numpy(pert_adata.X.toarray().astype(np.float32)).to(device)
+            pert_mu, _ = net.encode(pert_data)
+            pert_mean = pert_mu.mean(axis=0).cpu().detach()
             pert_means.append(pert_mean)
 
-        self.deltas = np.array(pert_means) - mean_enc
+        pert_means = torch.stack(pert_means)
+        
+        self.deltas = pert_means - mean_enc
 
 
     #Predicting perturbations --> How do we compute the means? 
     #--> We need a delta for each perturbation
     def make_predict(self, adata: sc.AnnData, pert_id: str, cell_type: str) -> np.ndarray:
+
+        assert len(adata.obs[CELL_KEY].unique()) == 1, 'Input data contains multiple cell types'
+        assert len(adata.obs[PERT_KEY].unique()) == 1, 'Input data contains multiple perturbations'
+        assert adata.obs[CELL_KEY].unique() == [cell_type], f'Cell type {cell_type} not in the provided data'
+        assert adata.obs[PERT_KEY].unique() == [CONTROL_PERT], f'Input data contains non control perturbations'  
         
-        assert pert_id in self.perts, f'{pert_id} not in the list of perturbations, this model cannot transfer across perturbations'
-        assert adata.obs[CELL_KEY].unique() == cell_type, f'Cell type {cell_type} not in the provided data'
-        assert adata.obs[PERT_KEY].unique() == CONTROL_PERT, f'Input data contains non control perturbations'
+        
 
         logger.info(f'Predicting seen perturbation {pert_id} for unseen cell type {cell_type}')
 
-        data = torch.from_numpy(adata.X.astype(np.float32)).to(self.device)
-        encodings = self.model.encode(data)
+        data = adata.X.toarray() if not isinstance(adata.X, np.ndarray) else adata.X
+        data = torch.from_numpy(data.astype(np.float32)).to(self.device)
+
+        mu, var = self.model.encode(data)
+
+
 
         pert_delta = self.deltas[self.perts_to_idx[pert_id]]
 
-        pert_enc = encodings + pert_delta
+        pert_mu = mu + pert_delta.to(self.device)
 
-        return self.model.decode(pert_enc).cpu().detach().numpy()
+        z = self.model.reparameterize(pert_mu, var)
+
+        return self.model.decode(z).cpu().detach().numpy()
 

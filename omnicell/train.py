@@ -14,6 +14,8 @@ from omnicell.constants import PERT_KEY, CELL_KEY, CONTROL_PERT
 from omnicell.data.utils import get_pert_cell_data, get_cell_ctrl_data, prediction_filename
 from omnicell.data.preprocessing import preprocess
 from omnicell.config.config import Config
+import torch
+
 
 logger = logging.getLogger(__name__)
 
@@ -22,12 +24,6 @@ random.seed(42)
 
 def main(*args):
 
-    logging.basicConfig(filename= 'output.log', filemode= 'w', level=args.loglevel, format='%(asctime)s - %(levelname)s - %(message)s')
-    logger.info("Application started")
-
-
-
-    
 
     parser = argparse.ArgumentParser(description='Analysis settings.')
 
@@ -35,17 +31,28 @@ def main(*args):
     parser.add_argument('--model_config', type=str, default='', help='Path to yaml config file of the model.')
     parser.add_argument('-l', '--log', dest='log_level', default='INFO', choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'], help='Logging level')
     parser.add_argument('--test_mode', action='store_true', help='Run in test mode, datasetsize will be capped at 10000')
+    parser.add_argument('--slurm_id', type=int, default=1, help='Slurm id for the job')
+    parser.add_argument('--loglevel', type=int, default=logging.INFO, help='Log level for the application')
+
     args = parser.parse_args()
 
 
+ 
+
     model_path = Path(args.model_config).resolve()
     task_path = Path(args.task_config).resolve()
-
 
     config_model = yaml.load(open(model_path), Loader=yaml.UnsafeLoader)
     config_task = yaml.load(open(task_path), Loader=yaml.UnsafeLoader)
 
     config = Config.empty().add_model_config(config_model).add_task_config(config_task).add_train_args(args.__dict__)
+
+    logging.basicConfig(filename= f'output_{args.slurm_id}_{config.get_model_name()}.log', filemode= 'w', level=args.loglevel, format='%(asctime)s - %(levelname)s - %(message)s')
+    logger.info("Application started")
+
+
+
+
 
     #Store the config and the paths to the config to make reproducibility easier. 
 
@@ -63,6 +70,10 @@ def main(*args):
     
     save_path = Path(f"./results/{model_name}/{task_name}/{hash_dir}").resolve()
 
+    logger.info(f"Config parsed, model name: {model_name}, task name: {task_name}")
+    logger.info(f"Saving results to {save_path}")
+
+
 
     #Saving run config
     if not os.path.exists(save_path):
@@ -71,10 +82,19 @@ def main(*args):
     with open(f"{save_path}/config.yaml", 'w+') as f:
         yaml.dump(config.to_dict(), f, indent=2, default_flow_style=False)
 
-    logger
     #Register your models here
-    if model_name == 'nearest_neighbor':
-        from omnicell.models.nearest_cell_type.NearestNeighborPredictor import NearestNeighborPredictor
+    #TODO: Change for prefix checking
+
+    input_dim = adata.shape[1]
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    pert_ids = adata.obs[PERT_KEY].unique()
+
+    logger.info(f"Data loaded, # of cells: {adata.shape[0]}, # of features: {input_dim} # of perts: {len(pert_ids)}")
+    logger.info(f"Running experiment on {device}")
+
+    
+    if model_name == 'nearest-neighbor':
+        from omnicell.omnicell.models.nearest_neighbor.predictor import NearestNeighborPredictor
         logger.info("Nearest Neighbor model selected")
         model = NearestNeighborPredictor(config_model)
 
@@ -83,9 +103,9 @@ def main(*args):
         raise NotImplementedError()
 
     elif model_name == 'vae':
-        from omnicell.models.VAE.vae import VAEPredictor
+        from omnicell.models.VAE.predictor import VAEPredictor
         logger.info("VAE model selected")
-        model = VAEPredictor(config_model)
+        model = VAEPredictor(config_model, input_dim, device, pert_ids)
     
     else:
         raise ValueError('Unknown model name')

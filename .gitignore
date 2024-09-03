@@ -3,3 +3,7 @@ __pycache__
 *.npz
 
 results
+
+# Ignore all log files
+output_*
+slurm*
