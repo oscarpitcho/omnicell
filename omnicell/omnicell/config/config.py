@@ -37,7 +37,6 @@ class Config:
         if self.eval_config is not None:
             config['eval'] = self.eval_config.copy()
         if self.train_args is not None:
-            print(self.train_args)
             config['train_args'] = self.train_args.copy()
         return config
     
@@ -111,7 +110,13 @@ class Config:
         config = self.copy()
         config.task_config['datasplit']['training']['holdout_perts'] = heldout_perts
         return config
+    
 
+    def get_test_size(self):
+        return self.task_config['datasplit']['test_size']
+    
+    def get_control_size(self):
+        return self.task_config['datasplit']['control_size']
 
     def get_data_path(self):
         if self.task_config is None:

@@ -4,8 +4,9 @@ import numpy as np
 import pandas as pd
 import torch
 from omnicell.constants import PERT_KEY, CELL_KEY, CONTROL_PERT
+import logging
 
-
+logger = logging.getLogger(__name__)
 
 class NearestNeighborPredictor():
     def __init__(self, config):
@@ -27,7 +28,6 @@ class NearestNeighborPredictor():
         #Mode across perturbations
 
     
-    #TODO: Add cell id
     def make_predict(self, adata: sc.AnnData, pert_id: str, cell_type: str) -> np.ndarray:
         assert self.train_adata is not None, "Model has not been trained yet"
     
@@ -109,7 +109,7 @@ class NearestNeighborPredictor():
 
 
     #SO I want to predict across genes --> Two options either we provide the data or we don't provide the data on which the prediction is made
-    def _predict_across_pert(self, target: str) -> np.ndarray:
+    def _predict_across_pert(self, cell_id: str, target: str) -> np.ndarray:
         """
         Makes a prediction for an unseen perturbation using all training control data.
         
@@ -130,6 +130,7 @@ class NearestNeighborPredictor():
 
         assert self.train_adata is not None, "Model has not been trained yet"
         assert target not in self.train_adata.obs[PERT_KEY].unique(), "Target perturbation is already in the training data"
+        logger.debug(f'Predicting unseen perturbation {target} using all training data')
         
         num_of_degs = self.config['num_of_degs']
 
@@ -139,7 +140,8 @@ class NearestNeighborPredictor():
         DEGSlist = []
         GTOlist = []
 
-        inp = self.train_adata
+        inp = self.train_adata[self.train_adata.obs[CELL_KEY] == cell_id].copy()
+        logger.debug(f'Finding nearest neighbor perturbation for {target}')
         for ug in unique_genes_noholdout:
             cont = np.array(inp[inp.obs[PERT_KEY] == CONTROL_PERT].X.todense())
             pert = np.array(inp[inp.obs[PERT_KEY] == ug].X.todense())
@@ -197,12 +199,14 @@ class NearestNeighborPredictor():
 
 
 
-
+        logger.debug(f'Nearest neighbor perturbation of {target} is {nnbr}')
         #We have the neighboring perturbation, now we find the effect of this perturbation on each cell type and then apply the corresponding to each cell in the heldout data.
         nnbr_pert = nnbr
 
 
         #Mean control state of each cell type
+
+
 
         cell_types = self.train_adata.obs[CELL_KEY].unique()
 
