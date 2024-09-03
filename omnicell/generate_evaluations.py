@@ -17,6 +17,9 @@ import seaborn as sns
 import numpy as np
 import random
 import yaml
+import logging
+
+logger = logging.getLogger(__name__)
 
 random.seed(42)
 
@@ -26,9 +29,6 @@ def generate_evaluation(dir, args):
     with open(f'{dir}/config.yaml') as f:
         config = yaml.load(f, yaml.SafeLoader)
     
-    print(f"direc: {dir}")  
-    print(f"config: {config}")
-    
 
     #We save the evaluation config in the run directory
     with open(f'{dir}/eval_config.yaml', 'w+') as f:
@@ -36,7 +36,6 @@ def generate_evaluation(dir, args):
 
     config = Config(config)
 
-    print(config.to_dict())
 
     config = config.add_eval_config(args.__dict__)
 
@@ -53,24 +52,33 @@ def generate_evaluation(dir, args):
         
         results_exist = ((r2_and_mse_fn in listdir(dir)) & (c_r_fn in listdir(dir)) & (DEGs_overlap_fn in listdir(dir)))
 
-        print(results_exist)
 
         if ((pred_file_fn in listdir(dir)) & ((not results_exist) | args.overwrite)):
         
             model_output = np.load(f'{dir}/{pred_file_fn}', allow_pickle=True)
 
 
+            
+
+            pred_pert = model_output['pred_pert']
+            true_pert = model_output['true_pert']
+            control = model_output['control']
+
+            pred_pert = pred_pert.toarray() if not isinstance(pred_pert, np.ndarray) else pred_pert
+            true_pert = true_pert.toarray() if not isinstance(true_pert, np.ndarray) else true_pert
+            control = control.toarray() if not isinstance(control, np.ndarray) else control
 
 
-            pred_pert = sc.AnnData(X=model_output['pred_pert'].clip(min=0))
+            pred_pert = sc.AnnData(X=pred_pert.clip(min=0))
+
             if args.round:
                 pred_pert.X[pred_pert.X <= 0.5] = 0
             pred_pert.var_names = raw_data.var_names
             
-            true_pert = sc.AnnData(X=model_output['true_pert'])
+            true_pert = sc.AnnData(X=true_pert)
             true_pert.var_names = raw_data.var_names
         
-            control = sc.AnnData(X=model_output['control'])
+            control = sc.AnnData(X=control)
             control.var_names = raw_data.var_names
 
             true_DEGs_df = get_DEGs(control, true_pert)
@@ -81,7 +89,6 @@ def generate_evaluation(dir, args):
             c_r_results = {p: get_DEG_Coverage_Recall(true_DEGs_df, pred_DEGs_df, p) for p in [x/args.pval_iters for x in range(1,int(args.pval_iters*args.max_p_val))]}
             DEGs_overlaps = get_DEGs_overlaps(true_DEGs_df, pred_DEGs_df, [100,50,20], args.pval_threshold, args.log_fold_change_threshold)
 
-            print(f"DEGs Overlaps {DEGs_overlaps}")
             with open(f'{dir}/{r2_and_mse_fn}', 'w+') as f:
                 json.dump(r2_and_mse, f, indent=2, cls=NumpyTypeEncoder)
 
@@ -191,6 +198,8 @@ def average_run(run_dir):
 
 def main(*args):
 
+    logger.info("Starting evaluation script")
+
 
     parser = argparse.ArgumentParser(description='Analysis settings.')
 
@@ -204,9 +213,12 @@ def main(*args):
     parser.add_argument('--pval_iters', type=int, default=10000, help='Number of iterations to use for p value calculation')
     parser.add_argument('--max_p_val', type=float, default=0.05, help='Maximum p value to use for p value calculation')
 
+
     args = parser.parse_args()
 
     root_dir = Path(f"./results/{args.model_name}/{args.task_name}").resolve()
+
+    logger.info(f"Generating evaluations for model {args.model_name} and task {args.task_name}")
 
 
     #Get all subdirectories of the model and task, each dir is a run and each run might have several folds

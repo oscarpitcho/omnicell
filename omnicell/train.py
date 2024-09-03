@@ -29,10 +29,9 @@ def main(*args):
 
     parser.add_argument('--task_config', type=str, default='', help='Path to yaml config file of the task.')
     parser.add_argument('--model_config', type=str, default='', help='Path to yaml config file of the model.')
-    parser.add_argument('-l', '--log', dest='log_level', default='INFO', choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'], help='Logging level')
     parser.add_argument('--test_mode', action='store_true', help='Run in test mode, datasetsize will be capped at 10000')
     parser.add_argument('--slurm_id', type=int, default=1, help='Slurm id for the job')
-    parser.add_argument('--loglevel', type=int, default=logging.INFO, help='Log level for the application')
+    parser.add_argument('-l', '--log', dest='loglevel', choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'], help="Set the logging level (default: %(default)s)", default='WARNING')
 
     args = parser.parse_args()
 
@@ -94,7 +93,7 @@ def main(*args):
 
     
     if model_name == 'nearest-neighbor':
-        from omnicell.omnicell.models.nearest_neighbor.predictor import NearestNeighborPredictor
+        from omnicell.models.nearest_neighbor.predictor import NearestNeighborPredictor
         logger.info("Nearest Neighbor model selected")
         model = NearestNeighborPredictor(config_model)
 
@@ -124,6 +123,7 @@ def main(*args):
     for i, (adata_train, adata_eval, ho_perts, ho_cells, eval_targets) in enumerate(folds):
         fold_save = save_path / f"fold_{i}"
 
+        logger.info(f"Running fold {i}")
         if not os.path.exists(fold_save):
             os.makedirs(fold_save)
 
@@ -131,6 +131,7 @@ def main(*args):
         #TODO: We will need to see how we handle the checkpointing logic with folds and stuff
         model.train(adata_train)
 
+        logger.info(f"Training completed for fold {i}")
         #TODO: When random folds and whatnots are implemented modify the config to reflect the concrete fold and save that 
 
         with open(fold_save / f"config.yaml", 'w+') as f:
@@ -145,20 +146,48 @@ def main(*args):
             json.dump(ho_cells, f)
 
 
+        logger.info(f"Running evaluation for fold {i}")
         for cell, pert in eval_targets:
+
             logger.debug(f"Making predictions for {cell} and {pert}")
 
             #NOTE : These are taken on the entire data
             adata_ground_truth = get_pert_cell_data(adata, pert, cell)
-            adata_control = get_cell_ctrl_data(adata, cell)
-            preds = model.make_predict(adata_control, pert, cell)
+
+
+            adata_ctrl_pert = get_cell_ctrl_data(adata, cell)
+
+            logger.debug(f"Ground truth data loaded for {cell} and {pert} - # of ctrl cells {len(adata_ground_truth)}, # of ground truth cells {len(adata_ctrl_pert)}")
+
+
+            control_sample_size = config.get_control_size()
+
+            if control_sample_size > len(adata_ctrl_pert):
+                logger.warning(f"Control size {config.get_control_size()} is larger than the number of control cells {len(adata_ctrl_pert)}, setting control size to the number of control cells")
+                control_sample_size = len(adata_ctrl_pert)
+                
+
+            pushfwd_sample_size = config.get_test_size()
+            if pushfwd_sample_size > len(adata_ground_truth):
+                logger.warning(f"Test size {config.get_test_size()} is larger than the number of ground truth cells {len(adata_ground_truth)}, setting test size to the number of ground truth cells")
+                pushfwd_sample_size = len(adata_ground_truth)
+
+            adata_control = sc.pp.subsample(adata_ctrl_pert, n_obs=control_sample_size, copy=True)
+            adata_pushfwd = sc.pp.subsample(adata_ctrl_pert, n_obs=pushfwd_sample_size, copy=True)
+
+            preds = model.make_predict(adata_pushfwd, pert, cell)
+
+            preds = preds.toarray() if not isinstance(preds, np.ndarray) else preds
+            control  = adata_control.X.toarray() if not isinstance(adata_control.X, np.ndarray) else adata_control.X
+            ground_truth = adata_ground_truth.X.toarray() if not isinstance(adata_ground_truth.X, np.ndarray) else adata_ground_truth.X
+
 
 
             np.savez(
                     f"{fold_save}/{prediction_filename(pert, cell)}",
                     pred_pert=preds, 
-                    true_pert=adata_ground_truth.X.toarray(), 
-                    control=adata_control.X.toarray())
+                    true_pert=ground_truth, 
+                    control=control)
 
 
 

@@ -62,6 +62,8 @@ class Splitter:
         adata_train = data[train_mask]
         adata_eval = data[~train_mask]
 
+        #TODO: Implement count normalizations?
+
 
         return [(adata_train, adata_eval, self.holdout_perts, self.holdout_cells, self.eval_targets)]
 

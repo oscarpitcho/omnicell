@@ -162,9 +162,6 @@ def get_eval(ctrl_adata, true_adata, pred_adata, DEGs, DEG_vals, pval_threshold,
             true_fold_diff = np.ma.array(true_diff, mask=common_mask).compressed()
             pred_fold_diff = np.ma.array(pred_diff, mask=common_mask).compressed()
 
-            print(f"True sub diff shape: {true_sub_diff.shape}")
-            print(f"Pred sub diff shape: {pred_sub_diff.shape}")
-
             results_dict[f'Top_{val}_DEGs_sub_diff_R'] = pearsonr(true_sub_diff, pred_sub_diff)[0]
             results_dict[f'Top_{val}_DEGs_sub_diff_R2'] = pearsonr(true_sub_diff, pred_sub_diff)[0]**2
             results_dict[f'Top_{val}_DEGs_sub_diff_MSE'] = (np.square(true_sub_diff - pred_sub_diff)).mean(axis=0)

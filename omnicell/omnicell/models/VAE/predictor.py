@@ -75,7 +75,7 @@ class VAEPredictor():
         combined = torch.cat((train, valid), 0)
 
         
-        # Training loop
+        logger.info(f'Training VAE model for {epochs} epochs')
         for e in range(epochs):
             running_loss = 0
         
