@@ -23,7 +23,7 @@ class TemplateModel():
     
 
     #I mean to we need to evaluate anything? 
-    def make_predict(self, adata: sc.AnnData | torch.DataLoader, pert_id: str, cell_type: str) -> np.ndarray:
+    def make_predict(self, adata: sc.AnnData, pert_id: str, cell_type: str) -> np.ndarray:
         pass 
 
 
