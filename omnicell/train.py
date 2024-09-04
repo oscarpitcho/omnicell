@@ -12,6 +12,7 @@ import random
 from omnicell.data.splitter import Splitter
 from omnicell.constants import PERT_KEY, CELL_KEY, CONTROL_PERT
 from omnicell.data.utils import get_pert_cell_data, get_cell_ctrl_data, prediction_filename
+from omnicell.processing.utils import to_dense
 from omnicell.data.preprocessing import preprocess
 from omnicell.config.config import Config
 import torch
@@ -47,7 +48,7 @@ def main(*args):
 
     config = Config.empty().add_model_config(config_model).add_task_config(config_task).add_train_args(args.__dict__)
 
-    logging.basicConfig(filename= f'output_{args.slurm_id}_{config.get_model_name()}.log', filemode= 'w', level=args.loglevel, format='%(asctime)s - %(levelname)s - %(message)s')
+    logging.basicConfig(filename= f'output_{args.slurm_id}_{config.get_model_name()}_{config.get_task_name()}.log', filemode= 'w', level=args.loglevel, format='%(asctime)s - %(levelname)s - %(message)s')
     logger.info("Application started")
 
 
@@ -60,6 +61,11 @@ def main(*args):
     #This is part of the processing, should put it someplace else
     adata = sc.read_h5ad(config.get_data_path())
     adata = preprocess(adata, config)
+
+    logger.info(f"Data loaded from {config.get_data_path()}")
+
+    logger.debug(f"Cell types: {adata.obs[CELL_KEY].unique()}")
+    logger.debug(f"Perturbations: {adata.obs[PERT_KEY].unique()}")
 
     model = None
     model_name = config.get_model_name()
@@ -160,6 +166,7 @@ def main(*args):
 
             logger.debug(f"Making predictions for {cell} and {pert}")
 
+
             #NOTE : These are taken on the entire data
             adata_ground_truth = get_pert_cell_data(adata, pert, cell)
             adata_ctrl_pert = get_cell_ctrl_data(adata, cell)
@@ -184,9 +191,9 @@ def main(*args):
 
             preds = model.make_predict(adata_pushfwd, pert, cell)
 
-            preds = preds.toarray() if not isinstance(preds, np.ndarray) else preds
-            control  = adata_control.X.toarray() if not isinstance(adata_control.X, np.ndarray) else adata_control.X
-            ground_truth = adata_ground_truth.X.toarray() if not isinstance(adata_ground_truth.X, np.ndarray) else adata_ground_truth.X
+            preds = to_dense(preds)
+            control  = to_dense(adata_control.X)
+            ground_truth = to_dense(adata_ground_truth.X)
 
 
 

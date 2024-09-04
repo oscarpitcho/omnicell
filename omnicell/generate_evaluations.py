@@ -9,6 +9,7 @@ from os import listdir
 from omnicell.evaluation.utils import get_DEGs, get_eval, get_DEG_Coverage_Recall, get_DEGs_overlaps, c_r_filename, DEGs_overlap_filename, r2_mse_filename
 from omnicell.data.utils import prediction_filename
 from omnicell.config.config import Config
+from omnicell.processing.utils import to_dense
 from statistics import mean
 from utils.encoder import NumpyTypeEncoder
 
@@ -64,9 +65,11 @@ def generate_evaluation(dir, args):
             true_pert = model_output['true_pert']
             control = model_output['control']
 
-            pred_pert = pred_pert.toarray() if not isinstance(pred_pert, np.ndarray) else pred_pert
-            true_pert = true_pert.toarray() if not isinstance(true_pert, np.ndarray) else true_pert
-            control = control.toarray() if not isinstance(control, np.ndarray) else control
+
+            #Safety checks
+            pred_pert = to_dense(pred_pert)
+            true_pert = to_dense(true_pert)
+            control = to_dense(control)
 
 
             pred_pert = sc.AnnData(X=pred_pert.clip(min=0))
@@ -106,7 +109,6 @@ def average_shared_keys(dict_list):
         return {}
     
 
-    print(f"")
     # Find the intersection of all keys
     common_keys = set.intersection(*map(set, dict_list))
 
