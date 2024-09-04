@@ -1,4 +1,5 @@
-name: satija_ho_IFNAR1_eva
+name: satija_ho_A549_ext
+
 
 data: 
   path: /orcd/archive/abugoot/001/Projects/dlesman/datasets/satija_IFNB_HVG_and_perturbed_genes_normed.h5ad
@@ -14,7 +15,7 @@ datasplit:
     #TODO: More complex splits
 
     #Annoying part is if we have random splits how will we define the tasks? -
-    holdout_perts: [IFNAR1]
+    holdout_cells: [A549]
 
   evals:
 
@@ -23,7 +24,7 @@ datasplit:
     #Targets on which we evaluate when we do the holdout, can be ALL
     #If these are also heldout then we are evaluating on unseen cell + unseen pert
     #Set the combinations to evaluate on, we can implement more complex commands later on
-    evaluation_targets: [[A549, IFNAR1]]
+    evaluation_targets: [[A549, IFNAR1], [A549, IFNAR2], [A549, TYK2], [A549, STAT2], [A549, USP18], [A549, IRF9], [A549, JAK1]]
 
 
   #holdout_cells: [xxx]

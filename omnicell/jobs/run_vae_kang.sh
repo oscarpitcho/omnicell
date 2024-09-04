@@ -13,9 +13,9 @@ source ~/.bashrc
 mamba activate sandbox
 
 # Run the training script
-python train.py --task_config "configs/tasks/satija_ho_A549.yaml" \
-    --model_config "configs/models/vae.yaml"
+python train.py --task_config "configs/tasks/kang/kang_ho_CD4T.yaml" \
+    --model_config "configs/models/vae.yaml" -l DEBUG
 
 
-python generate_evaluations.py --model_name "vae" --task_name "satija_ho_A549"
+python generate_evaluations.py --model_name "vae" --task_name "kang_ho_CD4T" 
 

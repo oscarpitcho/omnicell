@@ -19,8 +19,7 @@ class VAEPredictor():
         self.model = Net(input_dim, self.model_config['hidden_dim'],
                          self.model_config['latent_dim'], 
                          self.training_config['alpha'],
-                         self.training_config['dropout_rate'],
-                         self.training_config['learning_rate'])
+                         self.training_config['dropout_rate'])
         
         self.epochs = self.training_config['epochs']
         self.batsize = self.training_config['batsize']
@@ -28,8 +27,7 @@ class VAEPredictor():
         self.model_eval = Net(input_dim, self.model_config['hidden_dim'],
                          self.model_config['latent_dim'], 
                          self.training_config['alpha'],
-                         self.training_config['dropout_rate'],
-                         self.training_config['learning_rate'])
+                         self.training_config['dropout_rate'])
         
         self.model.to(device)
 
@@ -42,6 +40,9 @@ class VAEPredictor():
     #Note this model needs the entire data or sth like that. 
     #The mean operations are computed on the entire dataset.
     def train(self, adata):
+
+
+        
         device = self.device
         epochs = self.epochs
         batsize = self.batsize
@@ -72,11 +73,14 @@ class VAEPredictor():
         train = torch.from_numpy(train.astype(np.float32)).to(device)  # Convert train data to torch tensor and move to device
         valid = torch.from_numpy(valid.astype(np.float32)).to(device)  # Convert validation data to torch tensor and move to device
 
-        combined = torch.cat((train, valid), 0)
+        logger.debug(f"Training data shape: {train.shape}")
+        logger.debug(f"Validation data shape: {valid.shape}")
 
         
         logger.info(f'Training VAE model for {epochs} epochs')
         for e in range(epochs):
+            logger.info(f'Epoch {e+1}/{epochs}')
+
             running_loss = 0
         
             for lower in range(0, trainlen, batsize):
@@ -85,11 +89,16 @@ class VAEPredictor():
                 batch = train[lower:upper, :]
                 optimizer.zero_grad()  
                 out, mu, logvar = net(batch)  # Forward pass
+                
+                #Printing batch details once per epoch.
+                if lower == 0:
+                    logger.debug(f'Batch shape: {batch.shape}')
+                    logger.debug(f'Output shape: {out.shape} - mu shape: {mu.shape} - logvar shape: {logvar.shape}')
+                    
                 loss = net.loss_function(out, batch, mu, logvar) 
                 loss.backward() 
                 running_loss += loss.item()
                 optimizer.step() 
-            logger.info(f'Epoch {e+1}/{epochs}')
             logger.info(f'Train loss: {running_loss/1000000}')
         
             running_loss = 0
@@ -111,11 +120,14 @@ class VAEPredictor():
             early_stopper = EarlyStopper(patience=10, min_delta=0.01)
 
             if early_stopper.early_stop(loss.item()):
-                logger.info('Early stopping')
+                logger.info(f'Early stopping after {e+1} epochs')
                 break
 
 
-        mu, var = net.encode(combined)
+        
+        combined = torch.cat((train, valid), 0)
+        
+        mu, _ = net.encode(combined)
 
 
         mean_enc = mu.mean(axis=0).cpu().detach()
@@ -148,9 +160,10 @@ class VAEPredictor():
         logger.info(f'Predicting seen perturbation {pert_id} for unseen cell type {cell_type}')
 
         data = adata.X.toarray() if not isinstance(adata.X, np.ndarray) else adata.X
+
         data = torch.from_numpy(data.astype(np.float32)).to(self.device)
 
-        mu, var = self.model.encode(data)
+        mu, logvar = self.model.encode(data)
 
 
 
@@ -158,7 +171,7 @@ class VAEPredictor():
 
         pert_mu = mu + pert_delta.to(self.device)
 
-        z = self.model.reparameterize(pert_mu, var)
+        z = self.model.reparameterize(pert_mu, logvar)
 
         return self.model.decode(z).cpu().detach().numpy()
 

@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 
 class Net(nn.Module):
-        def __init__(self, input_dim, hidden_dim, latent_dim, alpha, dropout_rate, learning_rate):
+        def __init__(self, input_dim, hidden_dim, latent_dim, alpha, dropout_rate):
             super().__init__()
             self.input_dim = input_dim  
             self.latent_dim = latent_dim  # Dimension of the latent space
