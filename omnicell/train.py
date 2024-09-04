@@ -25,6 +25,7 @@ random.seed(42)
 def main(*args):
 
 
+    print("Running main")
     parser = argparse.ArgumentParser(description='Analysis settings.')
 
     parser.add_argument('--task_config', type=str, default='', help='Path to yaml config file of the task.')
@@ -81,8 +82,6 @@ def main(*args):
     with open(f"{save_path}/config.yaml", 'w+') as f:
         yaml.dump(config.to_dict(), f, indent=2, default_flow_style=False)
 
-    #Register your models here
-    #TODO: Change for prefix checking
 
     input_dim = adata.shape[1]
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -91,6 +90,9 @@ def main(*args):
     logger.info(f"Data loaded, # of cells: {adata.shape[0]}, # of features: {input_dim} # of perts: {len(pert_ids)}")
     logger.info(f"Running experiment on {device}")
 
+
+    #Register your models here
+    #TODO: Change for prefix checking
     
     if model_name == 'nearest-neighbor':
         from omnicell.models.nearest_neighbor.predictor import NearestNeighborPredictor
@@ -105,6 +107,13 @@ def main(*args):
         from omnicell.models.VAE.predictor import VAEPredictor
         logger.info("VAE model selected")
         model = VAEPredictor(config_model, input_dim, device, pert_ids)
+    
+    elif model_name == 'test':
+        from omnicell.models.test.predictor import TestPredictor
+        logger.info("Test model selected")
+        model = TestPredictor(adata)
+        
+
     
     else:
         raise ValueError('Unknown model name')
@@ -153,8 +162,6 @@ def main(*args):
 
             #NOTE : These are taken on the entire data
             adata_ground_truth = get_pert_cell_data(adata, pert, cell)
-
-
             adata_ctrl_pert = get_cell_ctrl_data(adata, cell)
 
             logger.debug(f"Ground truth data loaded for {cell} and {pert} - # of ctrl cells {len(adata_ground_truth)}, # of ground truth cells {len(adata_ctrl_pert)}")
@@ -180,6 +187,8 @@ def main(*args):
             preds = preds.toarray() if not isinstance(preds, np.ndarray) else preds
             control  = adata_control.X.toarray() if not isinstance(adata_control.X, np.ndarray) else adata_control.X
             ground_truth = adata_ground_truth.X.toarray() if not isinstance(adata_ground_truth.X, np.ndarray) else adata_ground_truth.X
+
+
 
 
 

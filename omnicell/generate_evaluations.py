@@ -186,10 +186,10 @@ def average_run(run_dir):
     avg_r2_mse = average_shared_keys(r2_mse_dicts)
 
     with open(f'{run_dir}/avg_DEGs_overlaps.json', 'w+') as f:
-        json.dump(avg_DEGs_overlaps, f, cls=NumpyTypeEncoder)
+        json.dump(avg_DEGs_overlaps, f, indent=2, cls=NumpyTypeEncoder)
     
     with open(f'{run_dir}/avg_r2_mse.json', 'w+') as f:
-        json.dump(avg_r2_mse, f, cls=NumpyTypeEncoder) 
+        json.dump(avg_r2_mse, f, indent=2, cls=NumpyTypeEncoder) 
 
     #Do they have a nested structure? Nope
 

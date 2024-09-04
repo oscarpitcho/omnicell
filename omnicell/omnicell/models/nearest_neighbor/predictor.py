@@ -109,7 +109,7 @@ class NearestNeighborPredictor():
 
 
     #SO I want to predict across genes --> Two options either we provide the data or we don't provide the data on which the prediction is made
-    def _predict_across_pert(self, adata: sc.AnnData, cell_id: str, target: str) -> np.ndarray:
+    def _predict_across_pert(self, adata: sc.AnnData, target: str, cell_id: str) -> np.ndarray:
         """
         Makes a prediction for an unseen perturbation using all training data.
         
@@ -119,6 +119,12 @@ class NearestNeighborPredictor():
         ----------
         target : str
             The target perturbation to predict
+
+        cell_id : str
+            The cell type of the data on which the prediction is done
+
+        adata : AnnData
+            The AnnData object control data on the cell type of the prediction.
 
         Returns
         -------
@@ -135,16 +141,20 @@ class NearestNeighborPredictor():
         num_of_degs = self.config['num_of_degs']
 
         unique_perturbations = self.train_adata.obs[PERT_KEY].unique()
-        unique_genes_noholdout = [ug for ug in unique_perturbations if ug!=target]
+        unique_genes_noholdout = [ug for ug in unique_perturbations if (ug!=target and ug!=CONTROL_PERT)]
 
         DEGSlist = []
         GTOlist = []
 
         inp = self.train_adata[self.train_adata.obs[CELL_KEY] == cell_id].copy()
+        logger.debug(f' # Of cell with type {cell_id} in training data {len(inp)}')
         logger.debug(f'Finding nearest neighbor perturbation for {target}')
         for ug in unique_genes_noholdout:
             cont = np.array(inp[inp.obs[PERT_KEY] == CONTROL_PERT].X.todense())
             pert = np.array(inp[inp.obs[PERT_KEY] == ug].X.todense())
+            logger.debug(f'Finding nearest neighbor perturbation for {target} using {ug}')
+
+            logger.debug(f'Control shape {cont.shape}, pert shape {pert.shape}')
             
             control = sc.AnnData(X=cont)
                         
@@ -191,14 +201,16 @@ class NearestNeighborPredictor():
         duplicated_DEGs = torch.unique(reduced_DEGs[torch.isin(reduced_DEGs, repeated_elements)])
 
         bestnnscore = 0
+        nn_scores = {}
         for sr in significant_reducers:
             nnscore = len(np.intersect1d(duplicated_DEGs.cpu().detach().numpy(),DEGSlist[unique_genes_noholdout.index(sr)][-num_of_degs:].cpu().detach().numpy()))
+            nn_scores[sr] = nnscore
             if nnscore >= bestnnscore:
                 nnbr = sr
                 bestnnscore = nnscore
 
 
-
+        logger.debug(f'NN scoes {nn_scores}')
         logger.debug(f'Nearest neighbor perturbation of {target} is {nnbr}')
         #We have the neighboring perturbation, now we find the effect of this perturbation on each cell type and then apply the corresponding to each cell in the heldout data.
         nnbr_pert = nnbr
