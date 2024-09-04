@@ -51,7 +51,7 @@ def compute_ot_mapping(adata, cost_threshold=0.01):
             # Solve the linear sum assignment problem
             row_ind, col_ind = linear_sum_assignment(cost_matrix)
             
-            # Apply the threshold to discard mappings where the difference exceeds the threshold
+            # Discard mappings that differ by more than 1 percent in their counts (or whatever you set cost_threshold to)
             valid_mapping = cost_matrix[row_ind, col_ind] / perturbed_counts[row_ind] <= cost_threshold
             
             # Save the valid perturbed indices
