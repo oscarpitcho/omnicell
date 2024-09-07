@@ -6,6 +6,7 @@ import logging
 from omnicell.constants import CELL_KEY, CONTROL_PERT, PERT_KEY
 from omnicell.models.VAE.vae import Net
 from omnicell.models.early_stopping import EarlyStopper
+from omnicell.processing.utils import to_dense
 
 logger = logging.getLogger(__name__)
 
@@ -52,6 +53,7 @@ class VAEPredictor():
         #TODO bad if we start passing batches to the model, it will see only part of the data and the len of the data will be wrong.
         datalen = len(adata)
         indices = np.random.permutation(datalen)
+
         train = adata[indices[:np.int32(datalen*0.9)]]  # 90% training data
         valid = adata[indices[np.int32(datalen*0.9):]]         
 
@@ -67,8 +69,9 @@ class VAEPredictor():
         optimizer = optim.Adam(net.parameters(), lr=self.training_config['learning_rate'])  # Adam optimizer
         running_loss = 0
 
-        train = train.X.toarray() if not isinstance(train.X, np.ndarray) else train
-        valid = valid.X.toarray() if not isinstance(valid.X, np.ndarray) else valid
+
+        train = to_dense(train.X)
+        valid = to_dense(valid.X)
 
         train = torch.from_numpy(train.astype(np.float32)).to(device)  # Convert train data to torch tensor and move to device
         valid = torch.from_numpy(valid.astype(np.float32)).to(device)  # Convert validation data to torch tensor and move to device
@@ -124,10 +127,12 @@ class VAEPredictor():
                 break
 
 
+
+        #Compute the average embedding over the entire set of unperturbed cells
+        control_adata = adata[adata.obs[PERT_KEY] == CONTROL_PERT]
+        control = torch.from_numpy(to_dense(control_adata.X)).to(device)
         
-        combined = torch.cat((train, valid), 0)
-        
-        mu, _ = net.encode(combined)
+        mu, _ = net.encode(control)
 
 
         mean_enc = mu.mean(axis=0).cpu().detach()
@@ -159,7 +164,7 @@ class VAEPredictor():
 
         logger.info(f'Predicting seen perturbation {pert_id} for unseen cell type {cell_type}')
 
-        data = adata.X.toarray() if not isinstance(adata.X, np.ndarray) else adata.X
+        data = to_dense(adata.X)
 
         data = torch.from_numpy(data.astype(np.float32)).to(self.device)
 

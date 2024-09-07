@@ -5,6 +5,8 @@ class EarlyStopper:
         self.counter = 0
         self.min_validation_loss = float('inf')
 
+
+    #TODO - Implement some epsilon for the min_delta, if loss stops improving by epsilon, then stop
     def early_stop(self, validation_loss):
         if validation_loss < self.min_validation_loss:
             self.min_validation_loss = validation_loss

@@ -94,12 +94,24 @@ class Config:
     def get_model_config(self):
         return self.model_config.copy()
     
+    def get_var_gene_key(self):
+        return self.task_config['data'].get(['gene_key'], None)
+    
 
     def get_heldout_cells(self):
-        return self.task_config['datasplit']['training']['holdout_cells']
+        """Returns the heldout cells for the training data, returns an empty list if no cells are held out"""
+        return self.task_config['datasplit']['training'].get('holdout_cells', [])
     
     def get_heldout_perts(self):
-        return self.task_config['datasplit']['training']['holdout_perts']
+        """Returns the heldout perturbations for the training data, returns an empty list if no perturbations are held out"""
+        return self.task_config['datasplit']['training'].get('holdout_perts', [])
+    
+
+    def get_apply_normalization(self):
+        return self.task_config['data']['apply_norm']
+    
+    def get_apply_log1p(self):
+        return self.task_config['data']['apply_log1p']
     
     def set_heldout_cells(self, heldout_cells: List[str]):
         config = self.copy()
@@ -122,7 +134,5 @@ class Config:
         if self.task_config is None:
             raise ValueError("No data config found in the config file")
         return self.task_config['data']['path']
-    
-    def get_heldout_cells(self):
-        return self.config['datasplit']['heldout_cells']
+
     
