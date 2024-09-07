@@ -1,7 +1,9 @@
 from omnicell.constants import PERT_KEY, CELL_KEY, CONTROL_PERT
 import numpy as np
 import scanpy as sc
-from typing import List, Tuple, Dict, Union
+from typing import List, Tuple, Dict
+from omnicell.config.config import Config
+
 
 
 
@@ -16,13 +18,13 @@ from typing import List, Tuple, Dict, Union
 """
 class Splitter:
 
-    def __init__(self, task_config):
-        self.config = task_config
+    def __init__(self, config: Config):
+        self.config = config
 
-        self.holdout_cells = self.config['datasplit']['training'].get('holdout_cells', [])
-        self.holdout_perts = self.config['datasplit']['training'].get('holdout_perts', [])
+        self.holdout_cells = self.config.get_heldout_cells()
+        self.holdout_perts = self.config.get_heldout_perts()
 
-        self.eval_targets = self.config['datasplit']['evals']['evaluation_targets']
+        self.eval_targets = self.config.get_eval_targets()
 
 
     def split(self, data: sc.AnnData)-> List[Tuple[sc.AnnData, sc.AnnData, List[str], List[str]]]:
@@ -58,11 +60,16 @@ class Splitter:
 
         #TODO: Implement random folds
 
+        #Consumes more mem
+        data = data.copy()
+
+
         train_mask = (~data.obs[PERT_KEY].isin(self.holdout_perts)) & (~data.obs[CELL_KEY].isin(self.holdout_cells))
         adata_train = data[train_mask]
         adata_eval = data[~train_mask]
 
         #TODO: Implement count normalizations?
+
 
 
         return [(adata_train, adata_eval, self.holdout_perts, self.holdout_cells, self.eval_targets)]

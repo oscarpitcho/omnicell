@@ -31,7 +31,7 @@ def main(*args):
 
     parser.add_argument('--task_config', type=str, default='', help='Path to yaml config file of the task.')
     parser.add_argument('--model_config', type=str, default='', help='Path to yaml config file of the model.')
-    parser.add_argument('--test_mode', action='store_true', help='Run in test mode, datasetsize will be capped at 10000')
+    parser.add_argument('--test_mode', action='store_true', default=False, help='Run in test mode, datasetsize will be capped at 10000')
     parser.add_argument('--slurm_id', type=int, default=1, help='Slurm id for the job')
     parser.add_argument('-l', '--log', dest='loglevel', choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'], help="Set the logging level (default: %(default)s)", default='WARNING')
 
@@ -58,7 +58,6 @@ def main(*args):
     #Store the config and the paths to the config to make reproducibility easier. 
 
 
-    #This is part of the processing, should put it someplace else
     adata = sc.read_h5ad(config.get_data_path())
     adata = preprocess(adata, config)
 
@@ -100,22 +99,22 @@ def main(*args):
     #Register your models here
     #TODO: Change for prefix checking
     
-    if model_name == 'nearest-neighbor':
+    if 'nearest-neighbor' in model_name:
         from omnicell.models.nearest_neighbor.predictor import NearestNeighborPredictor
         logger.info("Nearest Neighbor model selected")
         model = NearestNeighborPredictor(config_model)
 
-    elif model_name == 'transformer':
+    elif 'transformer' in model_name:
         #from cellot.models.cfm import train
         raise NotImplementedError()
 
-    elif model_name == 'vae':
+    elif 'vae' in model_name:
         from omnicell.models.VAE.predictor import VAEPredictor
         logger.info("VAE model selected")
         model = VAEPredictor(config_model, input_dim, device, pert_ids)
     
     elif model_name == 'test':
-        from omnicell.models.test.predictor import TestPredictor
+        from omnicell.models.dummy_predictor.predictor import TestPredictor
         logger.info("Test model selected")
         model = TestPredictor(adata)
         
@@ -127,7 +126,7 @@ def main(*args):
 
     #Every fold corresponds to a training
     #We need to split the data according to the task config
-    splitter = Splitter(config_task)
+    splitter = Splitter(config)
     folds = splitter.split(adata)
 
         
@@ -137,6 +136,10 @@ def main(*args):
     #What will happen when we have a pretrained model? All this logic will no longer be adequate
     for i, (adata_train, adata_eval, ho_perts, ho_cells, eval_targets) in enumerate(folds):
         fold_save = save_path / f"fold_{i}"
+
+        logger.debug(f"Fold {i} - Training data: {adata_train.shape}, Evaluation data: {adata_eval.shape}, # of holdout perts: {len(ho_perts)}, # of holdout cells: {len(ho_cells)}")
+        logger.debug(f"Fold {i} - Evaluation targets: {eval_targets}")
+        logger.debug(f"Fold {i} - Holdout perts: {ho_perts} - Holdout cells: {ho_cells}")
 
         logger.info(f"Running fold {i}")
         if not os.path.exists(fold_save):
@@ -171,11 +174,10 @@ def main(*args):
             adata_ground_truth = get_pert_cell_data(adata, pert, cell)
             adata_ctrl_pert = get_cell_ctrl_data(adata, cell)
 
-            logger.debug(f"Ground truth data loaded for {cell} and {pert} - # of ctrl cells {len(adata_ground_truth)}, # of ground truth cells {len(adata_ctrl_pert)}")
+            logger.debug(f"Ground truth data loaded for {cell} and {pert} - # of ctrl cells {len(adata_ctrl_pert)}, # of ground truth cells {len(adata_ground_truth)}")
 
 
-            control_sample_size = config.get_control_size()
-
+            """control_sample_size = config.get_control_size()
             if control_sample_size > len(adata_ctrl_pert):
                 logger.warning(f"Control size {config.get_control_size()} is larger than the number of control cells {len(adata_ctrl_pert)}, setting control size to the number of control cells")
                 control_sample_size = len(adata_ctrl_pert)
@@ -184,20 +186,19 @@ def main(*args):
             pushfwd_sample_size = config.get_test_size()
             if pushfwd_sample_size > len(adata_ground_truth):
                 logger.warning(f"Test size {config.get_test_size()} is larger than the number of ground truth cells {len(adata_ground_truth)}, setting test size to the number of ground truth cells")
-                pushfwd_sample_size = len(adata_ground_truth)
+                pushfwd_sample_size = len(adata_ground_truth)"""
 
-            adata_control = sc.pp.subsample(adata_ctrl_pert, n_obs=control_sample_size, copy=True)
-            adata_pushfwd = sc.pp.subsample(adata_ctrl_pert, n_obs=pushfwd_sample_size, copy=True)
+            #adata_control = sc.pp.subsample(adata_ctrl_pert, n_obs=control_sample_size, copy=True)
+            #adata_pushfwd = sc.pp.subsample(adata_ctrl_pert, n_obs=pushfwd_sample_size, copy=True)
+
+            adata_control = adata_ctrl_pert.copy()
+            adata_pushfwd = adata_ctrl_pert.copy()
 
             preds = model.make_predict(adata_pushfwd, pert, cell)
 
             preds = to_dense(preds)
             control  = to_dense(adata_control.X)
             ground_truth = to_dense(adata_ground_truth.X)
-
-
-
-
 
             np.savez(
                     f"{fold_save}/{prediction_filename(pert, cell)}",
