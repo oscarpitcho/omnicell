@@ -32,6 +32,7 @@ class TestPredictor():
 
         ground_truth = self.total_adata[(self.total_adata.obs[PERT_KEY] == pert_id) & (self.total_adata.obs[CELL_KEY] == cell_type)]
 
-        sampled_gt = sc.pp.subsample(ground_truth, n_obs=number_preds, copy=True)
+        #sampled_gt = sc.pp.subsample(ground_truth, n_obs=number_preds, replace=True, copy=True)
 
-        return sampled_gt.X.toarray()
+
+        return ground_truth.X

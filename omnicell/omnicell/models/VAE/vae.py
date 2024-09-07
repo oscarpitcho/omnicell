@@ -48,6 +48,7 @@ class Net(nn.Module):
 
         # Decoder function
         def decode(self, z):
+            assert z.shape[-1] == self.latent_dim, f"Latent dimension mismatch, expected {self.latent_dim}, got {z.shape[-1]}"
             h = self.decoder_fc1(z)
             h = self.decoder_bn1(h)
             h = F.leaky_relu(h)

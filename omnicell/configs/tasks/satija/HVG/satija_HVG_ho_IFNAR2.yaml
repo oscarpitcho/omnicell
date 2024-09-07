@@ -1,21 +1,20 @@
-name: kang_ho_CD4T
+name: satija_HVG_ho_IFNAR2
+
 data: 
-  path: /orcd/archive/abugoot/001/Projects/opitcho/sandbox/omnicell/kang.h5ad
+  path: /orcd/archive/abugoot/001/Projects/dlesman/datasets/satija_IFNB_HVG_and_perturbed_genes_normed.h5ad
   cell_key: cell_type
-  pert_key: condition_key
-  apply_norm: True
-  apply_log1p: True
-  control: control
+  pert_key: gene
+  control: NT
+  apply_norm: False
+  apply_log1p: False
 
 datasplit:
-  #test_size: 1000
-  #control_size: 1000
   training:
     #Random folds need to be implemented
     #TODO: More complex splits
 
     #Annoying part is if we have random splits how will we define the tasks? -
-    holdout_cells: [CD4T]
+    holdout_perts: [IFNAR2]
 
   evals:
 
@@ -24,9 +23,14 @@ datasplit:
     #Targets on which we evaluate when we do the holdout, can be ALL
     #If these are also heldout then we are evaluating on unseen cell + unseen pert
     #Set the combinations to evaluate on, we can implement more complex commands later on
-    evaluation_targets: [[CD4T, perturbed]]
+    evaluation_targets: [[A549, IFNAR2]]
 
 
+  #holdout_cells: [xxx]
+  
+  #test_size: 0.2
+  #Something like this later on, i.e. stratification
+  #groupby: ['species', 'condition']
 
     
 dataloader:
