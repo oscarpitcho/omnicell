@@ -12,6 +12,9 @@ logger = logging.getLogger(__name__)
 
 
 class VAEPredictor():
+    """
+    
+    """
     def __init__(self, config, input_dim, device, pert_ids):
         self.training_config = config['training']
         self.model_config = config['model']
@@ -36,6 +39,7 @@ class VAEPredictor():
         self.perts = pert_ids
         self.deltas =  None
         self.perts_to_idx = {pert: idx for idx, pert in enumerate(pert_ids)}
+        self.cell_ids = None
 
 
     #Note this model needs the entire data or sth like that. 
@@ -43,10 +47,11 @@ class VAEPredictor():
     def train(self, adata):
 
 
-        
+        self.cell_ids = adata.obs[CELL_KEY].unique()
         device = self.device
         epochs = self.epochs
         batsize = self.batsize
+
 
 
 
@@ -81,6 +86,8 @@ class VAEPredictor():
 
         
         logger.info(f'Training VAE model for {epochs} epochs')
+
+        #Training loop
         for e in range(epochs):
             logger.info(f'Epoch {e+1}/{epochs}')
 
@@ -127,28 +134,48 @@ class VAEPredictor():
                 break
 
 
-
-        #Compute the average embedding over the entire set of unperturbed cells
-        control_adata = adata[adata.obs[PERT_KEY] == CONTROL_PERT]
-        control = torch.from_numpy(to_dense(control_adata.X)).to(device)
         
-        mu, _ = net.encode(control)
+        #Compute the deltas for each perturbation
+        cell_means = []
+
+        for cell in self.cell_ids:
+            cell_ctrl_adata = adata[(adata.obs[CELL_KEY] == cell) & (adata.obs[PERT_KEY] == CONTROL_PERT)]
+            cell_data = torch.from_numpy(to_dense(cell_ctrl_adata.X)).to(device)
+            mu, _ = net.encode(cell_data)
+            cell_mean = mu.mean(axis=0).cpu().detach()
+            cell_means.append(cell_mean)
+
+        cell_means = torch.stack(cell_means)
 
 
-        mean_enc = mu.mean(axis=0).cpu().detach()
+        self.deltas = []
 
-        pert_means = []
+        #Altough scgen theoretically only uses one perturbation, we will use multiple for the sake of generality
+        #On Kang the number of perts is 1
         for i in range(len(self.perts)):
-            pert = self.perts[i]
-            pert_adata = adata[adata.obs[PERT_KEY] == pert]
-            pert_data = torch.from_numpy(pert_adata.X.toarray().astype(np.float32)).to(device)
-            pert_mu, _ = net.encode(pert_data)
-            pert_mean = pert_mu.mean(axis=0).cpu().detach()
-            pert_means.append(pert_mean)
+            pert_deltas = []
+            for j, cell in enumerate(self.cell_ids):
+                cell_pert_adata = adata[(adata.obs[CELL_KEY] == cell) & (adata.obs[PERT_KEY] == self.perts[i])]
+                cell_data = torch.from_numpy(to_dense(cell_pert_adata.X)).to(device)
+                pert_mu, _ = net.encode(cell_data)
+                pert_mean = pert_mu.mean(axis=0).cpu().detach()
 
-        pert_means = torch.stack(pert_means)
-        
-        self.deltas = pert_means - mean_enc
+                #Compute the delta for this perturbation on this cell type
+                pert_delta = pert_mean - cell_means[j]
+                pert_deltas.append(pert_delta)
+
+
+            pert_deltas = torch.stack(pert_deltas)
+
+            #We obtain the delta for this pert by averaging the deltas for each cell type
+            pert_delta = pert_deltas.mean(axis=0)
+            self.deltas.append(pert_delta)
+
+
+        self.deltas = torch.stack(self.deltas)
+
+        logger.debug(f"VAE training done - Deltas shape: {self.deltas.shape}")
+
 
 
     #Predicting perturbations --> How do we compute the means? 
@@ -176,7 +203,7 @@ class VAEPredictor():
 
         pert_mu = mu + pert_delta.to(self.device)
 
-        z = self.model.reparameterize(pert_mu, logvar)
+        #z = self.model.reparameterize(pert_mu, logvar)
 
-        return self.model.decode(z).cpu().detach().numpy()
+        return self.model.decode(pert_mu).cpu().detach().numpy()
 
