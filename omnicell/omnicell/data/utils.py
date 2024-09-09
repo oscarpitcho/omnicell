@@ -6,7 +6,7 @@ from omnicell.constants import PERT_KEY, CELL_KEY, CONTROL_PERT
 
 
 def prediction_filename(pert, cell):
-    return f'pred_{pert}_{cell}.npz'
+    return f'pred_{pert}_{cell}'
 
 
 def split_anndata(adata: sc.AnnData, holdout_perts: Union[str, List[str]], holdout_cells: Union[str, List[str]], pert_key: str, cell_key: str) -> Tuple[sc.AnnData, sc.AnnData]:

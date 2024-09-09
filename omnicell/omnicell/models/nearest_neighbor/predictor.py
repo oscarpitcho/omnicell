@@ -87,12 +87,8 @@ class NearestNeighborPredictor():
 
         logger.debug(f"train_cell_type_ctrl_means shape {train_cell_type_ctrl_means.shape}")
 
-
-
-
         #Mean control state of the heldout cell
         heldout_cell_ctrl_mean = heldout_cell_adata.X.mean(axis=0)
-
 
         logger.debug(f"train_cell_type_ctrl_means shape {train_cell_type_ctrl_means.shape}")
         logger.debug(f"heldout_cell_ctrl_mean shape {heldout_cell_ctrl_mean.shape}")

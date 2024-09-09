@@ -6,13 +6,14 @@ import sys
 import os
 import hashlib
 import json
+import scipy
 import logging
 import numpy as np
 import random
 from omnicell.data.splitter import Splitter
 from omnicell.constants import PERT_KEY, CELL_KEY, CONTROL_PERT
 from omnicell.data.utils import get_pert_cell_data, get_cell_ctrl_data, prediction_filename
-from omnicell.processing.utils import to_dense
+from omnicell.processing.utils import to_dense, to_coo
 from omnicell.data.preprocessing import preprocess
 from omnicell.config.config import Config
 import torch
@@ -196,15 +197,15 @@ def main(*args):
 
             preds = model.make_predict(adata_pushfwd, pert, cell)
 
-            preds = to_dense(preds)
-            control  = to_dense(adata_control.X)
-            ground_truth = to_dense(adata_ground_truth.X)
+            preds = to_coo(preds)
+            control  = to_coo(adata_control.X)
+            ground_truth = to_coo(adata_ground_truth.X)
 
-            np.savez(
-                    f"{fold_save}/{prediction_filename(pert, cell)}",
-                    pred_pert=preds, 
-                    true_pert=ground_truth, 
-                    control=control)
+
+            scipy.sparse.save_npz(f"{fold_save}/{prediction_filename(pert, cell)}-preds", preds)
+            scipy.sparse.save_npz(f"{fold_save}/{prediction_filename(pert, cell)}-control", control)
+            scipy.sparse.save_npz(f"{fold_save}/{prediction_filename(pert, cell)}-ground_truth", ground_truth)
+
 
 
 
