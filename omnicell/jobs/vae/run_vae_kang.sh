@@ -19,3 +19,4 @@ python train.py --task_config "configs/tasks/kang/kang_ho_CD4T.yaml" \
 
 python generate_evaluations.py --model_name "vae" --task_name "kang_ho_CD4T" 
 
+echo "End of bash script"
