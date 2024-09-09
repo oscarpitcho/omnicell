@@ -203,7 +203,7 @@ class VAEPredictor():
 
         pert_mu = mu + pert_delta.to(self.device)
 
-        #z = self.model.reparameterize(pert_mu, logvar)
+        z = self.model.reparameterize(pert_mu, logvar)
 
-        return self.model.decode(pert_mu).cpu().detach().numpy()
+        return self.model.decode(z).cpu().detach().numpy()
 
