@@ -11,6 +11,8 @@ from omnicell.data.utils import prediction_filename
 from omnicell.config.config import Config
 from omnicell.processing.utils import to_dense
 from statistics import mean
+from scipy.sparse import issparse   
+import scipy.sparse as sparse
 from utils.encoder import NumpyTypeEncoder
 
 import matplotlib.pyplot as plt
@@ -47,29 +49,44 @@ def generate_evaluation(dir, args):
     
     for (cell, pert) in eval_targets:
         pred_file_fn = prediction_filename(pert, cell)
+
+        pred_fn = f"{prediction_filename(pert, cell)}-preds.npz"
+        true_fn = f"{prediction_filename(pert, cell)}-ground_truth.npz"
+        control_fn = f"{prediction_filename(pert, cell)}-control.npz"
+
         r2_and_mse_fn = r2_mse_filename(pert, cell)
         c_r_fn= c_r_filename(pert, cell)
         DEGs_overlap_fn = DEGs_overlap_filename(pert, cell)
         
         results_exist = ((r2_and_mse_fn in listdir(dir)) & (c_r_fn in listdir(dir)) & (DEGs_overlap_fn in listdir(dir)))
 
+        preds_exist = pred_fn in listdir(dir) and true_fn in listdir(dir) and control_fn in listdir(dir)
 
-        if ((pred_file_fn in listdir(dir)) & ((not results_exist) | args.overwrite)):
-        
-            model_output = np.load(f'{dir}/{pred_file_fn}', allow_pickle=True)
+        if not preds_exist:
+            logger.warning(f"Predictions for {pert} and {cell} do not exist in {dir}")
 
+            raise FileNotFoundError(f"Predictions for {pert} and {cell} do not exist in {dir}")
 
+        if (not results_exist | args.overwrite):
+
+            logger.info(f"Generating evaluations for {pert} and {cell}")
+
+            pred_pert = sparse.load_npz(f'{dir}/{pred_fn}')
+            true_pert = sparse.load_npz(f'{dir}/{true_fn}')
+            control = sparse.load_npz(f'{dir}/{control_fn}')
             
-
-            pred_pert = model_output['pred_pert']
-            true_pert = model_output['true_pert']
-            control = model_output['control']
+        
 
 
-            #Safety checks
+            print(f"Pred pert is sparce matrix: {issparse(pred_pert)}")
+            print(f"Pred pert matrix type: {type(pred_pert)}")
+            
+            #We need to convert the sparse matrices to dense matrices
             pred_pert = to_dense(pred_pert)
             true_pert = to_dense(true_pert)
             control = to_dense(control)
+
+            print(f"Type of pred_pert: {type(pred_pert)}")
 
 
             pred_pert = sc.AnnData(X=pred_pert.clip(min=0))
