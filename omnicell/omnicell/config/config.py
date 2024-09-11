@@ -12,6 +12,7 @@ class Config:
         self.model_config = config['model'].copy() if 'model' in config else None
         self.eval_config = config['eval'].copy() if 'eval' in config else None
         self.train_args = config['train_args'].copy() if 'train_args' in config else None
+        self.timestamp = config['timestamp'] if 'timestamp' in config else None
 
     @classmethod
     def empty(cls):
@@ -20,10 +21,7 @@ class Config:
 
     def copy(self):
         config = {}
-        if self.task_config is not None:
-            config['task'] = self.task_config.copy()
-        if self.model_config is not None:
-            config['model'] = self.model_config.copy()
+        config = self.to_dict()
         return Config(config)
     
 
@@ -38,6 +36,8 @@ class Config:
             config['eval'] = self.eval_config.copy()
         if self.train_args is not None:
             config['train_args'] = self.train_args.copy()
+        if self.timestamp is not None:
+            config['timestamp'] = self.timestamp
         return config
     
     #Bunch of getters and setters to no longer be fixed by the config file structure in the code
@@ -123,6 +123,10 @@ class Config:
         config.task_config['datasplit']['training']['holdout_perts'] = heldout_perts
         return config
     
+    def add_timestamp(self, timestamp: str):
+        config = self.copy()
+        config.timestamp = timestamp
+        return config
 
     def get_test_size(self):
         return self.task_config['datasplit']['test_size']

@@ -16,6 +16,8 @@ from omnicell.data.utils import get_pert_cell_data, get_cell_ctrl_data, predicti
 from omnicell.processing.utils import to_dense, to_coo
 from omnicell.data.preprocessing import preprocess
 from omnicell.config.config import Config
+import time
+import datetime
 import torch
 
 
@@ -38,6 +40,12 @@ def main(*args):
 
     args = parser.parse_args()
 
+    now = datetime.datetime.now()
+
+    now = now.strftime("%Y-%m-%d_%H:%M:%S")
+
+
+
 
  
 
@@ -47,7 +55,9 @@ def main(*args):
     config_model = yaml.load(open(model_path), Loader=yaml.UnsafeLoader)
     config_task = yaml.load(open(task_path), Loader=yaml.UnsafeLoader)
 
-    config = Config.empty().add_model_config(config_model).add_task_config(config_task).add_train_args(args.__dict__)
+
+
+    config = Config.empty().add_model_config(config_model).add_task_config(config_task).add_train_args(args.__dict__).add_timestamp(str(now))
 
     logging.basicConfig(filename= f'output_{args.slurm_id}_{config.get_model_name()}_{config.get_task_name()}.log', filemode= 'w', level=args.loglevel, format='%(asctime)s - %(levelname)s - %(message)s')
     logger.info("Application started")
@@ -73,8 +83,9 @@ def main(*args):
 
             
     hash_dir = hashlib.sha256(json.dumps(config.to_dict()).encode()).hexdigest()
+    hash_dir = hash_dir[:4]
     
-    save_path = Path(f"./results/{model_name}/{task_name}/{hash_dir}").resolve()
+    save_path = Path(f"./results/{model_name}/{task_name}/{now}-{hash_dir}").resolve()
 
     logger.info(f"Config parsed, model name: {model_name}, task name: {task_name}")
     logger.info(f"Saving results to {save_path}")

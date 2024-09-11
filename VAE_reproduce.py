@@ -72,7 +72,7 @@ def get_eval(true_adata, pred_adata, DEGs, DEG_vals, pval_threshold):
     results_dict['all_genes_corr_mtx_MSE'] = (np.square(true_corr_mtx[~corr_nas] - pred_corr_mtx[~corr_nas])).mean(axis=0)
     results_dict['all_genes_cov_mtx_MSE'] = (np.square(true_cov_mtx[~cov_nas] - pred_cov_mtx[~cov_nas])).mean(axis=0)
 
-    significant_DEGs = DEGs[DEGs['pvals_adj'] < pval_threshold]
+    """ significant_DEGs = DEGs[DEGs['pvals_adj'] < pval_threshold]
     num_DEGs = len(significant_DEGs)
     DEG_vals.insert(0, num_DEGs)
     
@@ -112,7 +112,7 @@ def get_eval(true_adata, pred_adata, DEGs, DEG_vals, pval_threshold):
             results_dict[f'Top_{val}_DEGs_corr_mtx_R2'] = scipy.stats.pearsonr(true_corr_mtx[~corr_nas], pred_corr_mtx[~corr_nas])[0]**2
             results_dict[f'Top_{val}_DEGs_cov_mtx_R2'] = scipy.stats.pearsonr(true_cov_mtx[~cov_nas], pred_cov_mtx[~cov_nas])[0]**2
             results_dict[f'Top_{val}_DEGs_corr_mtx_MSE'] = (np.square(true_corr_mtx[~corr_nas] - pred_corr_mtx[~corr_nas])).mean(axis=0)
-            results_dict[f'Top_{val}_DEGs_cov_mtx_MSE'] = (np.square(true_cov_mtx[~cov_nas] - pred_cov_mtx[~cov_nas])).mean(axis=0)
+            results_dict[f'Top_{val}_DEGs_cov_mtx_MSE'] = (np.square(true_cov_mtx[~cov_nas] - pred_cov_mtx[~cov_nas])).mean(axis=0)"""
 
     return results_dict
 
@@ -156,7 +156,7 @@ def get_DEGs_overlaps(true_DEGs, pred_DEGs, DEG_vals, pval_threshold):
 #Assumption: at least 3 cell types
 learning_rate = 0.001
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-inp = sc.read("input/kang.h5ad")
+inp = sc.read("omnicell/kang.h5ad")
 numvars = len(inp.var_names)
 
 
@@ -164,8 +164,15 @@ ctkey = 'cell_type'
 ptkey = 'condition_key'
 ptctrlkey = 'control'
 
-holdoutcell = 'NK'
+holdoutcell = 'CD4T'
 
+
+
+#THE HOLD OUT CODE ACTUALLY CONTAINS THE FUCKING HOLDOUT CELL
+
+#Heldout cells that are perturbed are the hldout idx
+
+#Unperturbed heldout cells are the 
 holdoutidx = ((inp.obs[ctkey]==holdoutcell) & (inp.obs[ptkey]!=ptctrlkey))
 inp_noholdout = inp[~holdoutidx].copy()
 inp_holdout = inp[holdoutidx].copy()
@@ -177,6 +184,10 @@ indices = np.random.permutation(datalen)
 # Subsetting the AnnData object to create train and validation sets
 train = inp_noholdout[indices[:np.int32(datalen*0.9)]]
 valid = inp_noholdout[np.int32(datalen*0.9):]
+
+
+print(f"Train shape: {train.shape}")
+print(f"Valid shape: {valid.shape}")
 
 
 goodo=True
@@ -327,6 +338,10 @@ trainctrlnhidx = (train.obs[ptkey]==ptctrlkey).values & (train.obs[ctkey]!=holdo
 holdoutctrlidx = (train.obs[ptkey]==ptctrlkey).values & (train.obs[ctkey]==holdoutcell).values
 trainholdoutidx = (train.obs[ctkey]!=holdoutcell).values
 pathways_pert = np.unique(train[train.obs[ptkey]!=ptctrlkey].obs[ptkey])
+
+
+print(f"Pathways: {pathways_pert}")
+
 pathways_idx = []
 control_holdout = train[holdoutctrlidx].copy().X.todense()
 
@@ -334,12 +349,15 @@ perturbed_holdout = []
 for curpt in pathways_pert:
     pathways_idx.append((train.obs[ptkey]==curpt).values)
     perturbed_holdout.append(inp_holdout[inp_holdout.obs[ptkey]==curpt].copy().X.todense())
+
 trainX = torch.from_numpy(train.X.todense()).to(device)
 validX = torch.from_numpy(valid.X.todense()).to(device)
 
 
 
 
+
+#This array just gets copied results into later --> garbage code but anyway
 trainX_latent = torch.clone(trainX[:,:latent_dim])
 trainX_var = torch.clone(trainX[:,:latent_dim])
 
@@ -349,9 +367,15 @@ holdoutX_latent = torch.clone(holdoutX[:,:latent_dim])
 holdoutX_var = torch.clone(holdoutX[:,:latent_dim])
 
 celltypes = np.unique(train[train.obs[ctkey]!=holdoutcell].obs[ctkey])
+
+#All indices of cell types which are not the holdout cell type
+#[[Indices or NK],[Indices of T],[Indices of B] ...]
 ctidxctrl = []
 for ct in celltypes:
     ctidxctrl.append((train.obs[ctkey]==ct).values)
+
+
+#Indices of unperturbed datapoints in the training data
 ctrlidxos = (train.obs[ptkey]==ptctrlkey).values
 
 
@@ -393,14 +417,21 @@ for e in range(epochs):
     if (e+1) % 50 == 0:
         predicted_holdout = []
         with torch.no_grad():
+
+            #This loop just encodes the training batch per batch
             for lower in range(0, trainlen, batsize):
                 upper = min(lower + batsize, trainlen)
                 lower = min(trainlen-batsize,lower)
                 counter += 1
                 batch = trainX[lower:upper,:]
                 mu, logvar = neteval.encode(batch)
+
+                #Here we store the latent space representation of the training set
                 trainX_latent[lower:upper,:] = mu
                 trainX_var[lower:upper,:] = logvar
+
+
+            #This one encodes the holdout set
             for lower in range(0, holdoutlen, batsize):
                 upper = min(lower + batsize, holdoutlen)
                 lower = min(trainlen-batsize,lower)
@@ -409,20 +440,44 @@ for e in range(epochs):
                 mu, logvar = neteval.encode(batch)
                 holdoutX_latent[lower:upper,:] = mu
                 holdoutX_var[lower:upper,:] = logvar
+
+
+
             avgctl = []
+
+            #Ok we have two means 
             for ctx in ctidxctrl:
+                #Selecting the indices of control cells for that cell type and averaging their latent space representations
                 avgctl.append(torch.mean(trainX_latent[ctx & ctrlidxos],axis=0))
             avgctl = torch.stack(avgctl)
+
+            #We average the averages --> Equal weighting per class
+            #avgctl is the average of the latent space representations of the training data with equal weighting per class
             avgctl = torch.mean(avgctl,axis=0)
+
+
 
             ctrl_holdout_latent = trainX_latent[holdoutctrlidx]
             ctrl_holdout_var = trainX_var[holdoutctrlidx]
+
+            #This is the shift for each pert, in pratice there is only one pert
             for curptidx in range(len(pathways_pert)):
                 avgcurpt = []
                 for ctx in ctidxctrl:
+                    #Ctx --> Index of the current cell type
+                    #Pathways_idx --> Indices of the current perturbation
+                    #We select the latent space representations of peturbed cells of the current cell type and average them
+
+                    #We average out the effect of the perturbation on that cell type
                     avgcurpt.append(torch.mean(trainX_latent[ctx & pathways_idx[curptidx]],axis=0))
+                
+                #We stack the averages and average them again
+                #So for every pert average on cell type then average on all cell types --> Equal weighting per class
+
                 avgcurpt = torch.stack(avgcurpt)
                 avgcurpt = torch.mean(avgcurpt,axis=0)
+
+                #Delta is computed across our average latent space ctrl and the average latent space pert
                 curdelta = torch.unsqueeze(avgcurpt - avgctl,0)
                 ctrl_holdout_shifted = ctrl_holdout_latent + curdelta
                 ctrl_holdout_reparameterized = neteval.reparameterize(ctrl_holdout_shifted,ctrl_holdout_var)
@@ -466,10 +521,12 @@ for e in range(epochs):
         pred_DEGs_df = get_DEGs(control, pred_pert)
 
         DEGs_overlaps = get_DEGs_overlaps(true_DEGs_df, pred_DEGs_df, [100,50,20], 0.05)
+        metrics = get_eval(control, pred_pert, pred_DEGs_df, true_DEGs_df, 0.05)
         
         
         
         print('DEGs: '+str(DEGs_overlaps['Overlap_in_top_20_DEGs'])+' ('+holdoutcell+')')
+        print('R2: '+str(metrics['all_genes_mean_R2'])+' ('+holdoutcell+')')
 
 
             
