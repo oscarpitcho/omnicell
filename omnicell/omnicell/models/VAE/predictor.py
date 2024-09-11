@@ -65,6 +65,9 @@ class VAEPredictor():
         trainlen = train.shape[0]
         validlen = valid.shape[0]
 
+        logger.debug(f"Train data shape: {train.shape}")
+        logger.debug(f"Validation data shape: {valid.shape}")
+
         net = self.model
         net.to(device)  # Model for training
         neteval = self.model_eval  # Model for evaluation
@@ -148,27 +151,34 @@ class VAEPredictor():
         cell_means = torch.stack(cell_means)
 
 
+        #Computing mean of means --> equal weighting per class
+        cell_mean = cell_means.mean(axis=0)
+
+
         self.deltas = []
 
         #Altough scgen theoretically only uses one perturbation, we will use multiple for the sake of generality
         #On Kang the number of perts is 1
         for i in range(len(self.perts)):
-            pert_deltas = []
+            pert_means = []
+            
             for j, cell in enumerate(self.cell_ids):
                 cell_pert_adata = adata[(adata.obs[CELL_KEY] == cell) & (adata.obs[PERT_KEY] == self.perts[i])]
                 cell_data = torch.from_numpy(to_dense(cell_pert_adata.X)).to(device)
                 pert_mu, _ = net.encode(cell_data)
                 pert_mean = pert_mu.mean(axis=0).cpu().detach()
 
-                #Compute the delta for this perturbation on this cell type
-                pert_delta = pert_mean - cell_means[j]
-                pert_deltas.append(pert_delta)
 
+                pert_means.append(pert_mean)
+  
 
-            pert_deltas = torch.stack(pert_deltas)
+            #Computing the mean of the perturbation means, equal weighting per class
+            pert_means = torch.stack(pert_means)
+            pert_mean  = pert_means.mean(axis=0)
 
-            #We obtain the delta for this pert by averaging the deltas for each cell type
-            pert_delta = pert_deltas.mean(axis=0)
+            pert_delta = pert_mean - cell_mean
+            logger.debug(f"Pert delta shape: {pert_delta.shape}")
+
             self.deltas.append(pert_delta)
 
 
@@ -200,6 +210,9 @@ class VAEPredictor():
 
 
         pert_delta = self.deltas[self.perts_to_idx[pert_id]]
+
+        logger.debug(f"Pert delta shape: {pert_delta.shape}")
+        logger.debug(f"Mu shape: {mu.shape}")
 
         pert_mu = mu + pert_delta.to(self.device)
 
