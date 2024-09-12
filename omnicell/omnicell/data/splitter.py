@@ -5,6 +5,46 @@ from typing import List, Tuple, Dict
 from omnicell.config.config import Config
 
 
+"""
+
+
+                Task Definition
+
+
+
+Predict
+    \
+     \           Pert 1                        Pert 2
+      \
+   On  \
+        \
+         \__________________________________________________________
+         |                              |                           |
+         |                              | • We see Pert 2           |
+         |  Same logic as bottom right  |   at training but         |
+  Cell A |  Quadrant                    |   never on cell A         |
+         |                              | • We never see Pert 2     |
+         |                              |   at training             |
+         |                              |                           |
+         |______________________________|___________________________|
+         |                              |                           |
+         | • We see unperturbed         | • We never see the        |
+         |   Cell B at training         |   combination Cell B +    |
+         | • We never see Cell B        |   Gene 2 at training but  |
+  Cell B |   at training                |   we see them separately  |
+         |                              | • We see Unperturbed      |
+         |                              |   Cell B but never see    |
+         |                              |   Gene 2 (and reverse)    |
+         |                              | • We never see Pert 1     |
+         |                              |   or Cell B               |
+         |                              |                           |
+         |______________________________|___________________________|
+
+Bullet points are sorted by increasing difficulty
+
+
+"""
+
 
 
 
@@ -17,6 +57,13 @@ from omnicell.config.config import Config
 
 """
 class Splitter:
+    """
+    If ood is on any observation with a heldout perturbation or cell type is considered as eval data
+
+    If iid is on only observations with heldout _perturbed_ cells or observations with heldout perturbations _on heldout cells_ are considered as eval data
+    
+    
+    """
 
     def __init__(self, config: Config):
         self.config = config
@@ -25,6 +72,10 @@ class Splitter:
         self.holdout_perts = self.config.get_heldout_perts()
 
         self.eval_targets = self.config.get_eval_targets()
+
+        self.mode = self.config.get_mode()
+
+        assert self.mode == "iid" or self.mode == "ood", f"Unsupported mode {self.mode} specified, only iid and ood are supported"
 
 
     def split(self, data: sc.AnnData)-> List[Tuple[sc.AnnData, sc.AnnData, List[str], List[str]]]:
@@ -64,7 +115,21 @@ class Splitter:
         data = data.copy()
 
 
-        train_mask = (~data.obs[PERT_KEY].isin(self.holdout_perts)) & (~data.obs[CELL_KEY].isin(self.holdout_cells))
+        if self.mode == "ood":
+            train_mask = (~data.obs[PERT_KEY].isin(self.holdout_perts)) & (~data.obs[CELL_KEY].isin(self.holdout_cells))
+
+
+        #IID, we include unperturbed holdouts cells
+        else:
+            assert len(self.holdout_cells) == 0 or len(self.holdout_perts) == 0, "Cannot hold out both cells and perturbations in iid mode"
+
+            heldout_cell_mask = (data.obs[CELL_KEY].isin(self.holdout_cells)) & (data.obs[PERT_KEY] != CONTROL_PERT)
+
+            heldout_pert_mask = (data.obs[PERT_KEY].isin(self.holdout_perts)) & (~data.obs[CELL_KEY] in self.holdout_cells)
+            holdout_mask = heldout_cell_mask | heldout_pert_mask
+
+            train_mask = ~holdout_mask
+
         adata_train = data[train_mask]
         adata_eval = data[~train_mask]
 

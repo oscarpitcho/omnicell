@@ -98,6 +98,10 @@ class Config:
         return self.task_config['data'].get(['gene_key'], None)
     
 
+    def get_mode(self):
+        return self.task_config['datasplit']['mode']
+    
+
     def get_heldout_cells(self):
         """Returns the heldout cells for the training data, returns an empty list if no cells are held out"""
         return self.task_config['datasplit']['training'].get('holdout_cells', [])
