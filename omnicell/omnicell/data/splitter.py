@@ -3,7 +3,7 @@ import numpy as np
 import scanpy as sc
 from typing import List, Tuple, Dict
 from omnicell.config.config import Config
-
+import logging
 
 """
 
@@ -56,6 +56,7 @@ Bullet points are sorted by increasing difficulty
     - Supporting undefined tasks, i.e. because we might need to split the data and are just interested in training, not evaluations yet
 
 """
+logger = logging.getLogger(__name__)    
 class Splitter:
     """
     If ood is on any observation with a heldout perturbation or cell type is considered as eval data
@@ -116,16 +117,18 @@ class Splitter:
 
 
         if self.mode == "ood":
+            logger.info("Doing OOD split")
             train_mask = (~data.obs[PERT_KEY].isin(self.holdout_perts)) & (~data.obs[CELL_KEY].isin(self.holdout_cells))
 
 
         #IID, we include unperturbed holdouts cells
         else:
-            assert len(self.holdout_cells) == 0 or len(self.holdout_perts) == 0, "Cannot hold out both cells and perturbations in iid mode"
 
+            logger.info("Doing IID split")
             heldout_cell_mask = (data.obs[CELL_KEY].isin(self.holdout_cells)) & (data.obs[PERT_KEY] != CONTROL_PERT)
 
-            heldout_pert_mask = (data.obs[PERT_KEY].isin(self.holdout_perts)) & (~data.obs[CELL_KEY] in self.holdout_cells)
+            heldout_pert_mask = (data.obs[PERT_KEY].isin(self.holdout_perts)) & (~data.obs[CELL_KEY].isin(self.holdout_cells))
+
             holdout_mask = heldout_cell_mask | heldout_pert_mask
 
             train_mask = ~holdout_mask

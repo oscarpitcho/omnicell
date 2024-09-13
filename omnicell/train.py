@@ -112,6 +112,10 @@ def main(*args):
     #TODO: Change for prefix checking
     
     if 'nearest-neighbor' in model_name:
+
+        if config.get_mode() == 'iid':
+            raise ValueError("Nearest Neighbor model does not support iid mode")
+        
         from omnicell.models.nearest_neighbor.predictor import NearestNeighborPredictor
         logger.info("Nearest Neighbor model selected")
         model = NearestNeighborPredictor(config_model)

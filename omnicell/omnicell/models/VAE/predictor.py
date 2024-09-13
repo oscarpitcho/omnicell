@@ -39,6 +39,8 @@ class VAEPredictor():
         self.perts = pert_ids
         self.deltas =  None
         self.perts_to_idx = {pert: idx for idx, pert in enumerate(pert_ids)}
+
+        logger.debug(f"VAE predictor initialized, perturbations: {self.perts}, perts to idx: {self.perts_to_idx}")
         self.cell_ids = None
 
 
@@ -51,6 +53,11 @@ class VAEPredictor():
         device = self.device
         epochs = self.epochs
         batsize = self.batsize
+
+
+
+        #This excludes any cell type that does not have a perturbation
+        cell_types_with_pert = adata.obs[adata.obs[PERT_KEY] != CONTROL_PERT][CELL_KEY].unique()
 
 
 
@@ -78,16 +85,15 @@ class VAEPredictor():
         running_loss = 0
 
 
-        train = to_dense(train.X)
-        valid = to_dense(valid.X)
+        train_X = to_dense(train.X)
+        valid_X = to_dense(valid.X)
 
-        train = torch.from_numpy(train.astype(np.float32)).to(device)  # Convert train data to torch tensor and move to device
-        valid = torch.from_numpy(valid.astype(np.float32)).to(device)  # Convert validation data to torch tensor and move to device
+        train_X = torch.from_numpy(train_X.astype(np.float32)).to(device)  # Convert train data to torch tensor and move to device
+        valid_X = torch.from_numpy(valid_X.astype(np.float32)).to(device)  # Convert validation data to torch tensor and move to device
 
-        logger.debug(f"Training data shape: {train.shape}")
-        logger.debug(f"Validation data shape: {valid.shape}")
-
-        
+        logger.debug(f"Training data shape: {train_X.shape}")
+        logger.debug(f"Validation data shape: {valid_X.shape}")
+        logger.debug(f"Batch size: {batsize}")
         logger.info(f'Training VAE model for {epochs} epochs')
 
         #Training loop
@@ -99,7 +105,7 @@ class VAEPredictor():
             for lower in range(0, trainlen, batsize):
                 upper = min(lower + batsize, trainlen)
                 lower = min(trainlen - batsize, lower)
-                batch = train[lower:upper, :]
+                batch = train_X[lower:upper, :]
                 optimizer.zero_grad()  
                 out, mu, logvar = net(batch)  # Forward pass
                 
@@ -123,7 +129,7 @@ class VAEPredictor():
                 for lower in range(0, validlen, batsize):
                     upper = min(lower + batsize, validlen)
                     lower = min(validlen - batsize, lower)
-                    batch = valid[lower:upper, :]
+                    batch = valid_X[lower:upper, :]
                     out, mu, logvar = neteval(batch)
                     loss = neteval.loss_function(out, batch, mu, logvar)
                     running_loss += loss.item()
@@ -138,21 +144,27 @@ class VAEPredictor():
 
 
         
+        net.eval()  # Set model to evaluation mode
         #Compute the deltas for each perturbation
         cell_means = []
 
-        for cell in self.cell_ids:
-            cell_ctrl_adata = adata[(adata.obs[CELL_KEY] == cell) & (adata.obs[PERT_KEY] == CONTROL_PERT)]
+        for cell in cell_types_with_pert:
+            cell_ctrl_adata = train[(train.obs[CELL_KEY] == cell) & (train.obs[PERT_KEY] == CONTROL_PERT)]
+            logger.debug(f"Shape of ctrl data for cell {cell}: {cell_ctrl_adata.shape}")
             cell_data = torch.from_numpy(to_dense(cell_ctrl_adata.X)).to(device)
             mu, _ = net.encode(cell_data)
             cell_mean = mu.mean(axis=0).cpu().detach()
             cell_means.append(cell_mean)
 
         cell_means = torch.stack(cell_means)
+        logger.debug(f"Cell means shape: {cell_means.shape}")
+
 
 
         #Computing mean of means --> equal weighting per class
         cell_mean = cell_means.mean(axis=0)
+        logger.debug(f"Cell mean shape: {cell_mean.shape}")
+        logger.debug(f"Cell mean norm: {torch.norm(cell_mean)}")
 
 
         self.deltas = []
@@ -163,24 +175,35 @@ class VAEPredictor():
             pert_means = []
             
             for j, cell in enumerate(self.cell_ids):
+
+                logger.debug(f'Computing mean for perturbation {self.perts[i]} and cell type {cell}')
                 cell_pert_adata = adata[(adata.obs[CELL_KEY] == cell) & (adata.obs[PERT_KEY] == self.perts[i])]
-                cell_data = torch.from_numpy(to_dense(cell_pert_adata.X)).to(device)
-                pert_mu, _ = net.encode(cell_data)
-                pert_mean = pert_mu.mean(axis=0).cpu().detach()
+                #Due to iid mode we might not have all perturbations for all cell types
+                if len(cell_pert_adata) > 0:
+                    cell_data = torch.from_numpy(to_dense(cell_pert_adata.X)).to(device)
+                    pert_mu, _ = net.encode(cell_data)
+                    pert_mean = pert_mu.mean(axis=0).cpu().detach()
+                    pert_means.append(pert_mean)
 
+                else:
+                    logger.warning(f'Cell {cell} does not have perturbation {self.perts[i]}')
+                    
 
-                pert_means.append(pert_mean)
-  
+               
 
             #Computing the mean of the perturbation means, equal weighting per class
             pert_means = torch.stack(pert_means)
             pert_mean  = pert_means.mean(axis=0)
 
+            logger.debug(f"Pert mean norm: {torch.norm(pert_mean)}")    
+
             pert_delta = pert_mean - cell_mean
             logger.debug(f"Pert delta shape: {pert_delta.shape}")
-
+            logger.debug(f"Pert: {self.perts[i]}")
+            logger.debug(f"Pert delta norm: {torch.norm(pert_delta)}")
             self.deltas.append(pert_delta)
 
+        logger.debug(f"Deltas norms, {torch.norm(torch.stack(self.deltas), dim=1)}")
 
         self.deltas = torch.stack(self.deltas)
 
@@ -207,6 +230,8 @@ class VAEPredictor():
 
         mu, logvar = self.model.encode(data)
 
+
+        logger.debug(f"Pert idx = {self.perts_to_idx[pert_id]}")
 
 
         pert_delta = self.deltas[self.perts_to_idx[pert_id]]
