@@ -1,24 +1,23 @@
-name: satija_across_genes_basic
-
+name: kang_ho_NK_iid
 data: 
-  path: /orcd/archive/abugoot/001/Projects/dlesman/datasets/Seurat_IFNB.h5ad
+  path: /orcd/archive/abugoot/001/Projects/opitcho/sandbox/omnicell/kang.h5ad
+  cell_key: cell_type
+  pert_key: condition_key
   apply_norm: True
   apply_log1p: True
-  cell_key: cell_type
-  gene_var_key: gene
-  pert_key: gene
-  control: NT
-  
+  control: control
 
 datasplit:
+  #test_size: 1000
+  #control_size: 1000
+  mode: iid
 
-  mode: ood
   training:
     #Random folds need to be implemented
     #TODO: More complex splits
 
     #Annoying part is if we have random splits how will we define the tasks? -
-    holdout_perts: [IFNAR2]
+    holdout_cells: [NK]
 
   evals:
 
@@ -27,14 +26,9 @@ datasplit:
     #Targets on which we evaluate when we do the holdout, can be ALL
     #If these are also heldout then we are evaluating on unseen cell + unseen pert
     #Set the combinations to evaluate on, we can implement more complex commands later on
-    evaluation_targets: [[A549, IFNAR2]]
+    evaluation_targets: [[NK, perturbed]]
 
 
-  #holdout_cells: [xxx]
-  
-  #test_size: 0.2
-  #Something like this later on, i.e. stratification
-  #groupby: ['species', 'condition']
 
     
 dataloader:

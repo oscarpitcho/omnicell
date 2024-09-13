@@ -247,11 +247,21 @@ def main(*args):
 
     for rd in run_dirs:
         folds = [x for x in rd.iterdir() if x.is_dir()]
+        
+        error = False
         for fold in folds:
-            generate_evaluation(fold, args)
-            average_fold(fold)
+            
+            try:
+                generate_evaluation(fold, args)
+                average_fold(fold)
+            
+            except Exception as e:
+                error = True
+                logger.error(f"Error during evaluation of {rd}/{fold}, will not average this fold")
+                logger.error(e)
 
-        average_run(rd)
+        if not error:
+            average_run(rd)
         
 
 

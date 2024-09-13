@@ -13,10 +13,10 @@ source ~/.bashrc
 mamba activate sandbox
 
 # Run the training script
-python train.py --task_config "configs/tasks/kang/kang_ho_CD4T_iid.yaml" \
-    --model_config "configs/models/vae.yaml" -l DEBUG
+python train.py --task_config configs/tasks/satija/raw/satija_across_genes_basic.yaml \
+    --model_config "configs/models/nearest-neighbor/nearest-neighbor_substitute.yaml" -l DEBUG
 
 
-python generate_evaluations.py --model_name "vae" --task_name "kang_ho_CD4T_iid" 
+python generate_evaluations.py --model_name nearest-neighbor_substitute --task_name satija_across_genes_basic
 
 echo "End of bash script"
