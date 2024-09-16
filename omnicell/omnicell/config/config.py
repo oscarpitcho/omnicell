@@ -69,6 +69,10 @@ class Config:
 
     def get_control_pert(self)-> str:
         return self.task_config['data']['control']
+    
+
+    def get_var_names_key(self)-> str:
+        return self.task_config['data'].get('var_names_key', None)
 
 
     def get_test_mode(self)-> bool:

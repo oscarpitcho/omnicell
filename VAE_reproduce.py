@@ -19,6 +19,11 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from matplotlib import pyplot as plt
+import random
+
+# Set seed for reproducibility
+random.seed(42)
+
     
 def get_DEG_with_direction(gene, score):
     if score > 0:
@@ -174,7 +179,14 @@ holdoutcell = 'CD4T'
 
 #Unperturbed heldout cells are the 
 holdoutidx = ((inp.obs[ctkey]==holdoutcell) & (inp.obs[ptkey]!=ptctrlkey))
+
+
 inp_noholdout = inp[~holdoutidx].copy()
+
+inp_no_holdout_no_target_ctrl = inp_noholdout[inp_noholdout.obs[ctkey] != holdoutcell]
+
+print(f"Shape of data without the control observation of target cell: {inp_no_holdout_no_target_ctrl.shape}")
+
 inp_holdout = inp[holdoutidx].copy()
 datalen = inp_noholdout.shape[0]
 
@@ -190,14 +202,13 @@ print(f"Train shape: {train.shape}")
 print(f"Valid shape: {valid.shape}")
 
 
-goodo=True
 counter=0
 batsize = 32
 valbatsize = 64
 
 dropout_rate=0.2
 latent_dim=100
-epochs=300
+epochs=50
 
 
 class Net(nn.Module):
@@ -328,23 +339,27 @@ net.to(device)
 neteval = Net(num_genes)
 neteval.to(device)
 
-criterion = nn.MSELoss()
 optimizer = optim.Adam(net.parameters(), lr=learning_rate)
 running_loss = 0
 
 
-    
-trainctrlnhidx = (train.obs[ptkey]==ptctrlkey).values & (train.obs[ctkey]!=holdoutcell).values
+
+#Holdout control indices are taken on the training data, excluding the validation data
 holdoutctrlidx = (train.obs[ptkey]==ptctrlkey).values & (train.obs[ctkey]==holdoutcell).values
+
 trainholdoutidx = (train.obs[ctkey]!=holdoutcell).values
 pathways_pert = np.unique(train[train.obs[ptkey]!=ptctrlkey].obs[ptkey])
 
 
+#There is just one pathway on kang
 print(f"Pathways: {pathways_pert}")
 
 pathways_idx = []
 control_holdout = train[holdoutctrlidx].copy().X.todense()
 
+print(f"Control holdout shape: {control_holdout.shape}")
+
+#We store the indices of the perturbed cells for each perturbation, there is just one though
 perturbed_holdout = []
 for curpt in pathways_pert:
     pathways_idx.append((train.obs[ptkey]==curpt).values)
@@ -353,11 +368,14 @@ for curpt in pathways_pert:
 trainX = torch.from_numpy(train.X.todense()).to(device)
 validX = torch.from_numpy(valid.X.todense()).to(device)
 
+print(f"TrainX shape: {trainX.shape}")
+print(f"ValidX shape: {validX.shape}")
 
 
 
 
 #This array just gets copied results into later --> garbage code but anyway
+#Is it possible we are introducing some data leakage here due to a bug
 trainX_latent = torch.clone(trainX[:,:latent_dim])
 trainX_var = torch.clone(trainX[:,:latent_dim])
 
@@ -372,6 +390,8 @@ celltypes = np.unique(train[train.obs[ctkey]!=holdoutcell].obs[ctkey])
 #[[Indices or NK],[Indices of T],[Indices of B] ...]
 ctidxctrl = []
 for ct in celltypes:
+
+    #These don't include the holdout cell
     ctidxctrl.append((train.obs[ctkey]==ct).values)
 
 
@@ -379,8 +399,13 @@ for ct in celltypes:
 ctrlidxos = (train.obs[ptkey]==ptctrlkey).values
 
 
+#Why is the error one order on the pipeline script?
 
-
+print(f"Starting training, epochs: {epochs}")
+print(f"Train length: {trainlen}")
+print(f"Valid length: {validlen}")
+print(f"Batch size: {batsize}")
+print(f"TrainingX shape: {trainX.shape}")
 for e in range(epochs):
     running_loss = 0
 
@@ -388,6 +413,10 @@ for e in range(epochs):
         upper = min(lower + batsize, trainlen)
         lower = min(trainlen-batsize,lower)
         counter += 1
+
+        #We get training data in batches
+        
+        #Importantly --> WE using the data TrainX, without regard to the holdout data
         batch = trainX[lower:upper,:]
         optimizer.zero_grad()
         out, mu, logvar = net(batch)
@@ -405,6 +434,8 @@ for e in range(epochs):
             upper = min(lower + batsize, validlen)
             lower = min(validlen-batsize,lower)
             counter += 1
+
+            #Here we use the validation data
             batch = validX[lower:upper,:]
             out, mu, logvar = neteval(batch)
             loss = neteval.loss_function(out,batch,mu,logvar)
@@ -414,7 +445,7 @@ for e in range(epochs):
    
     #encode training set
     neteval.eval()
-    if (e+1) % 50 == 0:
+    if (e+1) % 20 == 0:
         predicted_holdout = []
         with torch.no_grad():
 
@@ -445,10 +476,15 @@ for e in range(epochs):
 
             avgctl = []
 
+            #It's trained to reconstruct the entire data except the _perturbed holdout_ cells
+            #However the means are computed without the holdout cells 
+
             #Ok we have two means 
-            for ctx in ctidxctrl:
-                #Selecting the indices of control cells for that cell type and averaging their latent space representations
+            for i, ctx in enumerate(ctidxctrl):
+                #Selecting the indices of control cells without holdout cell for that cell type and averaging their latent space representations
                 avgctl.append(torch.mean(trainX_latent[ctx & ctrlidxos],axis=0))
+
+                print(f"Shape of control data for cell type {celltypes[i]}: {trainX_latent[ctx & ctrlidxos].shape}")
             avgctl = torch.stack(avgctl)
 
             #We average the averages --> Equal weighting per class
@@ -457,11 +493,14 @@ for e in range(epochs):
 
 
 
+
+            #this is fishy --> We get the latent space of the holdout control cells 
+            #The model has seen these at training
             ctrl_holdout_latent = trainX_latent[holdoutctrlidx]
             ctrl_holdout_var = trainX_var[holdoutctrlidx]
 
             #This is the shift for each pert, in pratice there is only one pert
-            for curptidx in range(len(pathways_pert)):
+            for curptidx in range(len(pathways_pert + ptctrlkey)):
                 avgcurpt = []
                 for ctx in ctidxctrl:
                     #Ctx --> Index of the current cell type
@@ -469,6 +508,9 @@ for e in range(epochs):
                     #We select the latent space representations of peturbed cells of the current cell type and average them
 
                     #We average out the effect of the perturbation on that cell type
+
+
+                    #Why are we getting an existing train_X_latent here?
                     avgcurpt.append(torch.mean(trainX_latent[ctx & pathways_idx[curptidx]],axis=0))
                 
                 #We stack the averages and average them again
@@ -477,16 +519,33 @@ for e in range(epochs):
                 avgcurpt = torch.stack(avgcurpt)
                 avgcurpt = torch.mean(avgcurpt,axis=0)
 
+
                 #Delta is computed across our average latent space ctrl and the average latent space pert
                 curdelta = torch.unsqueeze(avgcurpt - avgctl,0)
                 ctrl_holdout_shifted = ctrl_holdout_latent + curdelta
+
+                print(f"Average ctrl norm {torch.norm(avgctl)}")
+                print(f"Average pert norm {torch.norm(avgcurpt)}")
+
+                print(f"Curr delta norm: {torch.norm(curdelta)}")
+                print(f"Curr delta shape: {curdelta.shape}")
                 ctrl_holdout_reparameterized = neteval.reparameterize(ctrl_holdout_shifted,ctrl_holdout_var)
                 ctrl_holdout_decoded = neteval.decode(ctrl_holdout_reparameterized )
                 predicted_holdout.append(ctrl_holdout_decoded.cpu().detach().numpy())
                 
+
+            #Computing the distance between the perts 
+            # We have pert and control
+
+        
+
         pert_dan = np.array(perturbed_holdout[0])
         cont_dan = np.array(control_holdout)
         pred_dan = predicted_holdout[0]
+
+        print(f"Ground_truh shape: {pert_dan.shape}")
+        print(f"Control shape: {cont_dan.shape}")
+        print(f"Perturbed shape: {pred_dan.shape}")
         
         #Delete
         #pert_dan = holdoutX_latent.cpu().detach().numpy()
