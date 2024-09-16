@@ -4,8 +4,9 @@ data:
   path: /orcd/archive/abugoot/001/Projects/dlesman/datasets/Seurat_IFNB.h5ad
   apply_norm: True
   apply_log1p: True
-  gene_var_key: gene
+  var_names_key: gene
   cell_key: cell_type
+  gene_var_key: gene
   pert_key: gene
   control: NT
 
