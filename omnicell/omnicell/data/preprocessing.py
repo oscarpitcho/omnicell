@@ -38,6 +38,12 @@ def preprocess(adata: sc.AnnData, config: Config) -> sc.AnnData:
     adata.obs[PERT_KEY] = adata.obs[config.get_pert_key()]
     adata.obs[CELL_KEY] = adata.obs[config.get_cell_key()]
     adata.obs[PERT_KEY] = adata.obs[PERT_KEY].cat.rename_categories({config.get_control_pert() : CONTROL_PERT})
+
+
+
+    #Setting the names of the genes as varnames
+    if config.get_var_names_key() is not None:
+        adata.var_names = adata.var[config.get_var_names_key()]
     
     #adata.var_names = adata.var[config.get_var_gene_key()]
 

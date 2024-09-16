@@ -191,9 +191,7 @@ class NearestNeighborPredictor():
         #TODO: FIX, WILL ONLY WORK ON Seurat_IFNB.h5ad
 
         logger.debug(f'Input.var shape {inp.var.shape}')
-        logger.debug(f"Input.var {inp.var}")
-        inp.var_names = inp.var['gene']
-        
+        logger.debug(f"Input.var {inp.var}")        
         
         
         logger.debug(f' # Of cell with type {cell_id} in training data {len(inp)}')
