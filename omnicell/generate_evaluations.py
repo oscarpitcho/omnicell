@@ -75,18 +75,11 @@ def generate_evaluation(dir, args):
             true_pert = sparse.load_npz(f'{dir}/{true_fn}')
             control = sparse.load_npz(f'{dir}/{control_fn}')
             
-        
-
-
-            print(f"Pred pert is sparce matrix: {issparse(pred_pert)}")
-            print(f"Pred pert matrix type: {type(pred_pert)}")
             
             #We need to convert the sparse matrices to dense matrices
             pred_pert = to_dense(pred_pert)
             true_pert = to_dense(true_pert)
             control = to_dense(control)
-
-            print(f"Type of pred_pert: {type(pred_pert)}")
 
 
             pred_pert = sc.AnnData(X=pred_pert.clip(min=0))
@@ -210,9 +203,6 @@ def average_run(run_dir):
     with open(f'{run_dir}/avg_r2_mse.json', 'w+') as f:
         json.dump(avg_r2_mse, f, indent=2, cls=NumpyTypeEncoder) 
 
-    #Do they have a nested structure? Nope
-
-    #We want to average the results of the folds
 
 
 def main(*args):
