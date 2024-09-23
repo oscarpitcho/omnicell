@@ -184,8 +184,9 @@ class MAE(torch.nn.Module):
                  ) -> None:
         super().__init__()
         
-        self.pos_embedding = PosEmbedding(input_dim=input_dim)
-        self.encoder = MAE_Encoder(self.pos_embedding, encoder_layer, encoder_head, mask_ratio, ff_dim=ff_dim)
+        self.pos_embedding = PosEmbedding(input_dim=input_dim, emb_dim=emb_dim)
+        self.encoder = MAE_Encoder(
+            self.pos_embedding, encoder_layer, encoder_head, mask_ratio, ff_dim=ff_dim)
         self.pert_embedding = PertEmbedder(self.encoder)
         self.decoder = MAE_Decoder(
             self.pos_embedding, decoder_layer, decoder_head, ff_dim=ff_dim,

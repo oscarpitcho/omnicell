@@ -99,51 +99,12 @@ class OTMappingDataset(Dataset):
         expression_value = perturbed_cell.X[0, gene_index]
 
         # Convert everything to torch tensors and return
-        nt_cell_tensor = torch.tensor(nt_cell.X.toarray(), dtype=torch.float32).cuda()
-        perturbed_cell_tensor = torch.tensor(perturbed_cell.X.toarray(), dtype=torch.float32).cuda()
-        gene_index_tensor = torch.tensor(gene_index, dtype=torch.long).cuda()
-        expression_value_tensor = torch.tensor(expression_value, dtype=torch.float32).cuda()
+        # nt_cell_tensor = torch.tensor(nt_cell.X.toarray(), dtype=torch.float32).cuda()
+        # perturbed_cell_tensor = torch.tensor(perturbed_cell.X.toarray(), dtype=torch.float32).cuda()
+        # gene_index_tensor = torch.tensor(gene_index, dtype=torch.long).cuda()
+        # expression_value_tensor = torch.tensor(expression_value, dtype=torch.float32).cuda()
 
         return nt_cell_tensor, perturbed_cell_tensor, gene_index_tensor.unsqueeze(-1), expression_value_tensor.unsqueeze(-1)
-
-
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-datasetso = 'satija_IFN'
-
-inp = sc.read(f'input/{datasetso}.h5ad')
-
-#inp = inp[inp.obs['cell_type']=='A549']
-
-inp.var_names = inp.var['gene']
-
-hold = 'IFNAR2'
-
-inp = inp[inp.obs['gene']!=hold]
-
-
-# Convert sparse matrix to dense
-inp.X = np.array(inp.X.todense())
-
-# Convert the relevant obs and var columns to numpy arrays
-inp.obs['nCount_RNA'] = inp.obs['nCount_RNA'].values
-inp.obs['gene'] = inp.obs['gene'].values
-inp.obs['cell_type'] = inp.obs['cell_type'].values
-inp.var['gene'] = inp.var['gene'].values
-
-ot_mappings, valid_perturbed_indices = compute_ot_mapping(inp, cost_threshold=0.01)
-
-#exdample usage of ot_mapping
-print(f"First five control indices for cell_type=BXPC3, perturbation=IFNAR1 are: {ot_mappings[('BXPC3','IFNAR1')]['perturbed_indices'][:5]}")
-print(f"First five pert indices for cell_type=BXPC3, perturbation=IFNAR1 are: {ot_mappings[('BXPC3','IFNAR1')]['control_indices'][:5]}")
-
-
-
-#example usage of dataloader: 
-
-dataset = OTMappingDataset(inp, ot_mappings, valid_perturbed_indices)
-dataloader = DataLoader(dataset, batch_size=8, shuffle=True)
-#for control, pert, pert_index, pert_expr in (pbar := tqdm(dataloader, desc="Loading Batches")): 
-    #... etc
 
 
 
