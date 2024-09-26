@@ -7,15 +7,23 @@ import pandas as pd
 
 
 
-holdoutpert = 'TYK2'
+holdoutpert = 'IFNAR2'
 num_of_degs = 20
 pvalcut = 0.05
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-datasetso = 'satija_IFN'
+datasetso = 'Seurat_IFNB.h5ad'
 
-inp = sc.read(f'input/{datasetso}.h5ad')
+inp = sc.read(f'/orcd/archive/abugoot/001/Projects/dlesman/datasets/{datasetso}')
+
+print(f"Input data shape: {inp.shape}")
+
+
+
+#WHEN WE REFER TO THIS THERE ARE TARGET PERTS IN THIS CODE 
 inp = inp[inp.obs['cell_type']=='A549']
+
+print(f"# Cells with A549 cell type: {inp.shape}")
 inp.var_names = inp.var['gene']
 
 sc.pp.normalize_total(inp,target_sum=10000)
@@ -28,16 +36,20 @@ unique_genes = inp.obs['gene'].unique()
 unique_genes = [i for i in unique_genes if i!='NT']
 
 
+print(f" # Control A549 cells: {len(inp[inp.obs['gene']=='NT'])}")
 
 DEGSlist = []
 GTOlist = []
 
 unique_genes_noholdout = [ug for ug in unique_genes if ug!=holdoutpert]
 
+print(f"Lenght of unique genes_no_ho: {len(unique_genes_noholdout)}")
+
 for ug in unique_genes_noholdout:
     cont = np.array(inp[inp.obs['gene'] == 'NT'].X.todense())
     pert = np.array(inp[inp.obs['gene'] == ug].X.todense())
-    
+    print(f'ug: {ug} - Control shape: {cont.shape}, Perturbed shape: {pert.shape}')
+
     control = anndata.AnnData(X=cont)
     
     control.obs['condition_key'] = 'control'
@@ -63,13 +75,18 @@ for ug in unique_genes_noholdout:
     
     DEGs = torch.argsort(torch.abs(GTO))
     
+
+    print(f'ug: {ug} - DEGs shape: {DEGs.shape}, GTO shape: {GTO.shape}')
     DEGSlist.append(DEGs)
     GTOlist.append(GTO)
     
 significant_reducers = []
 significant_reducers_pval = []
+print(f"DEG list length: {len(DEGSlist)}")
+print(f"GTO list length: {len(GTOlist)}")
 for genno in unique_genes_noholdout:
-    rank = GTOlist[unique_genes_noholdout.index(genno)][torch.where(DEGSlist[unique_genes_noholdout.index(genno)] == np.where(inp.var_names==holdoutpert)[0][0])[0][0].item()]
+    gto_gene = GTOlist[unique_genes_noholdout.index(genno)]
+    rank = gto_gene[torch.where(DEGSlist[unique_genes_noholdout.index(genno)] == np.where(inp.var_names==holdoutpert)[0][0])[0][0].item()]
     if ((0 <= rank) and (rank <= pvalcut)):
        significant_reducers.append(genno)
        significant_reducers_pval.append(rank) 

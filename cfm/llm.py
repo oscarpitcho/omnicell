@@ -142,17 +142,19 @@ class MAE_Decoder(torch.nn.Module):
         features = torch.cat(
             [features, self.mask_token.expand(features.shape[0], backward_indexes.shape[1] - features.shape[1], -1)], dim=1
         )
+        # we have to add this or the masked objective will not work!
         features = take_indexes(features, backward_indexes)
         features = features + self.pos_embedding.pos
+        features_ = features
         
         if pert_features is not None:
             _, N, _ = pert_features.shape
-            features = torch.cat([pert_features, features], dim=1)
+            features = torch.cat([features, pert_features], dim=1)
 
         features = self.transformer(features)
         
         if pert_features is not None:
-            features = features[:, N:, :]
+            features = features[:, :-N, :]
         expr_logits, sparsity_logits = self.head(features).unbind(-1)
         
         mask = torch.zeros_like(expr_logits)
@@ -168,6 +170,7 @@ class MAE_Decoder(torch.nn.Module):
             return expr, sparsity_probs, mask
 
         return expr, mask
+
 
 class MAE(torch.nn.Module):
     def __init__(self,
@@ -192,6 +195,8 @@ class MAE(torch.nn.Module):
             self.pos_embedding, decoder_layer, decoder_head, ff_dim=ff_dim,
             true_sparsity=true_sparsity, expr_activation=expr_activation
         )
+        self.pert_decoder = MAE_Decoder(self.pos_embedding, decoder_layer, decoder_head, ff_dim=ff_dim,true_sparsity=true_sparsity, expr_activation=expr_activation)
+        # self.pert_decoder = self.decoder
 
     def forward(self, batch, mask=True, pert_index=None, pert_expr=None, recon_and_pert=False):
         features, backward_indexes = self.encoder(batch, mask=mask)
@@ -199,12 +204,12 @@ class MAE(torch.nn.Module):
             pert_features = self.pert_embedding(pert_index, pert_expr)
             if recon_and_pert:
                 recon_out = self.decoder(features, backward_indexes)
-                pert_out = self.decoder(
+                pert_out = self.pert_decoder(
                     features, backward_indexes, pert_features=pert_features
                 )
                 return recon_out, pert_out
-            else:            
-                return self.decoder(
+            else:
+                return self.pert_decoder(
                     features, backward_indexes, pert_features=pert_features
                 )
         else:
