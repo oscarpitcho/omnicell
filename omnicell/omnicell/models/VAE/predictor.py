@@ -27,12 +27,6 @@ class VAEPredictor():
         
         self.epochs = self.training_config['epochs']
         self.batsize = self.training_config['batsize']
-
-        self.model_eval = Net(input_dim, self.model_config['hidden_dim'],
-                         self.model_config['latent_dim'], 
-                         self.training_config['alpha'],
-                         self.training_config['dropout_rate'])
-        
         self.model.to(device)
 
         #Stores the latent space shift associated which each perturbation
@@ -42,6 +36,7 @@ class VAEPredictor():
 
         logger.debug(f"VAE predictor initialized, perturbations: {self.perts}, perts to idx: {self.perts_to_idx}")
         self.cell_ids = None
+        self.invalid_perts = set()
 
 
     #Note this model needs the entire data or sth like that. 
@@ -77,10 +72,7 @@ class VAEPredictor():
 
         net = self.model
         net.to(device)  # Model for training
-        neteval = self.model_eval  # Model for evaluation
-        neteval.to(device)
-        neteval.eval()  # Set evaluation mode
-
+    
         optimizer = optim.Adam(net.parameters(), lr=self.training_config['learning_rate'])  # Adam optimizer
         running_loss = 0
 
@@ -88,8 +80,8 @@ class VAEPredictor():
         train_X = to_dense(train.X)
         valid_X = to_dense(valid.X)
 
-        train_X = torch.from_numpy(train_X.astype(np.float32)).to(device)  # Convert train data to torch tensor and move to device
-        valid_X = torch.from_numpy(valid_X.astype(np.float32)).to(device)  # Convert validation data to torch tensor and move to device
+        train_X = torch.from_numpy(train_X.astype(np.float32))  # Convert train data to torch tensor and move to device
+        valid_X = torch.from_numpy(valid_X.astype(np.float32))  # Convert validation data to torch tensor and move to device
 
         logger.debug(f"Training data shape: {train_X.shape}")
         logger.debug(f"Validation data shape: {valid_X.shape}")
@@ -101,11 +93,13 @@ class VAEPredictor():
             logger.info(f'Epoch {e+1}/{epochs}')
 
             running_loss = 0
+
+            net.train()  # Set model to training mode
         
             for lower in range(0, trainlen, batsize):
                 upper = min(lower + batsize, trainlen)
                 lower = min(trainlen - batsize, lower)
-                batch = train_X[lower:upper, :]
+                batch = train_X[lower:upper, :].to(device)
                 optimizer.zero_grad()  
                 out, mu, logvar = net(batch)  # Forward pass
                 
@@ -121,17 +115,17 @@ class VAEPredictor():
             logger.info(f'Train loss: {running_loss/1000000}')
         
             running_loss = 0
-            state_dict = net.state_dict()
-            neteval.load_state_dict(state_dict)  # Update evaluation model state
-            
+
+            net.eval()  # Set model to evaluation mode
+
             # Validation loop
             with torch.no_grad():
                 for lower in range(0, validlen, batsize):
                     upper = min(lower + batsize, validlen)
                     lower = min(validlen - batsize, lower)
-                    batch = valid_X[lower:upper, :]
-                    out, mu, logvar = neteval(batch)
-                    loss = neteval.loss_function(out, batch, mu, logvar)
+                    batch = valid_X[lower:upper, :].to(device)
+                    out, mu, logvar = net(batch)
+                    loss = net.loss_function(out, batch, mu, logvar)
                     running_loss += loss.item()
                 logger.info(f'Valid loss: {running_loss/1000000}')
 
@@ -186,22 +180,31 @@ class VAEPredictor():
                     pert_means.append(pert_mean)
 
                 else:
-                    logger.warning(f'Cell {cell} does not have perturbation {self.perts[i]}')
+                    logger.info(f'Cell {cell} does not have perturbation {self.perts[i]}')
                     
 
                
+            if len(pert_means) == 0:
+                self.invalid_perts.add(self.perts[i])
+                logger.warning(f'Perturbation {self.perts[i]} is not applied to any cell in the training data - Delta will be NaN and trying to transfer this perturbation to unseen cells will cause an undefined state.')
+                
+                nan_delta = torch.full((self.model_config['latent_dim'],), np.nan)
+                self.deltas.append(nan_delta)
 
-            #Computing the mean of the perturbation means, equal weighting per class
-            pert_means = torch.stack(pert_means)
-            pert_mean  = pert_means.mean(axis=0)
 
-            logger.debug(f"Pert mean norm: {torch.norm(pert_mean)}")    
+            else:
+                logger.debug(f"Number of perturbations for {self.perts[i]}: {len(pert_means)}")
+                #Computing the mean of the perturbation means, equal weighting per class
+                pert_means = torch.stack(pert_means)
+                pert_mean  = pert_means.mean(axis=0)
 
-            pert_delta = pert_mean - cell_mean
-            logger.debug(f"Pert delta shape: {pert_delta.shape}")
-            logger.debug(f"Pert: {self.perts[i]}")
-            logger.debug(f"Pert delta norm: {torch.norm(pert_delta)}")
-            self.deltas.append(pert_delta)
+                logger.debug(f"Pert mean norm: {torch.norm(pert_mean)}")    
+
+                pert_delta = pert_mean - cell_mean
+                logger.debug(f"Pert delta shape: {pert_delta.shape}")
+                logger.debug(f"Pert: {self.perts[i]}")
+                logger.debug(f"Pert delta norm: {torch.norm(pert_delta)}")
+                self.deltas.append(pert_delta)
 
         logger.debug(f"Deltas norms, {torch.norm(torch.stack(self.deltas), dim=1)}")
 
@@ -220,7 +223,9 @@ class VAEPredictor():
         assert adata.obs[CELL_KEY].unique() == [cell_type], f'Cell type {cell_type} not in the provided data'
         assert adata.obs[PERT_KEY].unique() == [CONTROL_PERT], f'Input data contains non control perturbations'  
         
-        
+        if pert_id in self.invalid_perts:
+            
+            raise ValueError(f'Perturbation {pert_id} is not applied to any cell in the training data - Delta is NaN')
 
         logger.info(f'Predicting seen perturbation {pert_id} for unseen cell type {cell_type}')
 
