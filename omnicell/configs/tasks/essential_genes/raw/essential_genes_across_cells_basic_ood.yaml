@@ -5,7 +5,6 @@ data:
   apply_norm: True
   apply_log1p: True
   
-  var_names_key: gene
   cell_key: cell_type
   pert_key: gene
   control: non-targeting

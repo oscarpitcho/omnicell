@@ -7,6 +7,10 @@ import pandas as pd
 
 from scipy.stats import pearsonr
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 def r2_mse_filename(pert, cell):
     return f'r2_and_mse_{pert}_{cell}.json'
 
@@ -47,6 +51,8 @@ def get_eval(ctrl_adata, true_adata, pred_adata, DEGs, DEG_vals, pval_threshold,
         
     results_dict =  {}
     
+    logger.debug(f"Computing R, R2, and MSE metrics")
+
     ctrl_mean = to_dense(ctrl_adata.X).mean(axis = 0)
 
     true_mean = to_dense(true_adata.X).mean(axis = 0)
@@ -107,9 +113,16 @@ def get_eval(ctrl_adata, true_adata, pred_adata, DEGs, DEG_vals, pval_threshold,
         significant_DEGs = DEGs[DEGs['pvals_adj'] < pval_threshold]
     num_DEGs = len(significant_DEGs)
     DEG_vals.insert(0, num_DEGs)
+
+
+    logger.debug(f"Significant DEGs {significant_DEGs}")
     
     for val in DEG_vals:
-        if ((val > num_DEGs) or (val == 0)):
+
+        logger.debug(f"Computing R, R2, and MSE metrics for top {val} DEGs")
+
+        #If val == 1 we can't
+        if ((val > num_DEGs) or (val == 0) or (val == 1)):
             results_dict[f'Top_{val}_DEGs_sub_diff_mean_R'] = None
             results_dict[f'Top_{val}_DEGs_sub_diff_mean_R2'] = None
             results_dict[f'Top_{val}_DEGs_sub_diff_mean_MSE'] = None
@@ -137,17 +150,30 @@ def get_eval(ctrl_adata, true_adata, pred_adata, DEGs, DEG_vals, pval_threshold,
         else:
             top_DEGs = significant_DEGs[0:val].index
 
+            logger.debug(f"Top DEGs: {top_DEGs}")
+
+
+            #Reshape --> If there is a single gene, the shape is (1,) and we need to reshape it to (1,1)
+
             ctrl_mean = to_dense(ctrl_adata[:,top_DEGs].X).mean(axis = 0)
             
             true_mean = to_dense(true_adata[:,top_DEGs].X).mean(axis = 0)
+
+            logger.debug(f"Shape ctrl_adata with top DEGs: {ctrl_adata[:,top_DEGs].X.shape}, shape true_adata with top DEGs: {true_adata[:,top_DEGs].X.shape}")
+
+
             true_var = to_dense(true_adata[:,top_DEGs].X).var(axis = 0)
             true_corr_mtx = np.corrcoef(to_dense(true_adata[:,top_DEGs].X), rowvar=False).flatten()
             true_cov_mtx = np.cov(to_dense(true_adata[:,top_DEGs].X), rowvar=False).flatten()
 
             pred_mean = to_dense(pred_adata[:,top_DEGs].X).mean(axis = 0)
+            logger.debug(f"Shape of true_mean shape: {true_mean.shape}, ctrl_mean shape: {ctrl_mean.shape}, pred_mean shape: {pred_mean.shape}")
+
             pred_var = to_dense(pred_adata[:,top_DEGs].X).var(axis = 0)
             pred_corr_mtx = np.corrcoef(to_dense(pred_adata[:,top_DEGs].X), rowvar=False).flatten()
             pred_cov_mtx = np.cov(to_dense(pred_adata[:,top_DEGs].X), rowvar=False).flatten()
+
+            logger.debug(f"Shape of true_var shape: {true_var.shape}, pred_var shape: {pred_var.shape}")
 
             true_sub_diff = true_mean - ctrl_mean
             pred_sub_diff = pred_mean - ctrl_mean

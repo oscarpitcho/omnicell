@@ -45,10 +45,12 @@ def generate_evaluation(dir, args):
     #TODO: Do we want to restructure the code to make this config handling centralized? --> Yes probably because this will get very brittle very quickly
     #TODO: Core issue --> The code is dependent on the underlying config structure, which is not good.
     eval_targets = config.get_eval_targets()
-    raw_data = sc.read_h5ad(config.get_data_path())
+    raw_data = sc.read_h5ad(config.get_data_path(), backed='r')
     
     for (cell, pert) in eval_targets:
-        pred_file_fn = prediction_filename(pert, cell)
+        
+        logger.info(f"Starting evaluation for {pert} and {cell}")
+
 
         pred_fn = f"{prediction_filename(pert, cell)}-preds.npz"
         true_fn = f"{prediction_filename(pert, cell)}-ground_truth.npz"
@@ -81,6 +83,8 @@ def generate_evaluation(dir, args):
             true_pert = to_dense(true_pert)
             control = to_dense(control)
 
+            logger.debug(f"Data shapes: pred_pert {pred_pert.shape}, true_pert {true_pert.shape}, control {control.shape}")
+
 
             pred_pert = sc.AnnData(X=pred_pert.clip(min=0))
 
@@ -94,12 +98,22 @@ def generate_evaluation(dir, args):
             control = sc.AnnData(X=control)
             control.var_names = raw_data.var_names
 
+
+            logger.debug(f"Getting ground Truth DEGs for {pert} and {cell}")
             true_DEGs_df = get_DEGs(control, true_pert)
+
+            logger.debug(f"Getting predicted DEGs for {pert} and {cell}")
             pred_DEGs_df = get_DEGs(control, pred_pert)
 
     
+            logger.debug(f"Getting evaluation metrics for {pert} and {cell}")
             r2_and_mse = get_eval(control, true_pert, pred_pert, true_DEGs_df, [100,50,20], args.pval_threshold, args.log_fold_change_threshold)
+            
+            logger.debug(f"Getting DEG coverage and recall for {pert} and {cell}")
             c_r_results = {p: get_DEG_Coverage_Recall(true_DEGs_df, pred_DEGs_df, p) for p in [x/args.pval_iters for x in range(1,int(args.pval_iters*args.max_p_val))]}
+            
+            
+            logger.debug(f"Getting DEG overlaps for {pert} and {cell}")
             DEGs_overlaps = get_DEGs_overlaps(true_DEGs_df, pred_DEGs_df, [100,50,20], args.pval_threshold, args.log_fold_change_threshold)
 
             with open(f'{dir}/{r2_and_mse_fn}', 'w+') as f:
@@ -114,33 +128,49 @@ def generate_evaluation(dir, args):
 
 
 #Evaluation takes a target model and runs evals on it 
-def average_shared_keys(dict_list):
-    if not dict_list:
+
+"""
+Takes a list of dictionaries and returns a dictionary with the average values for each key, keeping only the keys
+which appear (present and not none) at least in occurence_threshold dictionaries or len(dict_list), whichever is smaller.
+
+Average is computed across the occurences of each selected key.
+"""
+def average_keys(dict_list, occurence_threshold):
+
+    if (len(dict_list) == 0):
         return {}
     
 
-    # Find the intersection of all keys
-    common_keys = set.intersection(*map(set, dict_list))
+    threshold = min(occurence_threshold, len(dict_list))
 
-    #Remove keys which are None or empty
-    valid_keys = []
-    for key in common_keys:
-        values = [d[key] for d in dict_list]
+    key_occurences = {}
 
-        #keeping only the keys which are shared and never None
-        if all([v is not None for v in values]):
-            valid_keys.append(key)
-    
-    # Calculate averages for common keys
+    for d in dict_list:
+        for key in d.keys():
+            if key in key_occurences and d[key] is not None:
+                key_occurences[key] += 1
+            elif d[key] is not None:
+                key_occurences[key] = 1
+
+    selected_keys = [key for key in key_occurences.keys() if key_occurences[key] >= threshold]
+
+
+
+    #Calculate the average of non-None values for each key
     result = {}
-    for key in valid_keys:
-        values = [d[key] for d in dict_list]  # Removed the unnecessary check
-        result[key] = sum(values) / len(values)
-    
+    for key in selected_keys:
+        for d in dict_list:
+            if key in result and d.get(key, None) is not None:
+                result[key] += d[key]
+            elif key not in result and d.get(key, None) is not None:
+                result[key] = d[key]
+
+        result[key] = result[key] / key_occurences[key]
+
     return result
 
 
-def average_fold(fold_dir):
+def average_fold(fold_dir, min_occurences):
     config = Config(yaml.load(open(f'{fold_dir}/config.yaml'), Loader=yaml.SafeLoader))
 
     eval_targets = config.get_eval_targets()
@@ -163,8 +193,8 @@ def average_fold(fold_dir):
 
 
 
-    avg_DEGs_overlaps = average_shared_keys(degs_dicts)
-    avg_r2_mse = average_shared_keys(r2_mse_dicts)
+    avg_DEGs_overlaps = average_keys(degs_dicts, min_occurences)
+    avg_r2_mse = average_keys(r2_mse_dicts, min_occurences)
     #avg_c_r = average_shared_keys(c_r_dicts)
 
     with open(f'{fold_dir}/avg_DEGs_overlaps.json', 'w+') as f:
@@ -178,7 +208,7 @@ def average_fold(fold_dir):
 
 
 
-def average_run(run_dir):
+def average_run(run_dir, min_occurences):
     """Assumes we have already run average for each fold in the run directory and aggregates the results"""
 
     folds = [x for x in run_dir.iterdir() if x.is_dir()]
@@ -194,8 +224,8 @@ def average_run(run_dir):
             r2_mse = json.load(f)
             r2_mse_dicts.append(r2_mse)
 
-    avg_DEGs_overlaps = average_shared_keys(degs_dicts)
-    avg_r2_mse = average_shared_keys(r2_mse_dicts)
+    avg_DEGs_overlaps = average_keys(degs_dicts, min_occurences)
+    avg_r2_mse = average_keys(r2_mse_dicts, min_occurences)
 
     with open(f'{run_dir}/avg_DEGs_overlaps.json', 'w+') as f:
         json.dump(avg_DEGs_overlaps, f, indent=2, cls=NumpyTypeEncoder)
@@ -214,12 +244,15 @@ def main(*args):
 
     parser.add_argument('--model_name', type=str, default='', help='Path to yaml config file of the model.')
     parser.add_argument('--task_name', type=str, default='', help='Path to yaml config file of the task.')
+    parser.add_argument('--min_occurence', type=int, default=2, help='Minimum number of occurences of a key to be included in the average')
     parser.add_argument('-r', '--round', action='store_true', help='Rounds values <=0.5 to 0 in addition to the clip')
     parser.add_argument('-o', '--overwrite', action='store_true', help='Overwrite pre-existing result files')
     parser.add_argument('-pval', '--pval_threshold', type=float, default=0.05, help='Sets maximum adjusted p value for a gene to be called as a DEG')
     parser.add_argument('-lfc', '--log_fold_change_threshold', type=float, default=None, help='Sets minimum absolute log fold change for a gene to be called as a DEG')
     parser.add_argument('--replicates', type=int, default=10, help='Number of replicates to use for p value calculation')
     parser.add_argument('--pval_iters', type=int, default=10000, help='Number of iterations to use for p value calculation')
+    parser.add_argument('-l', '--log', dest='loglevel', choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'], help="Set the logging level (default: %(default)s)", default='INFO')
+
     parser.add_argument('--max_p_val', type=float, default=0.05, help='Maximum p value to use for p value calculation')
 
 
@@ -227,6 +260,7 @@ def main(*args):
 
     root_dir = Path(f"./results/{args.model_name}/{args.task_name}").resolve()
 
+    logging.basicConfig(filename= f'output_evals_{args.model_name}_{args.task_name}.log', filemode= 'w', level=args.loglevel, format='%(asctime)s - %(levelname)s - %(message)s')
     logger.info(f"Generating evaluations for model {args.model_name} and task {args.task_name}")
 
 
@@ -236,22 +270,26 @@ def main(*args):
 
 
     for rd in run_dirs:
+        logger.info(f"Starting evaluation for {rd}")
         folds = [x for x in rd.iterdir() if x.is_dir()]
         
         error = False
         for fold in folds:
-            
+
             try:
+                logger.info(f"Starting evaluation for {fold}")
                 generate_evaluation(fold, args)
-                average_fold(fold)
+
+                logger.info(f"Finished evaluation for {fold}, generating averages")
+                average_fold(fold, args.min_occurence)
             
             except Exception as e:
                 error = True
-                logger.error(f"Error during evaluation of {rd}/{fold}, will not average this fold")
+                logger.error(f"Error during evaluation of {fold}, will not average this fold")
                 logger.error(e)
 
         if not error:
-            average_run(rd)
+            average_run(rd, args.min_occurence)
         
 
 

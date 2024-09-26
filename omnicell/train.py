@@ -36,7 +36,7 @@ def main(*args):
     parser.add_argument('--model_config', type=str, default='', help='Path to yaml config file of the model.')
     parser.add_argument('--test_mode', action='store_true', default=False, help='Run in test mode, datasetsize will be capped at 10000')
     parser.add_argument('--slurm_id', type=int, default=1, help='Slurm id for the job')
-    parser.add_argument('-l', '--log', dest='loglevel', choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'], help="Set the logging level (default: %(default)s)", default='WARNING')
+    parser.add_argument('-l', '--log', dest='loglevel', choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'], help="Set the logging level (default: %(default)s)", default='INFO')
 
     args = parser.parse_args()
 
@@ -69,6 +69,7 @@ def main(*args):
     #Store the config and the paths to the config to make reproducibility easier. 
 
 
+    logger.info(f"Loading data from {config.get_data_path()}")
     adata = sc.read_h5ad(config.get_data_path())
     adata = preprocess(adata, config)
 
@@ -216,6 +217,9 @@ def main(*args):
             control  = to_coo(adata_control.X)
             ground_truth = to_coo(adata_ground_truth.X)
 
+
+
+            #TODO: We only need to save one control file per cell, if we have several perts we can reuse the same control file
 
             scipy.sparse.save_npz(f"{fold_save}/{prediction_filename(pert, cell)}-preds", preds)
             scipy.sparse.save_npz(f"{fold_save}/{prediction_filename(pert, cell)}-control", control)
