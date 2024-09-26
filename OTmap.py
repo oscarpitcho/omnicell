@@ -99,10 +99,10 @@ class OTMappingDataset(Dataset):
         expression_value = perturbed_cell.X[0, gene_index]
 
         # Convert everything to torch tensors and return
-        nt_cell_tensor = torch.tensor(nt_cell.X.toarray(), dtype=torch.float32).cuda()
-        perturbed_cell_tensor = torch.tensor(perturbed_cell.X.toarray(), dtype=torch.float32).cuda()
-        gene_index_tensor = torch.tensor(gene_index, dtype=torch.long).cuda()
-        expression_value_tensor = torch.tensor(expression_value, dtype=torch.float32).cuda()
+        # nt_cell_tensor = torch.tensor(nt_cell.X.toarray(), dtype=torch.float32).cuda()
+        # perturbed_cell_tensor = torch.tensor(perturbed_cell.X.toarray(), dtype=torch.float32).cuda()
+        # gene_index_tensor = torch.tensor(gene_index, dtype=torch.long).cuda()
+        # expression_value_tensor = torch.tensor(expression_value, dtype=torch.float32).cuda()
 
         return nt_cell_tensor, perturbed_cell_tensor, gene_index_tensor.unsqueeze(-1), expression_value_tensor.unsqueeze(-1)
 
@@ -141,6 +141,8 @@ def kaly_ot_mapping(adata, kalymap):
     return mappings, valid_perturbed_indices
 
 
+<<<<<<< HEAD
+=======
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 datasetso = 'satija_IFN'
 
@@ -195,4 +197,5 @@ dataloader_kaly = DataLoader(dataset_kaly, batch_size=8, shuffle=True)
     #... etc
 
 
+>>>>>>> 8445b9142348761396df7ea72334727d192f2d9d
 
