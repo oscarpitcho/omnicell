@@ -4,6 +4,7 @@ import yaml
 import numpy as np
 import math 
 from omnicell.models.llm import MAE
+from OTmap import *
 
 class LLMPredictor():
 
@@ -38,9 +39,31 @@ class LLMPredictor():
 
     #Should take care of saving the model under some results/model/checkpoints in 
     #BTW I think hidden dirs fuck with with the cluster, so don't call it .checkpoint
-    def train(self, dl, save_path):
+    def train(self, adata, save_path):
 
 
+        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+        inp = adata 
+        inp.var_names = inp.var['gene']
+
+
+        # Convert sparse matrix to dense
+        inp.X = np.array(inp.X.todense())
+
+        # Convert the relevant obs and var columns to numpy arrays
+        inp.obs['nCount_RNA'] = inp.obs['nCount_RNA'].values
+        inp.obs['gene'] = inp.obs['gene'].values
+        inp.obs['cell_type'] = inp.obs['cell_type'].values
+        inp.var['gene'] = inp.var['gene'].values
+
+        ot_mappings, valid_perturbed_indices = compute_ot_mapping(inp, cost_threshold=0.01)
+        
+        inp.X = inp.X.toarray()
+        inp.X = inp.X / inp.X.sum(axis=1)[:, None]
+        
+        dataset = OTMappingDataset(inp, ot_mappings, valid_perturbed_indices)
+        dl = DataLoader(dataset, batch_size=32, shuffle=True)
         ### CODE FROM AE TRAINING LOOP ###
 
         step_count = 0
