@@ -1,8 +1,8 @@
-name: essential_genes_across_genes_basic_ood
+name: essential_genes_across_cells_basic_ood_no_norm
 
 data: 
   path: /orcd/archive/abugoot/001/Projects/dlesman/datasets/essential_gene_knockouts_raw.h5ad
-  apply_norm: True
+  apply_norm: False
   apply_log1p: True
   
   cell_key: cell_type
@@ -18,7 +18,7 @@ datasplit:
     #TODO: More complex splits
 
     #Annoying part is if we have random splits how will we define the tasks? -
-    holdout_perts: ['EIF6', 'PDCD11', 'SF3B1', 'LRRC37B', 'CHMP6', 'YEATS2', 'MRPS23', 'RPL37A', 'ZMAT2', 'CLNS1A']
+    holdout_cells: ['k562']
 
   evals:
 
