@@ -118,6 +118,10 @@ class NearestNeighborPredictor():
 
             pert_effect = perturbed_closest_cell_type - train_cell_type_ctrl_means[closest_cell_type_idx]
 
+            pert_effect_norm = np.linalg.norm(pert_effect)
+
+            logger.debug(f"Perturbation effect norm {pert_effect_norm}")
+
 
             #Apply the perturbation effect to the heldout cell data
             predicted_perts = heldout_cell_adata.X + pert_effect
@@ -202,6 +206,7 @@ class NearestNeighborPredictor():
 
         logger.debug(f" Inp.var_name == target count {np.count_nonzero(inp.var_names==target)}")
         
+        logger.info(f"Number of genes to compare to {len(unique_genes_noholdout)}")
         for ug in unique_genes_noholdout:
             cont = np.array(inp[inp.obs[PERT_KEY] == CONTROL_PERT].X.todense())
             pert = np.array(inp[inp.obs[PERT_KEY] == ug].X.todense())
