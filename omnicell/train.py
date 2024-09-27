@@ -129,6 +129,11 @@ def main(*args):
         from omnicell.models.VAE.predictor import VAEPredictor
         logger.info("VAE model selected")
         model = VAEPredictor(config_model, input_dim, device, pert_ids)
+
+    elif 'scVIDR' in model_name:
+        from omnicell.models.VAE.scVIDR_predictor import ScVIDRPredictor
+        logger.info("scVIDR model selected")
+        model = ScVIDRPredictor(config_model, input_dim, device, pert_ids)
     
     elif model_name == 'test':
         from omnicell.models.dummy_predictor.predictor import TestPredictor
