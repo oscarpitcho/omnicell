@@ -13,9 +13,9 @@ source ~/.bashrc
 mamba activate sandbox
 
 # Run the training script
-python train.py --task_config "configs/tasks/satija_ho_A549_basic.yaml" \
+python train.py --task_config "configs/tasks/satija/raw/satija_ho_A549_basic_iid.yaml" \
     --model_config "configs/models/scVIDR.yaml" -l DEBUG
 
 
-python generate_evaluations.py --model_name "scVIDR" --task_name "satija_ho_A549_basic" 
+python generate_evaluations.py --model_name "scVIDR" --task_name "satija_ho_A549_basic_iid" 
 
