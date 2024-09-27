@@ -7,23 +7,34 @@ class TemplateModel():
 
     def __init__(self, config):
         self.config = config
-
-
-        #Do whatever the fuck you need with the config, it will just be parsed from the given yaml file
-
+        self.model = None
 
 
 
-    #Should take care of saving the model under some results/model/checkpoints in 
-    #BTW I think hidden dirs fuck with with the cluster, so don't call it .checkpoint
-    def train(the_data_which_is_nicely_split):
-
+    def train(adata, pairing):
+        """
+        Training method of the model, takes andata without the evaluation data + Pairing and does whatever it needs
+        to do such that the model is "trained" and ready to make predictions / encode / decode.
         
-        return preds
+        """
+        pass
     
 
     #I mean to we need to evaluate anything? 
     def make_predict(self, adata: sc.AnnData, pert_id: str, cell_type: str) -> np.ndarray:
-        pass 
+        """
+        Makes prediction on the passed adata object, for the given pert and cell_type.
+
+        In charge of checking whether this is across cells / perts and whether the model supports this
+        """
+        pass
+
+
+    def encode(self, adata) -> np.ndarray:        
+        pass
+
+    def decode(self, X_embed) -> np.ndarray:
+        pass
+        
 
 

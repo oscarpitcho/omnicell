@@ -291,6 +291,8 @@ def main(*args):
         if not error:
             average_run(rd, args.min_occurence)
         
+        else:
+            logger.error(f"Error during evaluation of {rd}, will not average this run")
 
 
 
