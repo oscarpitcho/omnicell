@@ -145,7 +145,6 @@ class MAE_Decoder(torch.nn.Module):
         # we have to add this or the masked objective will not work!
         features = take_indexes(features, backward_indexes)
         features = features + self.pos_embedding.pos
-        features_ = features
         
         if pert_features is not None:
             _, N, _ = pert_features.shape
