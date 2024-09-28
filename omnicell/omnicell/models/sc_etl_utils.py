@@ -1,31 +1,15 @@
 import pandas as pd
 import numpy as np
+from omnicell.constants import CELL_KEY, CONTROL_PERT, PERT_KEY
+from omnicell.models.datamodules import  SCFMDataset, cfm_collate, StratifiedBatchSampler, ot_collate
+import torch
 
-def get_train_eval_idxs(
-    adata, control_pert, holdout_cells, holdout_perts, 
-    cell_col='cell_type', pert_col='pert_type', verbose=2
-):
-    # here we set up the train/eval and control/pert sets
-    # set the idx of the controls
-    control_idx = adata.obs[pert_col] == control_pert
-    # set the idx of the perts (currently just "all not control")
-    pert_idx = adata.obs[pert_col] != control_pert
-    # set the hold out cell-type/pert
-    eval_idx = control_idx & False
-    for holdout_cell, holdout_pert in zip(holdout_cells, holdout_perts):
-        eval_idx |= (adata.obs[cell_col] == holdout_cell) & (adata.obs[pert_col] == holdout_pert)
-    eval_cell_idx = adata.obs[cell_col].isin(holdout_cells)
-    eval_pert_idx = adata.obs[pert_col].isin(holdout_perts)
-    eval_idx = eval_cell_idx & eval_pert_idx
-    if verbose > 0:
-        print(f"Controls: {(control_idx & ~eval_idx).sum()}, Perturbations: {(pert_idx & ~eval_idx).sum()},  Eval: {eval_idx.sum()}")
-    return control_idx, pert_idx, eval_idx, eval_cell_idx, eval_pert_idx
 
-def get_identity_features(adata, cell_col='cell_type', pert_col='perturb', cell_type_features=True):
-    perts = pd.get_dummies(adata.obs[pert_col]).values.astype(float)
-    cell_types = pd.get_dummies(adata.obs[cell_col]).values
+def get_identity_features(adata, cell_type_features=True):
+    perts = pd.get_dummies(adata.obs[PERT_KEY]).values.astype(float)
+    cell_types = pd.get_dummies(adata.obs[CELL_KEY]).values
     if cell_type_features:
-        combo = pd.get_dummies(adata.obs[cell_col].astype(str) + adata.obs[pert_col].astype(str)).values
+        combo = pd.get_dummies(adata.obs[CELL_KEY].astype(str) + adata.obs[PERT_KEY].astype(str)).values
         idx = (combo!=0).argmax(axis=0)
         pert_mat = np.hstack([cell_types, perts])[idx, :].astype('float32')
     else:
@@ -37,17 +21,37 @@ def get_identity_features(adata, cell_col='cell_type', pert_col='perturb', cell_
     cell_types = cell_types.argmax(axis=1)
     return pert_ids, pert_mat, cell_types
 
-def get_train_eval(
-    X, pert_ids, cell_types, control_idx, pert_idx, eval_idx, eval_cell_idx, eval_pert_idx
-):
-    # set train and eval split
-    control_train = X[control_idx & ~eval_idx]
-    pert_train = X[pert_idx & ~eval_idx]
-    pert_ids_train =  pert_ids[pert_idx & ~eval_idx]
-    control_cell_types = cell_types[control_idx & ~eval_idx]
-    pert_cell_types = cell_types[pert_idx & ~eval_idx]
 
-    control_eval = X[control_idx & eval_cell_idx]
-    pert_eval = X[eval_idx]
-    pert_ids_eval = pert_ids[eval_idx]
-    return control_train, pert_train, pert_ids_train, control_cell_types, pert_cell_types, control_eval, pert_eval, pert_ids_eval
+def get_dataloader(
+        adata, batch_size=512, embedding="standard", verbose=0, pert_reps=None, pert_ids=None
+):
+        control_idx = adata.obs[PERT_KEY] == CONTROL_PERT
+        pert_idx = adata.obs[PERT_KEY] != CONTROL_PERT
+        cell_types = pd.get_dummies(adata.obs[CELL_KEY]).values
+
+        if pert_reps is None:
+            pert_ids, pert_mat, cell_types = get_identity_features(adata)
+
+        X = adata.obsm[embedding]
+
+        control_train = X[control_idx]
+        pert_train = X[pert_idx]
+        pert_ids_train =  pert_ids[pert_idx]
+        control_cell_types = cell_types[control_idx]
+        pert_cell_types = cell_types[pert_idx]
+
+        batch_size = 512
+        dset = SCFMDataset(
+            control_train, pert_train, 
+            pert_ids_train, pert_mat, 
+            control_cell_types, pert_cell_types,
+            batch_size=batch_size, size=X.shape[0]
+        )
+        ns = np.array([[t.shape[0] for t in ts] for ts in dset.target])
+        dl = torch.utils.data.DataLoader(
+            dset, collate_fn=ot_collate, 
+            batch_sampler=StratifiedBatchSampler(
+                ns=ns, batch_size=512
+            )
+        )
+        return dl

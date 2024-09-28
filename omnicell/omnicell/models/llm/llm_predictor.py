@@ -8,7 +8,6 @@ from omnicell.models.sc_etl_utils import *
 
 from torchcfm.conditional_flow_matching import *
 import scanpy as sc
-from omnicell.models.datamodules import  SCFMDataset, cfm_collate, StratifiedBatchSampler, ot_collate
 
 from omnicell.constants import CELL_KEY, CONTROL_PERT, PERT_KEY
 from tqdm import tqdm
@@ -17,8 +16,6 @@ class LLMPredictor():
 
 
     def __init__(self, config, input_size, device, pert_ids):
-        
-        
         self.model_config = config['model']
         self.trainig_config = config['training']
         self.device = device
@@ -58,9 +55,6 @@ class LLMPredictor():
     def train(self, adata):
 
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        cell_col = 'cell_type'
-        pert_col = 'pert_type'
-        control_pert, holdout_cells, holdout_perts = CONTROL_PERT, [], []
 
         gene_map = {k: i for i, k in enumerate(adata.var.index)}
         gene_map = gene_map | {'NT': max(gene_map.values()) + 1}
@@ -68,85 +62,11 @@ class LLMPredictor():
         pert_ids = np.array(adata.obs['pert_type'])
         pert_mat = np.arange(pert_ids.max() + 1)[:, None]
 
-        control_idx, pert_idx, eval_idx, eval_cell_idx, eval_pert_idx = get_train_eval_idxs(
-            adata, control_pert, holdout_cells, holdout_perts, cell_col=CELL_KEY, pert_col=PERT_KEY
-        )
-
-        _, _, cell_types = get_identity_features(
-            adata, cell_col=cell_col, pert_col=pert_col, cell_type_features=False
-        )
-
+        adata.X = adata.X.toarray()
+        adata.X = adata.X / adata.X.sum(axis=1)[:, None]
         adata.obsm["standard"] = adata.X
-        X = adata.obsm["standard"]
-        X = X.toarray()
-        X = X / X.sum(axis=1)[:, None]
 
-        control_train, pert_train, pert_ids_train, control_cell_types, pert_cell_types, control_eval, pert_eval, pert_ids_eval = get_train_eval(
-            X, pert_ids, cell_types, control_idx, pert_idx, eval_idx, eval_cell_idx, eval_pert_idx
-        )
-
-        batch_size = 512
-        dset = SCFMDataset(
-            control_train, pert_train, 
-            pert_ids_train, pert_mat, 
-            control_cell_types, pert_cell_types,
-            batch_size=batch_size, size=X.shape[0]
-        )
-        ns = np.array([[t.shape[0] for t in ts] for ts in dset.target])
-        dl = torch.utils.data.DataLoader(
-            dset, collate_fn=ot_collate, 
-            batch_sampler=StratifiedBatchSampler(
-                ns=ns, batch_size=512
-            )
-        )
-
-        ### CODE FROM AE TRAINING LOOP ###
-
-        step_count = 0
-        self.optim.zero_grad()
-        pert_task = 0
-        for e in range(2):
-            self.model.train()
-            losses = {'control': [], 'pert': []}
-            for (bcontrol, bpert, bpert_index) in (pbar := tqdm(iter(dl))):
-                curr_batch_size = bcontrol.shape[0]
-                for i in range(curr_batch_size // self.minibatch_size):
-                    control = bcontrol[(i * self.minibatch_size):((i + 1) * self.minibatch_size)]
-                    pert = bpert[(i * self.minibatch_size):((i + 1) * self.minibatch_size)]
-                    pert_index = bpert_index[(i * self.minibatch_size):((i + 1) * self.minibatch_size)]
-                    pert_index = pert_index.squeeze()
-                    active_weights = 10 * (control > 0).float().to(device) + 1 if self.use_active_weights else 1
-                    control = control.float().to(self.device)
-                    step_count += 1
-
-                    control_results = self.model(control, mask=self.use_mask_task)
-                    control_recon = control_results[0]
-                    
-                    control_loss = torch.sum(active_weights * torch.abs(control_recon - control)) / self.minibatch_size
-                    if self.use_sparsity_loss and len(control_results) == 3:
-                        control_sparsity = control_results[1]
-                        control_loss += torch.sum(active_weights * torch.abs(control_sparsity - (control > 0).float())) / self.minibatch_size
-
-                    loss = control_loss
-                    loss.backward()
-                    self.optim.step()
-                    self.optim.zero_grad()
-                    losses['control'].append(control_loss.item())
-                    if step_count % self.lr_step == 0:
-                        self.lr_scheduler.step()
-
-                    pbar.set_description(
-                        f"tv: {np.array(losses['control'])[-self.lr_step:].mean():.3f}"
-                    )
-            
-            avg_loss = sum(losses['control']) / len(losses['control'])
-            # torch.save(self.model, f"{save_path}{e}")
-            # writer.add_scalar('mae_loss', avg_loss, global_step=e)
-            print(f'In epoch {e}, average traning loss is {avg_loss}.')
-
-
-        
-        ## CODE FROM PERT RECONSTRUCTION LOOP ##
+        dl = get_dataloader(adata, pert_reps=pert_mat, pert_ids=pert_ids)
 
         self.use_sparsity_loss = True
         self.use_mask_task = False
