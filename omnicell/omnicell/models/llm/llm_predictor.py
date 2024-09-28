@@ -123,7 +123,7 @@ class LLMPredictor():
                     control_recon = control_results[0]
                     
                     control_loss = torch.sum(active_weights * torch.abs(control_recon - control)) / self.minibatch_size
-                    if self.config['use_sparsity_loss'] and len(control_results) == 3:
+                    if self.use_sparsity_loss and len(control_results) == 3:
                         control_sparsity = control_results[1]
                         control_loss += torch.sum(active_weights * torch.abs(control_sparsity - (control > 0).float())) / self.minibatch_size
 
@@ -132,15 +132,15 @@ class LLMPredictor():
                     self.optim.step()
                     self.optim.zero_grad()
                     losses['control'].append(control_loss.item())
-                    if step_count % self.trainig_config['lr_step'] == 0:
+                    if step_count % self.lr_step == 0:
                         self.lr_scheduler.step()
 
                     pbar.set_description(
-                        f"tv: {np.array(losses['control'])[-self.training_config['lr_step']:].mean():.3f}"
+                        f"tv: {np.array(losses['control'])[-self.lr_step:].mean():.3f}"
                     )
             
             avg_loss = sum(losses['control']) / len(losses['control'])
-            torch.save(self.model, f"{save_path}{e}")
+            # torch.save(self.model, f"{save_path}{e}")
             # writer.add_scalar('mae_loss', avg_loss, global_step=e)
             print(f'In epoch {e}, average traning loss is {avg_loss}.')
 
