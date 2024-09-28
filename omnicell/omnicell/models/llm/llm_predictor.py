@@ -27,14 +27,7 @@ class LLMPredictor():
 
         self.model = model = MAE(
             input_size, 
-            self.model_config['emb_dim'], 
-            self.model_config['decoder_layer'],
-            self.model_config['encoder_layer'], 
-            self.model_config['encoder_head'], 
-            self.model_config['decoder_head'],
-            self.model_config['ff_dim'],
-            true_sparsity=False, 
-            expr_activation="sigmoid"
+            **self.model_config
         )
 
         base_learning_rate = 5e-5
