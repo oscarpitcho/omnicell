@@ -30,7 +30,7 @@ def get_dataloader(
         cell_types = pd.get_dummies(adata.obs[CELL_KEY]).values
 
         if pert_reps is None:
-            pert_ids, pert_mat, cell_types = get_identity_features(adata)
+            pert_ids, pert_reps, cell_types = get_identity_features(adata)
 
         X = adata.obsm[embedding]
 
@@ -43,7 +43,7 @@ def get_dataloader(
         batch_size = 512
         dset = SCFMDataset(
             control_train, pert_train, 
-            pert_ids_train, pert_mat, 
+            pert_ids_train, pert_reps, 
             control_cell_types, pert_cell_types,
             batch_size=batch_size, size=X.shape[0]
         )
