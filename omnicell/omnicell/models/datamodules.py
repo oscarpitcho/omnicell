@@ -1,12 +1,14 @@
 import torch
-from torchcfm.conditional_flow_matching import (
-    ExactOptimalTransportConditionalFlowMatcher,OTPlanSampler
-)
 
 from torch.utils.data import Sampler
 from typing import Iterator, List
 
 import numpy as np
+import pandas as pd
+from omnicell.constants import CELL_KEY, CONTROL_PERT, PERT_KEY
+from omnicell.models.collate_fns import ot_collate, cfm_collate
+
+
 
 class StratifiedBatchSampler(Sampler[List[int]]):
     def __init__(
@@ -96,99 +98,58 @@ class SCFMDataset(torch.utils.data.Dataset):
             self.pert_mat[self.pert_ids[stratum[0]][stratum[1]][idx]],
         )
 
-class torch_wrapper(torch.nn.Module):
-    def __init__(self, model, perturbation=None):
-        super().__init__()
-        self.model = model
-        self.perturbation = perturbation
-
-    def forward(self, t, x, args=None):
-        if self.perturbation is not None:
-            return self.model(
-                torch.cat(
-                    [
-                        x,
-                        self.perturbation.repeat(x.shape[0], 1).to(x.device),
-                        t.repeat(x.shape[0])[:, None],
-                    ],
-                    1,
-                )
-            )
-        else:
-            return self.model(torch.cat([x, t.repeat(x.shape[0])[:, None]], 1))
-
-
-def fm_collate(
-    batch,
-    return_noise=False,
-    FM=ExactOptimalTransportConditionalFlowMatcher(sigma=0.1),
-):
-    noises = []
-
-    control, pert = zip(*batch)
-    control = torch.tensor(np.array(control))
-    pert = torch.tensor(np.array(pert))
-
-    if return_noise:
-        t, xt, ut, eps = FM.sample_location_and_conditional_flow(
-            control,
-            pert,
-            return_noise=return_noise,
-        )
-        noises.append(eps)
+def get_identity_features(adata, cell_type_features=True):
+    perts = pd.get_dummies(adata.obs[PERT_KEY]).values.astype(float)
+    cell_types = pd.get_dummies(adata.obs[CELL_KEY]).values
+    if cell_type_features:
+        combo = pd.get_dummies(adata.obs[CELL_KEY].astype(str) + adata.obs[PERT_KEY].astype(str)).values
+        idx = (combo!=0).argmax(axis=0)
+        pert_mat = np.hstack([cell_types, perts])[idx, :].astype('float32')
     else:
-        t, xt, ut = FM.sample_location_and_conditional_flow(
-            control,
-            pert,
-            return_noise=return_noise,
-        )
-    if return_noise:
-        noises = torch.cat(noises)
-        return t, xt, ut, noises
-    return t, xt, ut
-
-
-def cfm_collate(
-    batch,
-    return_noise=False,
-    FM=ExactOptimalTransportConditionalFlowMatcher(sigma=0.1),
-):
-    noises = []
-
-    control, target, perturb = zip(*batch)
-    control = torch.tensor(np.array(control))
-    target = torch.tensor(np.array(target))
-    perturb = torch.tensor(np.array(perturb))
-
-    if return_noise:
-        t, xt, ut, eps = FM.sample_location_and_conditional_flow(
-            control,
-            target,
-            return_noise=return_noise,
-        )
-        noises.append(eps)
-    else:
-        t, xt, ut = FM.sample_location_and_conditional_flow(
-            control,
-            target,
-            return_noise=return_noise,
-        )
-    if return_noise:
-        noises = torch.cat(noises)
-        return t, xt, ut, noises
-    return t, xt, ut, perturb
-
-
-def ot_collate(
-    batch,
-    return_noise=False,
-    ot_sampler = OTPlanSampler(method="exact")
-):
-
-    batch = list(zip(*batch))
-    batch = [torch.tensor(np.array(x)) for x in batch]
-    control, target = batch[:2]
+        combo = perts
+        idx = (combo!=0).argmax(axis=0)
+        pert_mat = perts[idx, :].astype('float32')
     
-    x0, x1 = ot_sampler.sample_plan(control, target)
+    pert_ids = combo.argmax(axis=1)
+    cell_types = cell_types.argmax(axis=1)
+    return pert_ids, pert_mat, cell_types
 
-    return x0, x1, *batch[2:]
+
+def get_dataloader(
+        adata, batch_size=512, embedding="standard", verbose=0, pert_reps=None, pert_ids=None, collate='ot'
+):
+        control_idx = adata.obs[PERT_KEY] == CONTROL_PERT
+        pert_idx = adata.obs[PERT_KEY] != CONTROL_PERT
+        cell_types = adata.obs[CELL_KEY].values
+
+        if pert_reps is None:
+            pert_ids, pert_reps, cell_types = get_identity_features(adata)
+
+        X = adata.obsm[embedding]
+
+        control_train = X[control_idx]
+        pert_train = X[pert_idx]
+        pert_ids_train =  pert_ids[pert_idx]
+        control_cell_types = cell_types[control_idx]
+        pert_cell_types = cell_types[pert_idx]
+
+        if collate == 'ot':
+             collate_fn = ot_collate
+        elif collate == 'cfm':
+            collate_fn = cfm_collate    
+        else:
+            raise ValueError(f"Collate function {collate} not recognized")
+
+        dset = SCFMDataset(
+            control_train, pert_train, 
+            pert_ids_train, pert_reps, 
+            control_cell_types, pert_cell_types, size=X.shape[0]
+        )
+        ns = np.array([[t.shape[0] for t in ts] for ts in dset.target])
+        dl = torch.utils.data.DataLoader(
+            dset, collate_fn=collate_fn, 
+            batch_sampler=StratifiedBatchSampler(
+                ns=ns, batch_size=batch_size
+            )
+        )
+        return dl
