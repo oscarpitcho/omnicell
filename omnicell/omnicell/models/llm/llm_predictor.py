@@ -3,7 +3,7 @@ import torch
 import yaml
 import numpy as np
 import math 
-from omnicell.models.llm import MAE
+from omnicell.models.llm.llm import MAE
 from omnicell.models.sc_etl_utils import *
 
 from torchcfm.conditional_flow_matching import *
