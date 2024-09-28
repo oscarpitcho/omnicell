@@ -4,7 +4,7 @@ import yaml
 import numpy as np
 import math 
 from omnicell.models.llm.llm import MAE
-from omnicell.models.sc_etl_utils import *
+from omnicell.models.datamodules import get_dataloader
 
 from torchcfm.conditional_flow_matching import *
 import scanpy as sc
@@ -77,7 +77,7 @@ class LLMPredictor():
         self.optim.zero_grad()
         pert_task = 0
         for e in range(20):
-            model.train()
+            self.model.train()
             losses = {'control': [], 'pert': []}
             for (bcontrol, bpert, bpert_index) in (pbar := tqdm(iter(dl))):
                 bcontrol, bpert, bpert_index = bcontrol.squeeze(), bpert.squeeze(), bpert_index.reshape(-1, 1)# , # bpert_expr.squeeze()
