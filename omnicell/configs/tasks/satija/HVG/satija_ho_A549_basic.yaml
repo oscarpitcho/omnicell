@@ -7,6 +7,7 @@ data:
   control: NT
 
 datasplit:
+  mode: ood
   test_size: 1000
   control_size: 1000
   training:
