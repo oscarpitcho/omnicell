@@ -3,25 +3,10 @@ from torchcfm.conditional_flow_matching import (
     ExactOptimalTransportConditionalFlowMatcher,OTPlanSampler
 )
 
-from torch.utils.data import BatchSampler, SequentialSampler, Sampler
-from typing import Iterator, Iterable, Optional, Sequence, List, TypeVar, Generic, Sized, Union
+from torch.utils.data import Sampler
+from typing import Iterator, List
 
 import numpy as np
-
-
-import torch
-from torchcfm.conditional_flow_matching import (
-    ExactOptimalTransportConditionalFlowMatcher,OTPlanSampler
-)
-
-from torch.utils.data import BatchSampler, SequentialSampler, Sampler
-from typing import Iterator, Iterable, Optional, Sequence, List, TypeVar, Generic, Sized, Union
-
-import numpy as np
-
-
-from torch.utils.data import BatchSampler, SequentialSampler, Sampler
-from typing import Iterator, Iterable, Optional, Sequence, List, TypeVar, Generic, Sized, Union
 
 class StratifiedBatchSampler(Sampler[List[int]]):
     def __init__(
@@ -66,8 +51,7 @@ class StratifiedBatchSampler(Sampler[List[int]]):
 
 class SCFMDataset(torch.utils.data.Dataset):
     def __init__(
-        self, source, target, pert_ids, pert_mat, source_strata, target_strata, 
-        probs=None, size=int(1e4), batch_size=32
+        self, source, target, pert_ids, pert_mat, source_strata, target_strata, size=int(1e4)
     ):
         source, target = np.array(source), np.array(target)
         pert_ids, pert_mat = np.array(pert_ids), np.array(pert_mat)
