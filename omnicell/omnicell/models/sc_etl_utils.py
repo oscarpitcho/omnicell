@@ -27,7 +27,7 @@ def get_dataloader(
 ):
         control_idx = adata.obs[PERT_KEY] == CONTROL_PERT
         pert_idx = adata.obs[PERT_KEY] != CONTROL_PERT
-        cell_types = pd.get_dummies(adata.obs[CELL_KEY]).values
+        cell_types = adata.obs[CELL_KEY].values
 
         if pert_reps is None:
             pert_ids, pert_reps, cell_types = get_identity_features(adata)
