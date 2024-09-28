@@ -39,19 +39,17 @@ def get_dataloader(
         pert_ids_train =  pert_ids[pert_idx]
         control_cell_types = cell_types[control_idx]
         pert_cell_types = cell_types[pert_idx]
-
-        batch_size = 512
+        
         dset = SCFMDataset(
             control_train, pert_train, 
             pert_ids_train, pert_reps, 
-            control_cell_types, pert_cell_types,
-            batch_size=batch_size, size=X.shape[0]
+            control_cell_types, pert_cell_types, size=X.shape[0]
         )
         ns = np.array([[t.shape[0] for t in ts] for ts in dset.target])
         dl = torch.utils.data.DataLoader(
             dset, collate_fn=ot_collate, 
             batch_sampler=StratifiedBatchSampler(
-                ns=ns, batch_size=512
+                ns=ns, batch_size=batch_size
             )
         )
         return dl
