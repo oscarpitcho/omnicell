@@ -122,8 +122,10 @@ def main(*args):
         model = NearestNeighborPredictor(config_model)
 
     elif 'transformer' in model_name:
-        #from cellot.models.cfm import train
-        raise NotImplementedError()
+        from omnicell.models.llm.llm_predictor import LLM
+        logger.info("Transformer model selected")
+        model = LLM(config_model, input_dim, device, pert_ids)
+        
 
     elif 'vae' in model_name:
         from omnicell.models.VAE.predictor import VAEPredictor
