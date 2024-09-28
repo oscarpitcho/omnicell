@@ -11,7 +11,7 @@ import scanpy as sc
 from omnicell.models.datamodules import  SCFMDataset, cfm_collate, StratifiedBatchSampler, ot_collate
 
 from omnicell.constants import CELL_KEY, CONTROL_PERT, PERT_KEY
-import tqdm
+from tqdm import tqdm
 
 class LLMPredictor():
 
