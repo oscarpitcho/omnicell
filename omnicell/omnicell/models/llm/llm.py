@@ -175,7 +175,7 @@ class MAE(torch.nn.Module):
     def __init__(self,
                  input_dim,
                  ff_dim=128,
-                 emb_dim=48,
+                 emb_dim=256,
                  encoder_layer=6,
                  encoder_head=4,
                  decoder_layer=6,
