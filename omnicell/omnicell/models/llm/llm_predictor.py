@@ -16,7 +16,7 @@ import tqdm
 class LLMPredictor():
 
 
-    def __init__(self, config, input_size: int, device: str):
+    def __init__(self, config, input_size, device, pert_ids):
         
         
         self.model_config = config['model']
@@ -54,6 +54,10 @@ class LLMPredictor():
         # model = torch.load(f"...")
         # device = 'cpu'
         self.model = model.to(device)
+
+        self.pert_ids = pert_ids
+
+        print(pert_ids)
         
 
     #Should take care of saving the model under some results/model/checkpoints in 
