@@ -121,10 +121,10 @@ def main(*args):
         logger.info("Nearest Neighbor model selected")
         model = NearestNeighborPredictor(config_model)
 
-    elif 'transformer' in model_name:
-        from omnicell.models.llm.llm_predictor import LLM
+    elif 'llm' in model_name:
+        from omnicell.models.llm.llm_predictor import LLMPredictor
         logger.info("Transformer model selected")
-        model = LLM(config_model, input_dim, device, pert_ids)
+        model = LLMPredictor(config_model, input_dim, device, pert_ids)
         
 
     elif 'vae' in model_name:
