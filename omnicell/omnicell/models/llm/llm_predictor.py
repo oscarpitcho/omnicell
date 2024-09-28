@@ -12,6 +12,7 @@ from datamodules import  SCFMDataset, cfm_collate, StratifiedBatchSampler, ot_co
 
 from omnicell.constants import CELL_KEY, CONTROL_PERT, PERT_KEY
 from OTmap import *
+import tqdm
 
 class LLMPredictor():
 
@@ -38,10 +39,15 @@ class LLMPredictor():
         )
 
         base_learning_rate = 5e-5
-        weight_decay=0.0
-        total_epoch = 500
+        weight_decay = 0.0
+        total_epoch = 10
         warmup_epoch = 10
         self.minibatch_size = 128 
+
+        self.use_sparsity_loss = self.trainig_config['use_sparsity_loss']
+        self.use_mask_task = self.trainig_config['use_mask_task']
+        self.use_active_weights = self.trainig_config['use_active_weights']
+        self.lr_step = self.trainig_config['lr_step']
 
         self.optim = torch.optim.AdamW(model.parameters(), lr=base_learning_rate, betas=(0.9, 0.999), weight_decay=weight_decay)
         self.lr_func = lambda epoch: min((epoch + 1) / (warmup_epoch + 1e-5), 0.5 * (math.cos(epoch / total_epoch * math.pi) + 1))
@@ -54,7 +60,6 @@ class LLMPredictor():
     #Should take care of saving the model under some results/model/checkpoints in 
     #BTW I think hidden dirs fuck with with the cluster, so don't call it .checkpoint
     def train(self, adata, save_path):
-
 
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         cell_col = 'cell_type'
@@ -114,11 +119,11 @@ class LLMPredictor():
                     pert = bpert[(i * self.minibatch_size):((i + 1) * self.minibatch_size)]
                     pert_index = bpert_index[(i * self.minibatch_size):((i + 1) * self.minibatch_size)]
                     pert_index = pert_index.squeeze()
-                    active_weights = 10 * (control > 0).float().to(device) + 1 if use_active_weights else 1
+                    active_weights = 10 * (control > 0).float().to(device) + 1 if self.use_active_weights else 1
                     control = control.float().to(self.device)
                     step_count += 1
 
-                    control_results = self.model(control, mask=use_mask_task)
+                    control_results = self.model(control, mask=self.use_mask_task)
                     control_recon = control_results[0]
                     
                     control_loss = torch.sum(active_weights * torch.abs(control_recon - control)) / self.minibatch_size
@@ -147,10 +152,10 @@ class LLMPredictor():
         
         ## CODE FROM PERT RECONSTRUCTION LOOP ##
 
-        use_sparsity_loss = True
-        use_mask_task = False
-        use_active_weights = True
-        lr_step = 32
+        self.use_sparsity_loss = True
+        self.use_mask_task = False
+        self.use_active_weights = True
+        self.lr_step = 32
 
         step_count = 0
         self.optim.zero_grad()
@@ -169,15 +174,15 @@ class LLMPredictor():
                     pert_index = bpert_index[(i * self.minibatch_size):((i + 1) * self.minibatch_size)]
                     pert_index = pert_index.squeeze()
                     # print(pert_index)
-                    active_weights = 100 * (control > 0).float().to(device) + 1 if use_active_weights else 1
-                    pert_active_weights = 100 * (pert > 0).float().to(device) + 1 if use_active_weights else 1
+                    active_weights = 100 * (control > 0).float().to(device) + 1 if self.use_active_weights else 1
+                    pert_active_weights = 100 * (pert > 0).float().to(device) + 1 if self.use_active_weights else 1
                     control = control.float().to(device)
                     pert = pert.float().to(device)
                     step_count += 1
 
                     pert_expr = pert[torch.arange(pert.size(0)), pert_index, None]
                     control_results, pert_results = self.model(
-                        control, pert_expr=pert_expr, pert_index=pert_index, mask=use_mask_task, recon_and_pert=True
+                        control, pert_expr=pert_expr, pert_index=pert_index, mask=self.use_mask_task, recon_and_pert=True
                     )
                     
                     control_recon, pert_recon = control_results[0], pert_results[0]
@@ -190,7 +195,7 @@ class LLMPredictor():
                     std_pert, std_pert_recon = pert.std(axis=0), pert_recon.std(axis=0)
                     std_pert_loss = 10 * torch.sum(torch.abs(std_pert - std_pert_recon)) 
                     
-                    if use_sparsity_loss and len(control_results) == 3:
+                    if self.use_sparsity_loss and len(control_results) == 3:
                         control_sparsity, pert_sparsity = control_results[1], pert_results[1]
                         control_loss += torch.sum(active_weights * torch.abs(control_sparsity - (control > 0).float())) / self.minibatch_size
                         pert_loss += torch.sum(pert_active_weights * torch.abs(pert_sparsity - (pert > 0).float())) / self.minibatch_size
@@ -201,23 +206,20 @@ class LLMPredictor():
                     self.optim.zero_grad()
                     losses['control'].append(control_loss.item())
                     losses['pert'].append(pert_loss.item())
-                    if step_count % lr_step == 0:
+                    if step_count % self.lr_step == 0:
                         self.lr_scheduler.step()
                     pbar.set_description(
-                        f"loss: {loss:.3f}, tv: {np.array(losses['control'])[-lr_step:].mean():.3f}, ptv: {np.array(losses['pert'])[-lr_step:].mean():.3f}"
+                        f"loss: {loss:.3f}, tv: {np.array(losses['control'])[-self.lr_step:].mean():.3f}, ptv: {np.array(losses['pert'])[-self.lr_step:].mean():.3f}"
                     )
             
             avg_loss = sum(losses['control']) / len(losses['control'])
-            torch.save(self.model, f"{save_dir}{e}")
+            # torch.save(self.model, f"{save_dir}{e}")
             # writer.add_scalar('mae_loss', avg_loss, global_step=e)
             print(f'In epoch {e}, average traning loss is {avg_loss}.')
-
-        
-        return preds
     
 
     #I mean to we need to evaluate anything? 
-    def self, adata: sc.AnnData | torch.DataLoader, pert_id: str, cell_type: str) -> np.ndarray:
+    def make_predict(self, adata: sc.AnnData | torch.DataLoader, pert_id: str, cell_type: str) -> np.ndarray:
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
         X = adata.obsm["standard"]
