@@ -1,8 +1,15 @@
-{
+[   
     {
-        "name": "Dataset_name",
+        "name": "satija_IFNB_normalized",
         "path": "Some Absolute path on OM",
-        "description": "Some description of the dataset"
+        "meta_data_path": "Some absolute path to metadata, will contains genes of the dataset, perts, cell types, etc.",
+        "HVG": true,
+        "log1p_transformed": true,
+        "count_normalized": true,
+        "description": "Some description of the dataset", 
+        "pert_embeddings": ["VAE", "Smile"], 
+        "cell_embeddings": ["scGPT", "etc."]
+
     },
     {
         "name": "Dataset_name",
@@ -11,4 +18,4 @@
     }
 
 
-}
+]
