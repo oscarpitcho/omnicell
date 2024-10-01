@@ -6,7 +6,6 @@ from arch import *
 from flow_utils import compute_conditional_flow
 import json
 
-import scvi
 import torch
 import numpy as np
 import pytorch_lightning as pl

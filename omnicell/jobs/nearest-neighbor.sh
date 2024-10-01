@@ -22,5 +22,3 @@ python train.py --task_config configs/tasks/satija/raw/satija_ho_IFNAR2_eva.yaml
 
 python generate_evaluations.py --model_name nearest-neighbor_substitute --task_name satija_ho_A549_eva
 python generate_evaluations.py --model_name nearest-neighbor_substitute --task_name satija_ho_IFNAR2_eva
-
-
