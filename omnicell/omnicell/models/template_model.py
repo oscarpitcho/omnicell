@@ -1,7 +1,4 @@
-import torch 
-import scanpy as sc
-import numpy as np
-#Bit of a guide so I don't forget what I'm doing
+
 
 class TemplateModel():
 
@@ -44,6 +41,19 @@ class TemplateModel():
         pass
 
     def decode(self, X_embed) -> np.ndarray:
+        pass
+
+
+    def save(self, path):
+        """
+        Saves the model to the path
+        """
+        pass
+
+    def load(self, path) -> 'TemplateModel':
+        """
+        Returns a new instance of the model loaded from the path
+        """
         pass
         
 
