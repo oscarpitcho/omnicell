@@ -1,4 +1,7 @@
 
+import scanpy as sc
+import numpy as np
+
 
 class TemplateModel():
 
