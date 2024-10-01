@@ -9,6 +9,7 @@ data:
   apply_log1p: False
 
 datasplit:
+  mode: ood
   training:
     #Random folds need to be implemented
     #TODO: More complex splits
