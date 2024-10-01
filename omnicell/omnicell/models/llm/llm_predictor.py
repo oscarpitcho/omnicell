@@ -27,6 +27,8 @@ class LLMPredictor():
             **self.model_config
         )
 
+
+        #TODO: This should be in the config, not hardcoded, at least even if these are not changed we can see them in the run config
         base_learning_rate = 5e-5
         weight_decay = 0.0
         total_epoch = 10
