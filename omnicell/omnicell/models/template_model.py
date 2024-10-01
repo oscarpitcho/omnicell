@@ -1,7 +1,7 @@
-import torch 
+
 import scanpy as sc
 import numpy as np
-#Bit of a guide so I don't forget what I'm doing
+
 
 class TemplateModel():
 
@@ -11,13 +11,23 @@ class TemplateModel():
 
 
 
-    def train(adata, pairing):
+    def train(self, adata, pairing):
         """
         Training method of the model, takes andata without the evaluation data + Pairing and does whatever it needs
-        to do such that the model is "trained" and ready to make predictions / encode / decode.
+        to do such that the model is "trained" and ready to make predictions
         
         """
         pass
+
+
+    def train_paring(self, adata, pairing):
+        """
+        Training method of the model, takes andata without the evaluation data + Pairing and does whatever it needs
+        to do such that the model is "trained" and ready to make predictions
+        
+        """
+        pass
+
     
 
     #I mean to we need to evaluate anything? 
@@ -34,6 +44,19 @@ class TemplateModel():
         pass
 
     def decode(self, X_embed) -> np.ndarray:
+        pass
+
+
+    def save(self, path):
+        """
+        Saves the model to the path
+        """
+        pass
+
+    def load(self, path) -> 'TemplateModel':
+        """
+        Returns a new instance of the model loaded from the path
+        """
         pass
         
 
