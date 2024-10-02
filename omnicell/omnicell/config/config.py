@@ -3,16 +3,18 @@ from typing import List, Tuple
 
 #TODO: - Configs just for trainings, configs for evaluations, 
 
+#TODO: Introduce config validation
 class Config:
     """Immutable class representing a config file for a model or task"""
 
     #So what is the config object, what does it do? - Some top level dictionary that contains all subjacent configs
     def __init__(self, config):
-        self.task_config = config['task'].copy() if 'task' in config else None
+        #self.task_config = config['task'].copy() if 'task' in config else None
         self.model_config = config['model'].copy() if 'model' in config else None
         self.eval_config = config['eval'].copy() if 'eval' in config else None
         self.train_args = config['train_args'].copy() if 'train_args' in config else None
         self.timestamp = config['timestamp'] if 'timestamp' in config else None
+        self.data_config = config['data_config'].copy() if 'data_config' in config else None
 
     @classmethod
     def empty(cls):
@@ -23,6 +25,10 @@ class Config:
         config = {}
         config = self.to_dict()
         return Config(config)
+    
+
+    def __eq__(self, other):
+        return self.to_dict() == other.to_dict()
     
 
     #We completely control the serialization of the config object in this class 
@@ -38,6 +44,8 @@ class Config:
             config['train_args'] = self.train_args.copy()
         if self.timestamp is not None:
             config['timestamp'] = self.timestamp
+        if self.data_config is not None:
+            config['data_config'] = self.data_config.copy()
         return config
     
     #Bunch of getters and setters to no longer be fixed by the config file structure in the code
@@ -50,6 +58,19 @@ class Config:
         config = self.copy()
         config.model_config = model_config
         return config
+    
+    def add_data_config(self, data_config)-> 'Config':
+        config = self.copy()
+        config.data_config = data_config
+        return config
+    
+    """
+    Returns a config with only the portions of the config that are relevant for training
+    """
+    def get_training_config(self) -> 'Config':
+        data_config = self.data_config.copy()
+        model_config = self.model_config.copy()
+        return Config({'data_config': data_config, 'model': model_config})
 
     def add_eval_config(self, eval_config)-> 'Config':
         config = self.copy()
@@ -60,6 +81,12 @@ class Config:
         config = self.copy()
         config.train_args = train_args_dict
         return config
+    
+    def get_dataset_name(self)-> str:
+        return self.data_config['name']
+    
+    def get_data_loader_config(self)-> str:
+        return self.data_config['loader']
     
     def get_pert_key(self)-> str:
         return self.task_config['data']['pert_key']
