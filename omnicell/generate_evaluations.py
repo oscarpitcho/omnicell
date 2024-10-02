@@ -40,7 +40,7 @@ def generate_evaluation(dir, args):
     config = Config(config)
 
 
-    config = config.add_eval_config(args.__dict__)
+    config = config.add_metrics_config(args.__dict__)
 
     #TODO: Do we want to restructure the code to make this config handling centralized? --> Yes probably because this will get very brittle very quickly
     #TODO: Core issue --> The code is dependent on the underlying config structure, which is not good.
@@ -208,32 +208,6 @@ def average_fold(fold_dir, min_occurences):
 
 
 
-def average_run(run_dir, min_occurences):
-    """Assumes we have already run average for each fold in the run directory and aggregates the results"""
-
-    folds = [x for x in run_dir.iterdir() if x.is_dir()]
-
-    degs_dicts  = []
-    r2_mse_dicts = []
-    for fold in folds:
-        with open(f'{fold}/avg_DEGs_overlaps.json', 'rb') as f:
-            DEGs_overlaps = json.load(f)
-            degs_dicts.append(DEGs_overlaps)
-        
-        with open(f'{fold}/avg_r2_mse.json', 'rb') as f:
-            r2_mse = json.load(f)
-            r2_mse_dicts.append(r2_mse)
-
-    avg_DEGs_overlaps = average_keys(degs_dicts, min_occurences)
-    avg_r2_mse = average_keys(r2_mse_dicts, min_occurences)
-
-    with open(f'{run_dir}/avg_DEGs_overlaps.json', 'w+') as f:
-        json.dump(avg_DEGs_overlaps, f, indent=2, cls=NumpyTypeEncoder)
-    
-    with open(f'{run_dir}/avg_r2_mse.json', 'w+') as f:
-        json.dump(avg_r2_mse, f, indent=2, cls=NumpyTypeEncoder) 
-
-
 
 def main(*args):
 
@@ -271,32 +245,17 @@ def main(*args):
 
     for rd in run_dirs:
         logger.info(f"Starting evaluation for {rd}")
-        folds = [x for x in rd.iterdir() if x.is_dir()]
+
+        try:
+            logger.info(f"Starting evaluation for {rd}")
+            generate_evaluation(rd, args)
+
+            logger.info(f"Finished evaluation for {rd}, generating averages")
+            average_fold(rd, args.min_occurence)
         
-        error = False
-        for fold in folds:
-
-            try:
-                logger.info(f"Starting evaluation for {fold}")
-                generate_evaluation(fold, args)
-
-                logger.info(f"Finished evaluation for {fold}, generating averages")
-                average_fold(fold, args.min_occurence)
-            
-            except Exception as e:
-                error = True
-                logger.error(f"Error during evaluation of {fold}, will not average this fold")
-                logger.error(e)
-
-        if not error:
-            average_run(rd, args.min_occurence)
-        
-        else:
-            logger.error(f"Error during evaluation of {rd}, will not average this run")
-
-
-
-            #We want to generate average stats per fold and per run
+        except Exception as e:
+            logger.error(f"Error during evaluation of {rd}, moving to next directoy")
+            logger.error(e)
         
         
     

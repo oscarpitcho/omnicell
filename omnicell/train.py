@@ -16,6 +16,7 @@ from omnicell.data.utils import get_pert_cell_data, get_cell_ctrl_data, predicti
 from omnicell.processing.utils import to_dense, to_coo
 from omnicell.data.preprocessing import preprocess
 from omnicell.config.config import Config
+from omnicell.data.loader import Loader
 import time
 import datetime
 import torch
@@ -32,10 +33,11 @@ def main(*args):
     print("Running main")
     parser = argparse.ArgumentParser(description='Analysis settings.')
 
-    parser.add_argument('--task_config', type=str, default='', help='Path to yaml config file of the task.')
-    parser.add_argument('--model_config', type=str, default='', help='Path to yaml config file of the model.')
+    parser.add_argument('--data_config', type=str, default=None, help='Path to yaml config file of the task.')
+    parser.add_argument('--model_config', type=str, default=None, help='Path to yaml config file of the model.')
+    parser.add_argument('--eval_config', type=str, default=None, help='Path to yaml config file of the evaluation, if none provided the model will only be trained.')
     parser.add_argument('--test_mode', action='store_true', default=False, help='Run in test mode, datasetsize will be capped at 10000')
-    parser.add_argument('--slurm_id', type=int, default=1, help='Slurm id for the job')
+    parser.add_argument('--slurm_id', type=int, default=1, help='Slurm id for the job, useful for arrays')
     parser.add_argument('-l', '--log', dest='loglevel', choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'], help="Set the logging level (default: %(default)s)", default='INFO')
 
     args = parser.parse_args()
@@ -45,25 +47,35 @@ def main(*args):
     now = now.strftime("%Y-%m-%d_%H:%M:%S")
 
 
-
+    data_catalogue = json.load(open('data_catalogue.json'))
 
  
 
-    model_path = Path(args.model_config).resolve()
-    task_path = Path(args.task_config).resolve()
+    model_config_path = Path(args.model_config).resolve()
+    data_config_path = Path(args.data_config).resolve()
+    evaluation_config_path = Path(args.eval_config).resolve() if not args.eval_config == None 
 
-    config_model = yaml.load(open(model_path), Loader=yaml.UnsafeLoader)
-    config_task = yaml.load(open(task_path), Loader=yaml.UnsafeLoader)
+    config_model = yaml.load(open(model_config_path), Loader=yaml.UnsafeLoader)
+    config_data = yaml.load(open(data_config_path), Loader=yaml.UnsafeLoader)
+
+    config_evals = yaml.load(open(evaluation_config_path), Loader=yaml.UnsafeLoader) if not evaluation_config_path == None else None
 
 
+    
 
-    config = Config.empty().add_model_config(config_model).add_task_config(config_task).add_train_args(args.__dict__).add_timestamp(str(now))
+    config = Config.empty()
+    config = config.add_model_config(config_model) #There will always be a model config
+    config = config.add_data_config(config_data) #There will always be a training config
+    config = config.add_eval_config(config_evals) if not config_evals == None else config #There might not be an eval config
+
+    
+
 
     logging.basicConfig(filename= f'output_{args.slurm_id}_{config.get_model_name()}_{config.get_task_name()}.log', filemode= 'w', level=args.loglevel, format='%(asctime)s - %(levelname)s - %(message)s')
     logger.info("Application started")
 
 
-
+    #TODO: Hash task + Model config to see if this model has already been saved and trained. 
 
 
     #Store the config and the paths to the config to make reproducibility easier. 
@@ -83,6 +95,7 @@ def main(*args):
     task_name = config.get_task_name()
 
             
+    #TODO: Check if model has been trained before and load it if it is the case, careful with timestamp causing failed equalities.
     hash_dir = hashlib.sha256(json.dumps(config.to_dict()).encode()).hexdigest()
     hash_dir = hash_dir[:4]
     
@@ -150,87 +163,60 @@ def main(*args):
 
     #Every fold corresponds to a training
     #We need to split the data according to the task config
-    splitter = Splitter(config)
-    folds = splitter.split(adata)
+    loader = Loader(config, data_catalogue)
+
+    train_
+    adata_train, adata_eval, ho_perts, ho_cells, eval_targets = splitter.split(adata)
 
         
 
     #TODO: When generating a random fold we should save the config of the fold
     #Overwrite the config with the fold details so that we can reproduce the fold easily
     #What will happen when we have a pretrained model? All this logic will no longer be adequate
-    for i, (adata_train, adata_eval, ho_perts, ho_cells, eval_targets) in enumerate(folds):
-        fold_save = save_path / f"fold_{i}"
 
-        logger.debug(f"Fold {i} - Training data: {adata_train.shape}, Evaluation data: {adata_eval.shape}, # of holdout perts: {len(ho_perts)}, # of holdout cells: {len(ho_cells)}")
-        logger.debug(f"Fold {i} - Evaluation targets: {eval_targets}")
-        logger.debug(f"Fold {i} - Holdout perts: {ho_perts} - Holdout cells: {ho_cells}")
+        
 
-        logger.info(f"Running fold {i}")
-        if not os.path.exists(fold_save):
-            os.makedirs(fold_save)
+    if not os.path.exists(save_path):
+        os.makedirs(save_path)
 
 
-        #TODO: We will need to see how we handle the checkpointing logic with folds and stuff
-        model.train(adata_train)
+    #TODO: We need to save the model, and the config with it.
+    #We should save the configs with it but only the ones that are relevant for the model, i.e. training and model config
+    model.train(adata_train)
 
-        logger.info(f"Training completed for fold {i}")
-        #TODO: When random folds and whatnots are implemented modify the config to reflect the concrete fold and save that 
+    logger.info(f"Training completed")
 
-        with open(fold_save / f"config.yaml", 'w+') as f:
-            yaml.dump(config.to_dict(), f, indent=2)
-
-
-        #If we have random splitting we need to save the holdout perts and cells as these will not be the same for each fold
-        with open(fold_save / f"holdout_perts.json", 'w+') as f:
-            json.dump(ho_perts, f)
-
-        with open(fold_save / f"holdout_cells.json", 'w+') as f:
-            json.dump(ho_cells, f)
+    with open(save_path / f"config.yaml", 'w+') as f:
+        yaml.dump(config.to_dict(), f, indent=2)
 
 
-        logger.info(f"Running evaluation for fold {i}")
-        for cell, pert in eval_targets:
+    #If we have random splitting we need to save the holdout perts and cells as these will not be the same for each fold
+    with open(save_path / f"holdout_perts.json", 'w+') as f:
+        json.dump(ho_perts, f)
 
-            logger.debug(f"Making predictions for {cell} and {pert}")
-
-
-            #NOTE : These are taken on the entire data
-            adata_ground_truth = get_pert_cell_data(adata, pert, cell)
-            adata_ctrl_pert = get_cell_ctrl_data(adata, cell)
-
-            logger.debug(f"Ground truth data loaded for {cell} and {pert} - # of ctrl cells {len(adata_ctrl_pert)}, # of ground truth cells {len(adata_ground_truth)}")
+    with open(save_path / f"holdout_cells.json", 'w+') as f:
+        json.dump(ho_cells, f)
 
 
-            """control_sample_size = config.get_control_size()
-            if control_sample_size > len(adata_ctrl_pert):
-                logger.warning(f"Control size {config.get_control_size()} is larger than the number of control cells {len(adata_ctrl_pert)}, setting control size to the number of control cells")
-                control_sample_size = len(adata_ctrl_pert)
-                
+    #If it is None we are just running a training job
+    if args.eval_config is not None:
+        for cell_id, pert_id, ctrl_data, gt_data in loader.get_eval_data():
 
-            pushfwd_sample_size = config.get_test_size()
-            if pushfwd_sample_size > len(adata_ground_truth):
-                logger.warning(f"Test size {config.get_test_size()} is larger than the number of ground truth cells {len(adata_ground_truth)}, setting test size to the number of ground truth cells")
-                pushfwd_sample_size = len(adata_ground_truth)"""
+            logger.debug(f"Making predictions for {cell_id} and {pert_id}")
 
-            #adata_control = sc.pp.subsample(adata_ctrl_pert, n_obs=control_sample_size, copy=True)
-            #adata_pushfwd = sc.pp.subsample(adata_ctrl_pert, n_obs=pushfwd_sample_size, copy=True)
 
-            adata_control = adata_ctrl_pert.copy()
-            adata_pushfwd = adata_ctrl_pert.copy()
-
-            preds = model.make_predict(adata_pushfwd, pert, cell)
+            preds = model.make_predict(ctrl_data, pert_id, cell_id)
 
             preds = to_coo(preds)
-            control  = to_coo(adata_control.X)
-            ground_truth = to_coo(adata_ground_truth.X)
-
+            control  = to_coo(ctrl_data.X)
+            ground_truth = to_coo(gt_data.X)
 
 
             #TODO: We only need to save one control file per cell, if we have several perts we can reuse the same control file
 
-            scipy.sparse.save_npz(f"{fold_save}/{prediction_filename(pert, cell)}-preds", preds)
-            scipy.sparse.save_npz(f"{fold_save}/{prediction_filename(pert, cell)}-control", control)
-            scipy.sparse.save_npz(f"{fold_save}/{prediction_filename(pert, cell)}-ground_truth", ground_truth)
+            scipy.sparse.save_npz(f"{save_path}/{prediction_filename(pert_id, cell_id)}-preds", preds)
+            scipy.sparse.save_npz(f"{save_path}/{prediction_filename(pert_id, cell_id)}-control", control)
+            scipy.sparse.save_npz(f"{save_path}/{prediction_filename(pert_id, cell_id)}-ground_truth", ground_truth)
 
 
 
