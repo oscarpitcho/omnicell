@@ -1,0 +1,40 @@
+
+data:
+  dataset_name: kang
+  log1p: True
+  count_norm: True
+  embedding: umap #Note, whatt if we have both log1p and count_norm true and an embedding, can we ensure that the embedding is applied after the log1p and count_norm?
+
+
+dataloader:
+  type: adata
+  mapping: test
+  batch_size: 128
+  shuffle: true
+
+
+datasplit:
+  #Random folds need to be implemented
+  #TODO: More complex splits
+
+    
+  pairing: XX
+  mode: iid
+
+
+  #Annoying part is if we have random splits how will we define the tasks? -
+  holdout_cells: [CD4T]
+  holdout_perts: []
+
+
+  evals:
+
+    data: kang
+
+
+    #What if there was a random fold before
+
+    #Targets on which we evaluate when we do the holdout, can be ALL
+    #If these are also heldout then we are evaluating on unseen cell + unseen pert
+    #Set the combinations to evaluate on, we can implement more complex commands later on
+    evaluation_targets: [[CD4T, perturbed]]

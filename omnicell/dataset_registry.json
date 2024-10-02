@@ -3,12 +3,17 @@
         "name": "satija_IFNB_normalized",
         "path": "Some Absolute path on OM",
         "meta_data_path": "Some absolute path to metadata, will contains genes of the dataset, perts, cell types, etc.",
+        "condition_key": "condition",
+        "control_pert": "pert",
+        "perturbation_key": "perturbation",
+        "var_names_key": "genes",
         "HVG": true,
         "log1p_transformed": true,
         "count_normalized": true,
         "description": "Some description of the dataset", 
         "pert_embeddings": ["VAE", "Smile"], 
         "cell_embeddings": ["scGPT", "etc."]
+
 
     },
     {
