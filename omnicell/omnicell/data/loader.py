@@ -71,10 +71,12 @@ class DatasetDetails:
 
 
 
+#TODO
+
 class DataLoader:
     def __init__(self, config: Config, catalogue):
         self.config = config
-        self.training_dataset_details: DatasetDetails = self._get_dataset_details(config.get_dataset_name(), catalogue)
+        self.training_dataset_details: DatasetDetails = self._get_dataset_details(config.get_training_dataset_name(), catalogue)
 
         #TODO: What if no eval dataset is specified?
         self.eval_dataset_details: DatasetDetails = None
@@ -146,9 +148,15 @@ class DataLoader:
         """
         Returns the training data according to the config.
         """
+
+        #Checking if we have already a cached version of the training data
         if self.training_adata is None:
 
-            adata = self.preprocess_data()
+            adata = sc.read(self.training_dataset_details.path)
+
+            logger.info(f"Preprocessing training data")
+            adata = self.preprocess_data(adata, training=True)
+
             if self.config.get_mode() == "ood":
                 logger.info("Doing OOD split")
 
@@ -170,10 +178,9 @@ class DataLoader:
 
 
             adata_train = adata[train_mask]
-            return adata_train
-        
+            self.training_adata = adata_train        
         else:
-            return self.training_adata
+            return self.training_adata, self.perturbation_embeddings
 
 
     def get_eval_data(self):
@@ -182,12 +189,15 @@ class DataLoader:
 
         logger.info(f"Loading evaluation data at path: {self.eval_dataset_details.path}")
         adata = sc.read(self.eval_dataset_details.path)
+
+        logger.info(f"Preprocessing evaluation data")
         adata = self.preprocess_data(adata, training=False)
+
         for cell_id, pert_id in self.config.get_eval_targets():
             gt_data = adata[(adata.obs[PERT_KEY] == pert_id) & (adata.obs[CELL_KEY] == cell_id)]
             ctrl_data = adata[(adata.obs[CELL_KEY] == cell_id) & (adata.obs[PERT_KEY] == CONTROL_PERT)]
-           
-            yield cell_id, pert_id, ctrl_data, gt_data
+            
+            yield cell_id, pert_id, ctrl_data, gt_data, pert_embeddings
 
 
 
