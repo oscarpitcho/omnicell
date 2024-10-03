@@ -4,6 +4,7 @@
         "path": "Some Absolute path on OM",
         "meta_data_path": "Some absolute path to metadata, will contains genes of the dataset, perts, cell types, etc.",
         "condition_key": "condition",
+        "cell_key": "cell_type",
         "control_pert": "pert",
         "perturbation_key": "perturbation",
         "var_names_key": "genes",
