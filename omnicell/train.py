@@ -53,7 +53,7 @@ def main(*args):
 
     model_config_path = Path(args.model_config).resolve()
     data_config_path = Path(args.data_config).resolve()
-    evaluation_config_path = Path(args.eval_config).resolve() if not args.eval_config == None 
+    evaluation_config_path = Path(args.eval_config).resolve() if not args.eval_config == None else None
 
     config_model = yaml.load(open(model_config_path), Loader=yaml.UnsafeLoader)
     config_data = yaml.load(open(data_config_path), Loader=yaml.UnsafeLoader)
@@ -92,29 +92,37 @@ def main(*args):
 
     model = None
     model_name = config.get_model_name()
-    task_name = config.get_task_name()
+    dataconfig_name = config.get_data_config_name()
+    
 
             
     #TODO: Check if model has been trained before and load it if it is the case, careful with timestamp causing failed equalities.
-    hash_dir = hashlib.sha256(json.dumps(config.to_dict()).encode()).hexdigest()
-    hash_dir = hash_dir[:4]
-    
-    save_path = Path(f"./results/{model_name}/{task_name}/{now}-{hash_dir}").resolve()
 
-    logger.info(f"Config parsed, model name: {model_name}, task name: {task_name}")
-    logger.info(f"Saving results to {save_path}")
+    #Hash dir to avoid conflicts when training the same model on same data but with different configs
+    hash_dir = hashlib.sha256(json.dumps(config.to_dict()).encode()).hexdigest()
+    hash_dir = hash_dir[:8]
+    
+    model_save_path = Path(f"./results/{model_name}/{dataconfig_name}/{hash_dir}").resolve()
+
+    logger.info(f"Saving to model to {model_save_path}")
 
 
 
     #Saving run config
-    if not os.path.exists(save_path):
-        os.makedirs(save_path)
+    if not os.path.exists(model_save_path):
+        os.makedirs(model_save_path)
 
-    with open(f"{save_path}/config.yaml", 'w+') as f:
-        yaml.dump(config.to_dict(), f, indent=2, default_flow_style=False)
+
+    #We only save the training config (Split + Model)
+
+    logger.info(f"Saving Training config to {model_save_path}")
+    with open(f"{model_save_path}/config.yaml", 'w+') as f:
+        yaml.dump(config.get_training_config(), f, indent=2, default_flow_style=False)
 
 
     loader = Loader(config, data_catalogue)
+    adata = loader.get_training_data()   
+
 
     input_dim = adata.shape[1]
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -163,30 +171,26 @@ def main(*args):
         raise ValueError('Unknown model name')
     
 
-    #Every fold corresponds to a training
-    #We need to split the data according to the task config
-
-
-
-    #This can be adata | torch.DataLoader --> Model should check appropriate type    
-    train_data = loader.get_training_data()    
-
-    if not os.path.exists(save_path):
-        os.makedirs(save_path)
-
-
     #TODO: We need to save the model, and the config with it.
     #We should save the configs with it but only the ones that are relevant for the model, i.e. training and model config
     model.train(train_data)
 
     logger.info(f"Training completed")
 
-    with open(save_path / f"config.yaml", 'w+') as f:
-        yaml.dump(config.to_dict(), f, indent=2)
+    logger.info(f"Saving model to {model_save_path}")
+    model.save(model_save_path)
+
 
 
     #If it is None we are just running a training job
     if args.eval_config is not None:
+        logger.info("Running evaluation")
+
+        eval_config_name = config.get_eval_config_name()
+        results_path = Path(f"./results/{model_name}/{dataconfig_name}/{eval_config_name}/{hash_dir}").resolve()
+        logger.info(f"Saving results to {results_path}")
+
+
         for cell_id, pert_id, ctrl_data, gt_data in loader.get_eval_data():
 
             logger.debug(f"Making predictions for {cell_id} and {pert_id}")
@@ -201,9 +205,9 @@ def main(*args):
 
             #TODO: We only need to save one control file per cell, if we have several perts we can reuse the same control file
 
-            scipy.sparse.save_npz(f"{save_path}/{prediction_filename(pert_id, cell_id)}-preds", preds)
-            scipy.sparse.save_npz(f"{save_path}/{prediction_filename(pert_id, cell_id)}-control", control)
-            scipy.sparse.save_npz(f"{save_path}/{prediction_filename(pert_id, cell_id)}-ground_truth", ground_truth)
+            scipy.sparse.save_npz(f"{results_path}/{prediction_filename(pert_id, cell_id)}-preds", preds)
+            scipy.sparse.save_npz(f"{results_path}/{prediction_filename(pert_id, cell_id)}-control", control)
+            scipy.sparse.save_npz(f"{results_path}/{prediction_filename(pert_id, cell_id)}-ground_truth", ground_truth)
 
 
 
