@@ -14,7 +14,7 @@ from omnicell.constants import PERT_KEY, CELL_KEY, CONTROL_PERT
 from omnicell.data.utils import prediction_filename
 from omnicell.processing.utils import to_dense, to_coo
 from omnicell.config.config import Config
-from omnicell.data.loader import Loader
+from omnicell.data.loader import DataLoader
 
 import time
 import datetime
@@ -70,13 +70,9 @@ def main(*args):
 
 
     logging.basicConfig(filename= f'output_{args.slurm_id}_{config.get_model_name()}_{config.get_task_name()}.log', filemode= 'w', level=args.loglevel, format='%(asctime)s - %(levelname)s - %(message)s')
+    
+    
     logger.info("Application started")
-
-
-    #TODO: Hash task + Model config to see if this model has already been saved and trained. 
-
-
-    #Store the config and the paths to the config to make reproducibility easier. 
 
 
     model = None
@@ -110,7 +106,7 @@ def main(*args):
         yaml.dump(config.get_training_config(), f, indent=2, default_flow_style=False)
 
 
-    loader = Loader(config, data_catalogue)
+    loader = DataLoader(config, data_catalogue)
 
     #Trained Model exists
     if os.path.exists(f"{model_save_path}/trained_model.pkl"):
@@ -120,9 +116,33 @@ def main(*args):
 
         #Note: Some models might have a save method that does nothing (e.g. the test model)
         #These models will never be loaded even if they we check their case.
-        if 'nearest-neighbor' in model_name:
+        if 'nearest-neighbor' in model_name:          
             from omnicell.models.nearest_neighbor.predictor import NearestNeighborPredictor
+            logger.info("Nearest Neighbor model selected")
             model_class = NearestNeighborPredictor
+
+        elif 'llm' in model_name:
+            from omnicell.models.llm.llm_predictor import LLMPredictor
+            logger.info("Transformer model selected")
+            model_class = LLMPredictor
+            
+        elif 'vae' in model_name:
+            from omnicell.models.VAE.predictor import VAEPredictor
+            logger.info("VAE model selected")
+            model_class = VAEPredictor
+
+        elif 'scVIDR' in model_name:
+            from omnicell.models.VAE.scVIDR_predictor import ScVIDRPredictor
+            logger.info("scVIDR model selected")
+            model_class = ScVIDRPredictor
+
+        elif model_name == 'test':
+            from omnicell.models.dummy_predictor.predictor import TestPredictor
+            logger.info("Test model selected")
+            model_class = TestPredictor
+            
+        else:
+            raise ValueError('Unknown model name')
 
 
 
