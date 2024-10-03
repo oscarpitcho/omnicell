@@ -9,6 +9,46 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+"""
+
+
+                Task Definition
+
+
+
+Predict
+    \
+     \           Pert 1                        Pert 2
+      \
+   On  \
+        \
+         \__________________________________________________________
+         |                              |                           |
+         |                              | • We see Pert 2           |
+         |  Same logic as bottom right  |   at training but         |
+  Cell A |  Quadrant                    |   never on cell A         |
+         |                              | • We never see Pert 2     |
+         |                              |   at training             |
+         |                              |                           |
+         |______________________________|___________________________|
+         |                              |                           |
+         | • We see unperturbed         | • We never see the        |
+         |   Cell B at training         |   combination Cell B +    |
+         | • We never see Cell B        |   Gene 2 at training but  |
+  Cell B |   at training                |   we see them separately  |
+         |                              | • We see Unperturbed      |
+         |                              |   Cell B but never see    |
+         |                              |   Gene 2 (and reverse)    |
+         |                              | • We never see Pert 1     |
+         |                              |   or Cell B               |
+         |                              |                           |
+         |______________________________|___________________________|
+
+Bullet points are sorted by increasing difficulty
+
+
+"""
+
 @dataclass
 class DatasetDetails:
     name: str
@@ -29,8 +69,8 @@ class DatasetDetails:
 class DataLoader:
     def __init__(self, config: Config, catalogue):
         self.config = config
-        self.dataset_details = self._get_dataset_details(config.get_dataset_name(), catalogue)
-        self.raw_adata: Optional[sc.AnnData] = None
+        self.dataset_details: DatasetDetails = self._get_dataset_details(config.get_dataset_name(), catalogue)
+        self.adata: Optional[sc.AnnData] = None
         self.preprocessed: bool = False
 
     @staticmethod
@@ -64,7 +104,9 @@ class DataLoader:
                 if self.config.get_cell_embedding_name() not in self.dataset_details.cell_embeddings:
                     raise ValueError(f"Cell embedding {self.config.get_cell_embedding_name()} not found in embeddings available for dataset {self.dataset_details.name}")
                 
-                adata.X = adata.uns[self.config.get_cell_embedding_name()]
+                
+                #We replace the data matrix with the cell embeddings
+                adata.X = adata.obsm[self.config.get_cell_embedding_name()]
 
             else:
 
@@ -90,6 +132,9 @@ class DataLoader:
         return self.adata
 
     def get_training_data(self) -> sc.AnnData:
+        """
+        Returns the training data according to the config.
+        """
 
         adata = self.preprocess_data()
 
@@ -108,7 +153,9 @@ class DataLoader:
             logger.info("Doing IID split")
 
 
-            #Holding out cells that have heldout perturbations and cell. A perturbation will be included on the non holdout cell type eg
+            #Holding out only cells that have heldout perturbations AND cell. Thus:
+            # A perturbation will be included on the non holdout cell type eg
+            #Control of heldout cell type will be included
             holdout_mask = (adata.obs[CELL_KEY].isin(self.config.get_heldout_cells())) & (adata.obs[PERT_KEY].isin(self.config.get_heldout_perts()))
             train_mask = ~holdout_mask
 
