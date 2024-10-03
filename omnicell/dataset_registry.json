@@ -18,6 +18,24 @@
 
     },
     {
+        "name": "kang",
+        "path": "Some Absolute path on OM",
+        "meta_data_path": "Some absolute path to metadata, will contains genes of the dataset, perts, cell types, etc.",
+        "condition_key": "condition",
+        "cell_key": "cell_type",
+        "control_pert": "pert",
+        "perturbation_key": "perturbation",
+        "var_names_key": "genes",
+        "HVG": true,
+        "log1p_transformed": true,
+        "count_normalized": true,
+        "description": "Some description of the dataset", 
+        "pert_embeddings": ["VAE", "Smile"], 
+        "cell_embeddings": ["scGPT", "etc."]
+
+
+    },
+    {
         "name": "Dataset_name",
         "path": "Some Absolute path on OM",
         "description": "Some description of the dataset"
