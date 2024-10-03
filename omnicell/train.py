@@ -195,10 +195,11 @@ def main(*args):
             logger.info("scVIDR model selected")
             model = ScVIDRPredictor(config_model, input_dim, device, pert_ids)
 
-        elif model_name == 'test':
+        elif "test" in model_name:
             from omnicell.models.dummy_predictor.predictor import TestPredictor
             logger.info("Test model selected")
-            model = TestPredictor(adata)
+            adata_cheat = loader.get_complete_training_dataset()
+            model = TestPredictor(adata_cheat)
             
 
 
@@ -218,7 +219,7 @@ def main(*args):
 
 
 
-    #If it is None we are just running a training job
+    #It is not none --> We are going to evaluate
     if args.eval_config is not None:
         logger.info("Running evaluation")
 
@@ -234,12 +235,12 @@ def main(*args):
             yaml.dump(config.to_dict(), f, indent=2, default_flow_style=True)
 
 
-        for cell_id, pert_id, ctrl_data, gt_data in loader.get_eval_data():
+        for cell_id, pert_id, ctrl_data, gt_data, pert_embedding in loader.get_eval_data():
 
             logger.debug(f"Making predictions for {cell_id} and {pert_id}")
 
 
-            preds = model.make_predict(ctrl_data, pert_id, cell_id)
+            preds = model.make_predict(ctrl_data, pert_embedding, pert_id, cell_id)
 
             preds = to_coo(preds)
             control  = to_coo(ctrl_data.X)
