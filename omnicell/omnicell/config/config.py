@@ -98,6 +98,9 @@ class Config:
         return self.task_config['data']['control']
     
 
+    def get_cell_embedding_name(self)-> str:
+        pass
+
     def get_var_names_key(self)-> str:
         return self.task_config['data'].get('var_names_key', None)
 
@@ -111,7 +114,7 @@ class Config:
         config.task_config['datasplit']['evals']['evaluation_targets'] = eval_targets
         return config
 
-    def get_eval_targets(self)-> 'Config':
+    def get_eval_targets(self)-> List[Tuple[str, str]]:
         """Returns a list of [Cell, Pert] tuples that are used for evaluation"""
         return self.task_config['datasplit']['evals']['evaluation_targets']
     
@@ -142,7 +145,7 @@ class Config:
         return self.task_config['datasplit']['training'].get('holdout_perts', [])
     
 
-    def get_apply_normalization(self):
+    def get_apply_normalization(self) -> bool:
         return self.task_config['data']['apply_norm']
     
     def get_apply_log1p(self):
@@ -162,12 +165,6 @@ class Config:
         config = self.copy()
         config.timestamp = timestamp
         return config
-
-    def get_test_size(self):
-        return self.task_config['datasplit']['test_size']
-    
-    def get_control_size(self):
-        return self.task_config['datasplit']['control_size']
 
     def get_data_path(self):
         if self.task_config is None:
