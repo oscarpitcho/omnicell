@@ -2,7 +2,7 @@
     {
         "name": "satija_IFNB_normalized",
         "path": "Some Absolute path on OM",
-        "meta_data_path": "Some absolute path to metadata, will contains genes of the dataset, perts, cell types, etc.",
+        "meta_data_path": "Do we actually need that?",
         "condition_key": "condition",
         "cell_key": "cell_type",
         "control_pert": "pert",
@@ -13,26 +13,25 @@
         "count_normalized": true,
         "description": "Some description of the dataset", 
         "pert_embeddings": ["VAE", "Smile"], 
-        "cell_embeddings": ["scGPT", "etc."]
+        "cell_embeddings": ["scGPT", "vae_blah_blah_custom"]
 
 
     },
     {
         "name": "kang",
-        "path": "Some Absolute path on OM",
+        "path": "/orcd/archive/abugoot/001/Projects/dlesman/datasets/kang/kang.h5ad",
         "meta_data_path": "Some absolute path to metadata, will contains genes of the dataset, perts, cell types, etc.",
-        "condition_key": "condition",
+        "condition_key": "condition_key",
         "cell_key": "cell_type",
-        "control_pert": "pert",
+        "control_pert": "control",
         "perturbation_key": "perturbation",
-        "var_names_key": "genes",
-        "HVG": true,
-        "log1p_transformed": true,
-        "count_normalized": true,
+        "var_names_key": null,
+        "HVG": false,
+        "log1p_transformed": false,
+        "count_normalized": false,
         "description": "Some description of the dataset", 
-        "pert_embeddings": ["VAE", "Smile"], 
-        "cell_embeddings": ["scGPT", "etc."]
-
+        "pert_embeddings": [], 
+        "cell_embeddings": []
 
     },
     {
