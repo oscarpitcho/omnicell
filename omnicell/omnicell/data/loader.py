@@ -71,7 +71,7 @@ class DatasetDetails:
 
 
 
-#TODO
+#TODO: Want to include generic dataset caching, we might starting having many datasets involved in training, not just one
 
 class DataLoader:
     def __init__(self, config: Config, catalogue):
@@ -182,6 +182,19 @@ class DataLoader:
         else:
             return self.training_adata, self.perturbation_embeddings
 
+
+    def get_complete_training_dataset(self) -> sc.AnnData:
+        """
+        Returns the entire dataset for training, including the heldout cells and perturbations.
+        Data is preprocessed according to config
+        """
+
+        adata = sc.read(self.training_dataset_details.path)
+
+        logger.info(f"Preprocessing training data")
+        adata = self.preprocess_data(adata, training=True)
+
+        return adata
 
     def get_eval_data(self):
 
