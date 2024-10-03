@@ -114,6 +114,8 @@ def main(*args):
         yaml.dump(config.to_dict(), f, indent=2, default_flow_style=False)
 
 
+    loader = Loader(config, data_catalogue)
+
     input_dim = adata.shape[1]
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     pert_ids = adata.obs[PERT_KEY].unique()
@@ -163,18 +165,11 @@ def main(*args):
 
     #Every fold corresponds to a training
     #We need to split the data according to the task config
-    loader = Loader(config, data_catalogue)
 
-    train_
-    adata_train, adata_eval, ho_perts, ho_cells, eval_targets = splitter.split(adata)
 
-        
 
-    #TODO: When generating a random fold we should save the config of the fold
-    #Overwrite the config with the fold details so that we can reproduce the fold easily
-    #What will happen when we have a pretrained model? All this logic will no longer be adequate
-
-        
+    #This can be adata | torch.DataLoader --> Model should check appropriate type    
+    train_data = loader.get_training_data()    
 
     if not os.path.exists(save_path):
         os.makedirs(save_path)
@@ -182,20 +177,12 @@ def main(*args):
 
     #TODO: We need to save the model, and the config with it.
     #We should save the configs with it but only the ones that are relevant for the model, i.e. training and model config
-    model.train(adata_train)
+    model.train(train_data)
 
     logger.info(f"Training completed")
 
     with open(save_path / f"config.yaml", 'w+') as f:
         yaml.dump(config.to_dict(), f, indent=2)
-
-
-    #If we have random splitting we need to save the holdout perts and cells as these will not be the same for each fold
-    with open(save_path / f"holdout_perts.json", 'w+') as f:
-        json.dump(ho_perts, f)
-
-    with open(save_path / f"holdout_cells.json", 'w+') as f:
-        json.dump(ho_cells, f)
 
 
     #If it is None we are just running a training job
