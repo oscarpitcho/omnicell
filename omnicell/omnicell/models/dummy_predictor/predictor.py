@@ -10,8 +10,12 @@ Predictor to test the rest of the pipeline.
 
 It takes the entire dataset at construction and then uses the ground truth to make predictions. Thus it is a perfect predictor.
 
+
+
 """
 class TestPredictor():
+
+    SAVE_ALLOWED = False
 
 
     def __init__(self, adata: sc.AnnData):
@@ -36,3 +40,11 @@ class TestPredictor():
 
 
         return ground_truth.X
+    
+
+    def save(self, path: str):
+        pass
+
+    def load(self, path: str):
+        pass
+

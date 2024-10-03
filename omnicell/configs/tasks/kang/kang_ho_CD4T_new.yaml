@@ -21,14 +21,4 @@ datasplit:
   holdout_perts: []
 
 
-  evals:
-
-    data: kang
-
-
-    #What if there was a random fold before
-
-    #Targets on which we evaluate when we do the holdout, can be ALL
-    #If these are also heldout then we are evaluating on unseen cell + unseen pert
-    #Set the combinations to evaluate on, we can implement more complex commands later on
-    evaluation_targets: [[CD4T, perturbed]]
+  
