@@ -82,8 +82,11 @@ class Config:
         config.train_args = train_args_dict
         return config
     
-    def get_dataset_name(self)-> str:
-        return self.data_config['name']
+    def get_training_dataset_name(self)-> str:
+        pass
+    
+    def get_eval_config_name(self)-> str:
+        pass
     
     def get_data_loader_config(self)-> str:
         return self.data_config['loader']
