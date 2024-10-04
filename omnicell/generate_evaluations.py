@@ -40,12 +40,10 @@ def generate_evaluation(dir, args):
     config = Config(config)
 
 
-    config = config.add_metrics_config(args.__dict__)
 
     #TODO: Do we want to restructure the code to make this config handling centralized? --> Yes probably because this will get very brittle very quickly
     #TODO: Core issue --> The code is dependent on the underlying config structure, which is not good.
     eval_targets = config.get_eval_targets()
-    raw_data = sc.read_h5ad(config.get_data_path(), backed='r')
     
     for (cell, pert) in eval_targets:
         
@@ -90,13 +88,13 @@ def generate_evaluation(dir, args):
 
             if args.round:
                 pred_pert.X[pred_pert.X <= 0.5] = 0
-            pred_pert.var_names = raw_data.var_names
+            #pred_pert.var_names = raw_data.var_names
             
             true_pert = sc.AnnData(X=true_pert)
-            true_pert.var_names = raw_data.var_names
+            #true_pert.var_names = raw_data.var_names
         
             control = sc.AnnData(X=control)
-            control.var_names = raw_data.var_names
+            #control.var_names = raw_data.var_names"""
 
 
             logger.debug(f"Getting ground Truth DEGs for {pert} and {cell}")
@@ -207,6 +205,26 @@ def average_fold(fold_dir, min_occurences):
         pickle.dump(avg_c_r, f)"""
 
 
+def is_leaf_dir(path):
+    """Check if the given path is a leaf directory."""
+    return path.is_dir() and not any(p.is_dir() for p in path.iterdir())
+
+def process_directory(dir_path, args, depth, max_depth):
+    """Process a single directory, either by generating evaluations or recursing further."""
+    if is_leaf_dir(dir_path):
+        try:
+            logger.info(f"Processing leaf directory: {dir_path}")
+            generate_evaluation(dir_path, args)
+            average_fold(dir_path, args.min_occurence)
+        except Exception as e:
+            logger.error(f"Error processing directory {dir_path}: {e}")
+
+    elif depth >= max_depth:
+        logger.info(f"Reached maximum depth of {max_depth} at {dir_path}")
+    else:
+        for subdir in dir_path.iterdir():
+            if subdir.is_dir():
+                process_directory(subdir, args, depth + 1, max_depth)
 
 
 def main(*args):
@@ -216,8 +234,7 @@ def main(*args):
 
     parser = argparse.ArgumentParser(description='Analysis settings.')
 
-    parser.add_argument('--model_name', type=str, default='', help='Path to yaml config file of the model.')
-    parser.add_argument('--task_name', type=str, default='', help='Path to yaml config file of the task.')
+    parser.add_argument('--root_dir', type=str, default='', help='Top dir where to start comuting evaluations')
     parser.add_argument('--min_occurence', type=int, default=2, help='Minimum number of occurences of a key to be included in the average')
     parser.add_argument('-r', '--round', action='store_true', help='Rounds values <=0.5 to 0 in addition to the clip')
     parser.add_argument('-o', '--overwrite', action='store_true', help='Overwrite pre-existing result files')
@@ -229,35 +246,17 @@ def main(*args):
 
     parser.add_argument('--max_p_val', type=float, default=0.05, help='Maximum p value to use for p value calculation')
 
-
+    MAX_DEPTH = 4
     args = parser.parse_args()
 
-    root_dir = Path(f"./results/{args.model_name}/{args.task_name}").resolve()
+    root_dir = Path(args.root_dir).resolve()
 
-    logging.basicConfig(filename= f'output_evals_{args.model_name}_{args.task_name}.log', filemode= 'w', level=args.loglevel, format='%(asctime)s - %(levelname)s - %(message)s')
-    logger.info(f"Generating evaluations for model {args.model_name} and task {args.task_name}")
+    logging.basicConfig(filename=f'output_evals_recursive_{root_dir.name}.log', filemode='w', level=args.loglevel, format='%(asctime)s - %(levelname)s - %(message)s')
+    logger.info(f"Starting recursive evaluation from root directory: {root_dir}")
 
+    process_directory(root_dir, args, 0, MAX_DEPTH)
 
-    #Get all subdirectories of the model and task, each dir is a run and each run might have several folds
-
-    run_dirs = [x for x in root_dir.iterdir() if x.is_dir()]
-
-
-    for rd in run_dirs:
-        logger.info(f"Starting evaluation for {rd}")
-
-        try:
-            logger.info(f"Starting evaluation for {rd}")
-            generate_evaluation(rd, args)
-
-            logger.info(f"Finished evaluation for {rd}, generating averages")
-            average_fold(rd, args.min_occurence)
-        
-        except Exception as e:
-            logger.error(f"Error during evaluation of {rd}, moving to next directoy")
-            logger.error(e)
-        
-        
+    logger.info("Recursive evaluation completed.")
     
 
 if __name__ == '__main__':

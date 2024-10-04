@@ -1,11 +1,16 @@
 
 from typing import List, Tuple, Optional
+import logging
 
 #TODO: - Configs just for trainings, configs for evaluations, 
 
 #TODO: Introduce config validation
+
+logger = logging.getLogger(__name__)
 class Config:
     """Immutable class representing a config file for a model or task"""
+
+    VALID_KEYS = ['model_config', 'eval_config', 'data_config']
 
     #So what is the config object, what does it do? - Some top level dictionary that contains all subjacent configs
     def __init__(self, config):
@@ -13,6 +18,13 @@ class Config:
         self.model_config = config['model_config'].copy() if 'model_config' in config else None
         self.eval_config = config['eval_config'].copy() if 'eval_config' in config else None
         self.data_config = config['data_config'].copy() if 'data_config' in config else None
+
+        #Log if any non valid keys
+        for key in config.keys():
+            if key not in self.VALID_KEYS:
+                logger.warning(f"Key {key} is not a valid key in the config file, will be discarded")
+
+
 
 
     @classmethod
@@ -63,7 +75,7 @@ class Config:
     def get_training_config(self) -> 'Config':
         data_config = self.data_config.copy()
         model_config = self.model_config.copy()
-        return Config({'data_config': data_config, 'model': model_config})
+        return Config({'data_config': data_config, 'model_config': model_config})
     
     
     #GETTERS FOR MODEL

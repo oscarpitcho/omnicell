@@ -3,6 +3,7 @@ import numpy as np
 import scanpy as sc
 import torch
 import logging
+from typing import Optional
 from omnicell.constants import CELL_KEY, CONTROL_PERT, PERT_KEY
 from omnicell.models.VAE.vae import Net
 from omnicell.models.early_stopping import EarlyStopper
@@ -216,7 +217,7 @@ class VAEPredictor():
 
     #Predicting perturbations --> How do we compute the means? 
     #--> We need a delta for each perturbation
-    def make_predict(self, adata: sc.AnnData, pert_id: str, cell_type: str) -> np.ndarray:
+    def make_predict(self, adata: sc.AnnData, pert_embedding: Optional[dict], pert_id: str, cell_type: str) -> np.ndarray:
 
         assert len(adata.obs[CELL_KEY].unique()) == 1, 'Input data contains multiple cell types'
         assert len(adata.obs[PERT_KEY].unique()) == 1, 'Input data contains multiple perturbations'
