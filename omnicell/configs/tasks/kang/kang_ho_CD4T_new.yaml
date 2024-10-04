@@ -11,8 +11,6 @@ datasplit:
   #Random folds need to be implemented
   #TODO: More complex splits
 
-    
-  pairing: XX
   mode: iid
 
 
