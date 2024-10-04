@@ -32,9 +32,9 @@ def main(*args):
     print("Running main")
     parser = argparse.ArgumentParser(description='Analysis settings.')
 
-    parser.add_argument('--data_config', type=str, default=None, help='Path to yaml config file of the task.')
+    parser.add_argument('--data_config', type=str, default=None, help='Path to yaml config of the datasplit.')
     parser.add_argument('--model_config', type=str, default=None, help='Path to yaml config file of the model.')
-    parser.add_argument('--eval_config', type=str, default=None, help='Path to yaml config file of the evaluation, if none provided the model will only be trained.')
+    parser.add_argument('--eval_config', type=str, default=None, help='Path to yaml config file of the evaluations, if none provided the model will only be trained.')
     parser.add_argument('--test_mode', action='store_true', default=False, help='Run in test mode, datasetsize will be capped at 10000')
     parser.add_argument('--slurm_id', type=int, default=1, help='Slurm id for the job, useful for arrays')
     parser.add_argument('-l', '--log', dest='loglevel', choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'], help="Set the logging level (default: %(default)s)", default='INFO')
@@ -46,7 +46,9 @@ def main(*args):
     now = now.strftime("%Y-%m-%d_%H:%M:%S")
 
 
-    data_catalogue = json.load(open('data_catalogue.json'))
+    data_catalogue = json.load(open('dataset_catalogue.json'))
+    pert_catalogue = json.load(open('pert_embedding_catalogue.json'))
+
 
  
 
@@ -66,10 +68,12 @@ def main(*args):
     config = config.add_data_config(config_data) #There will always be a training config
     config = config.add_eval_config(config_evals) if not config_evals == None else config #There might not be an eval config
 
+
+    print(config.to_dict())
     
 
 
-    logging.basicConfig(filename= f'output_{args.slurm_id}_{config.get_model_name()}_{config.get_task_name()}.log', filemode= 'w', level=args.loglevel, format='%(asctime)s - %(levelname)s - %(message)s')
+    logging.basicConfig(filename= f'output_{args.slurm_id}_{config.get_model_name()}_{config.get_data_config_name()}.log', filemode= 'w', level=args.loglevel, format='%(asctime)s - %(levelname)s - %(message)s')
     
     
     logger.info("Application started")
@@ -106,7 +110,7 @@ def main(*args):
         yaml.dump(config.get_training_config(), f, indent=2, default_flow_style=False)
 
 
-    loader = DataLoader(config, data_catalogue)
+    loader = DataLoader(config, data_catalogue, pert_catalogue)
 
     #Trained Model exists
     if os.path.exists(f"{model_save_path}/trained_model.pkl"):
@@ -154,9 +158,9 @@ def main(*args):
     #Model must be trained
     else:
 
-        adata = loader.get_training_data()   
+        adata, pert_embedding = loader.get_training_data()   
 
-        #TODO: We don't want to load the training data if we are using a pretrained model
+      
         input_dim = adata.shape[1]
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         pert_ids = adata.obs[PERT_KEY].unique()

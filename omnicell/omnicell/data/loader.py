@@ -1,5 +1,5 @@
 import scanpy as sc
-from typing import Optional, List
+from typing import Optional, List, Tuple
 from dataclasses import dataclass, field
 from omnicell.config.config import Config
 from omnicell.constants import PERT_KEY, CELL_KEY, CONTROL_PERT
@@ -74,11 +74,13 @@ class DatasetDetails:
 #TODO: Want to include generic dataset caching, we might starting having many datasets involved in training, not just one
 
 class DataLoader:
-    def __init__(self, config: Config, catalogue):
+    def __init__(self, config: Config, data_catalogue: List[dict], pert_catalogue: List[dict]):
         self.config = config
-        self.training_dataset_details: DatasetDetails = self._get_dataset_details(config.get_training_dataset_name(), catalogue)
+        self.training_dataset_details: DatasetDetails = self._get_dataset_details(config.get_training_dataset_name(), data_catalogue)
+        
+        #TODO: Handle
+        self.pert_embedding_details: Optional[dict] = None
 
-        #TODO: What if no eval dataset is specified?
         self.eval_dataset_details: DatasetDetails = None
 
         #We only store the data once it has been preprocessed
@@ -144,9 +146,11 @@ class DataLoader:
 
         return adata
 
-    def get_training_data(self) -> sc.AnnData:
+    def get_training_data(self) -> Tuple[sc.AnnData, Optional[dict]]:
         """
         Returns the training data according to the config.
+        If an pert embedding is specified then it is also returned
+        How do we handl
         """
 
         #Checking if we have already a cached version of the training data
@@ -179,8 +183,8 @@ class DataLoader:
 
             adata_train = adata[train_mask]
             self.training_adata = adata_train        
-        else:
-            return self.training_adata, self.perturbation_embeddings
+    
+        return self.training_adata, None
 
 
     def get_complete_training_dataset(self) -> sc.AnnData:
@@ -210,7 +214,8 @@ class DataLoader:
             gt_data = adata[(adata.obs[PERT_KEY] == pert_id) & (adata.obs[CELL_KEY] == cell_id)]
             ctrl_data = adata[(adata.obs[CELL_KEY] == cell_id) & (adata.obs[PERT_KEY] == CONTROL_PERT)]
             
-            yield cell_id, pert_id, ctrl_data, gt_data, pert_embeddings
+            #TODO: yield cell_id, pert_id, ctrl_data, gt_data, pert_embedding 
+            yield cell_id, pert_id, ctrl_data, gt_data, None
 
 
 

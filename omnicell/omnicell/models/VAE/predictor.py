@@ -250,3 +250,11 @@ class VAEPredictor():
 
         return self.model.decode(z).cpu().detach().numpy()
 
+
+
+
+    def save(self, path):
+        pass
+
+    def load(self, path) -> 'VAEPredictor':
+        pass
