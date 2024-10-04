@@ -74,8 +74,10 @@ class DatasetDetails:
 #TODO: Want to include generic dataset caching, we might starting having many datasets involved in training, not just one
 
 class DataLoader:
-    def __init__(self, config: Config, data_catalogue: List[dict], pert_catalogue: List[dict]):
+    def __init__(self, config: Config, data_catalogue: List[dict], pert_emb_catalogue: List[dict]):
         self.config = config
+        self.data_catalogue = data_catalogue
+        self.pert_emb_catalogue = pert_emb_catalogue
         self.training_dataset_details: DatasetDetails = self._get_dataset_details(config.get_training_dataset_name(), data_catalogue)
         
         #TODO: Handle
@@ -202,7 +204,7 @@ class DataLoader:
 
     def get_eval_data(self):
 
-        self.eval_dataset_details = self._get_dataset_details(self.config.get_eval_dataset_name())
+        self.eval_dataset_details = self._get_dataset_details(self.config.get_eval_dataset_name(), self.data_catalogue)
 
         logger.info(f"Loading evaluation data at path: {self.eval_dataset_details.path}")
         adata = sc.read(self.eval_dataset_details.path)

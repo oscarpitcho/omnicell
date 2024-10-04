@@ -68,8 +68,6 @@ def main(*args):
     config = config.add_data_config(config_data) #There will always be a training config
     config = config.add_eval_config(config_evals) if not config_evals == None else config #There might not be an eval config
 
-
-    print(config.to_dict())
     
 
 
@@ -84,37 +82,39 @@ def main(*args):
     dataconfig_name = config.get_data_config_name()
     
 
+    print(f"Training config {config.get_training_config().to_dict()}")
+
             
     #TODO: Check if model has been trained before and load it if it is the case, careful with timestamp causing failed equalities.
 
     #Hash dir to avoid conflicts when training the same model on same data but with different configs
-    hash_dir = hashlib.sha256(json.dumps(config.to_dict()).encode()).hexdigest()
+    hash_dir = hashlib.sha256(json.dumps(config.get_training_config().to_dict()).encode()).hexdigest()
     hash_dir = hash_dir[:8]
     
-    model_save_path = Path(f"./results/{model_name}/{dataconfig_name}/{hash_dir}").resolve()
+    model_savepath = Path(f"./models/{model_name}/{dataconfig_name}/{hash_dir}").resolve()
 
-    logger.info(f"Saving to model to {model_save_path}")
+    logger.info(f"Saving to model to {model_savepath}")
 
 
 
     #Saving run config
-    if not os.path.exists(model_save_path):
-        os.makedirs(model_save_path)
+    if not os.path.exists(model_savepath):
+        os.makedirs(model_savepath)
 
 
 
     #We only save the training config (Split + Model)
 
-    logger.info(f"Saving Training config to {model_save_path}")
-    with open(f"{model_save_path}/config.yaml", 'w+') as f:
-        yaml.dump(config.get_training_config(), f, indent=2, default_flow_style=False)
+    logger.info(f"Saving Training config to {model_savepath}")
+    with open(f"{model_savepath}/config.yaml", 'w+') as f:
+        yaml.dump(config.get_training_config().to_dict(), f, indent=2, default_flow_style=False)
 
 
     loader = DataLoader(config, data_catalogue, pert_catalogue)
 
     #Trained Model exists
-    if os.path.exists(f"{model_save_path}/trained_model.pkl"):
-        logger.info(f"Model already trained, loading model")
+    if os.path.exists(f"{model_savepath}/trained_model.pkl"):
+        logger.info(f"Model already trained, loading model from {model_savepath}")
 
 
 
@@ -151,12 +151,13 @@ def main(*args):
 
 
 
-        model = model_class.load(model_save_path)
+        model = model_class.load(model_savepath)
         logger.info(f"Model loaded")
 
 
     #Model must be trained
     else:
+        logger.info(f"Model not trained, training model")
 
         adata, pert_embedding = loader.get_training_data()   
 
@@ -218,8 +219,8 @@ def main(*args):
 
         logger.info(f"Training completed")
 
-        logger.info(f"Saving model to {model_save_path}")
-        model.save(model_save_path)
+        logger.info(f"Saving model to {model_savepath}")
+        model.save(model_savepath)
 
 
 
@@ -236,12 +237,12 @@ def main(*args):
             os.makedirs(results_path)
 
         with open(f"{results_path}/config.yaml", 'w+') as f:
-            yaml.dump(config.to_dict(), f, indent=2, default_flow_style=True)
+            yaml.dump(config.to_dict(), f, indent=2, default_flow_style=False)
 
 
         for cell_id, pert_id, ctrl_data, gt_data, pert_embedding in loader.get_eval_data():
 
-            logger.debug(f"Making predictions for {cell_id} and {pert_id}")
+            logger.debug(f"Making predictions for cell: {cell_id}, pert: {pert_id}")
 
 
             preds = model.make_predict(ctrl_data, pert_embedding, pert_id, cell_id)
