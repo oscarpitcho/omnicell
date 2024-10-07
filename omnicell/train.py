@@ -229,7 +229,7 @@ def main(*args):
         logger.info("Running evaluation")
 
         eval_config_name = config.get_eval_config_name()
-        results_path = Path(f"./results/{model_name}/{dataconfig_name}/{eval_config_name}/{hash_dir}").resolve()
+        results_path = Path(f"./results/{dataconfig_name}/{model_name}/{eval_config_name}/{hash_dir}").resolve()
         logger.info(f"Saving results to {results_path}")
 
         #Saving run config
