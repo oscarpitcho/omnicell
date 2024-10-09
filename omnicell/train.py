@@ -151,7 +151,7 @@ def main(*args):
         model.save(model_savepath)
 
     # if model has encode function then encode the full adata and save in the model dir
-    print(hasattr(model, 'encode'))
+    logger.debug(f"Model has encode {hasattr(model, 'encode')}")
     if hasattr(model, 'encode'):
         logger.info("Encoding full dataset")
         adata = loader.get_complete_training_dataset()
