@@ -44,7 +44,6 @@ class VAEPredictor():
     #The mean operations are computed on the entire dataset.
     def train(self, adata):
 
-
         self.cell_ids = adata.obs[CELL_KEY].unique()
         device = self.device
         epochs = self.epochs
@@ -54,9 +53,6 @@ class VAEPredictor():
 
         #This excludes any cell type that does not have a perturbation
         cell_types_with_pert = adata.obs[adata.obs[PERT_KEY] != CONTROL_PERT][CELL_KEY].unique()
-
-
-
 
         #TODO bad if we start passing batches to the model, it will see only part of the data and the len of the data will be wrong.
         datalen = len(adata)
@@ -187,7 +183,10 @@ class VAEPredictor():
                
             if len(pert_means) == 0:
                 self.invalid_perts.add(self.perts[i])
-                logger.warning(f'Perturbation {self.perts[i]} is not applied to any cell in the training data - Delta will be NaN and trying to transfer this perturbation to unseen cells will cause an undefined state.')
+                logger.warning(
+                    f'Perturbation {self.perts[i]} is not applied to any cell in the training data - Delta will be \
+                        NaN and trying to transfer this perturbation to unseen cells will cause an undefined state.'
+                )
                 
                 nan_delta = torch.full((self.model_config['latent_dim'],), np.nan)
                 self.deltas.append(nan_delta)

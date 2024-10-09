@@ -1,10 +1,18 @@
+
+
+import os
+
+import pickle
+
 import torch
 import torch.nn as nn
+import torch.optim as optim
 import torch.nn.functional as F
-from torch import optim
 from numpy import genfromtxt
 import numpy as np
 import logging
+
+from omnicell.constants import CELL_KEY, CONTROL_PERT, PERT_KEY
 
 logger = logging.getLogger(__name__)
 
@@ -66,4 +74,198 @@ class Net(nn.Module):
             recon_loss = F.mse_loss(recon_x, x.view(-1, self.input_dim), reduction='sum')
             KLD = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
             return recon_loss + self.alpha * KLD
+
+# Train a Variational Autoencoder (VAE) based on a numpy array where rows correspond to samples (cells)
+# and columns to features (genes). This function includes parameter definitions and training logic.
+def Train_VAE(
+    net, train, valid, epochs=300, batsize=32, 
+    latent_dim=100, hidden_dim=800, dropout_rate=0.2, learning_rate=0.001, alpha=0.001
+):
+    # Set device to GPU if available, else use CPU
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    
+    trainlen = train.shape[0]
+    validlen = valid.shape[0]
+    num_genes = train.shape[1]
+
+    net.to(device)  # Model for training
+
+    optimizer = optim.Adam(net.parameters(), lr=learning_rate)
+    running_loss = 0
+
+    train = torch.from_numpy(train.astype(np.float32)).to(device)  # Convert train data to torch tensor and move to device
+    valid = torch.from_numpy(valid.astype(np.float32)).to(device)  # Convert validation data to torch tensor and move to device
+    
+    # Training loop
+    for e in range(epochs):
+        running_loss = 0
+
+        net.train()
+    
+        for lower in range(0, trainlen, batsize):
+            upper = min(lower + batsize, trainlen)
+            lower = min(trainlen - batsize, lower)
+            batch = train[lower:upper, :]
+            optimizer.zero_grad()  
+            out, mu, logvar = net(batch)  # Forward pass
+            loss = net.loss_function(out, batch, mu, logvar) 
+            loss.backward() 
+            running_loss += loss.item()
+            optimizer.step() 
+        print(f'Epoch {e+1}/{epochs}')
+        print(f'Train loss: {running_loss/1000000}')
+    
+        running_loss = 0
+
+        net.eval() 
         
+        # Validation loop
+        with torch.no_grad():
+            for lower in range(0, validlen, batsize):
+                upper = min(lower + batsize, validlen)
+                lower = min(validlen - batsize, lower)
+                batch = valid[lower:upper, :]
+                out, mu, logvar = net(batch)
+                loss = net.loss_function(out, batch, mu, logvar)
+                running_loss += loss.item()
+            print(f'Valid loss: {running_loss/1000000}')
+    
+
+    params = [epochs, batsize, latent_dim, hidden_dim, dropout_rate, learning_rate, alpha, num_genes]
+
+    return net, params
+
+def Encode(net, train_params, inp):
+    # Set device to GPU if available, otherwise use CPU
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+    # Initialize the VAE model, load the pre-trained weights, and set it to evaluation mode
+    net.eval()
+
+    epochs, batsize, latent_dim, hidden_dim, dropout_rate, learning_rate, alpha, num_genes = train_params
+    
+    # Prepare input data
+    inplen = inp.shape[0]
+    inp = torch.from_numpy(inp.astype(np.float32)).to(device)
+    
+    # Output tensors for storing encoded means and log variances
+    out = torch.zeros((inplen, latent_dim), device=device)
+    outvar = torch.zeros((inplen, latent_dim), device=device)
+
+    # Process each batch and store the encoded outputs
+    for lower in range(0, inplen, batsize):
+        upper = min(lower + batsize, inplen)
+        lower = min(inplen - batsize, lower)
+        batch = inp[lower:upper, :]
+        mu, logvar = net.encode(batch)
+        out[lower:upper, :] = mu
+        outvar[lower:upper, :] = logvar
+
+    # Convert outputs back to numpy arrays
+    out = out.cpu().detach().numpy()
+    outvar = outvar.cpu().detach().numpy()
+    
+    return out, outvar
+
+def Decode(net, train_params, inp, inpvar):
+    # Configure the device (GPU or CPU) based on availability
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    
+    epochs, batsize, latent_dim, hidden_dim, dropout_rate, learning_rate, alpha, num_genes = train_params
+
+    # Load the model, set to evaluation mode and load weights
+    net.eval()
+    
+    # Prepare input data and output storage
+    inp = torch.from_numpy(inp.astype(np.float32)).to(device)
+    inpvar = torch.from_numpy(inpvar.astype(np.float32)).to(device)
+    out = torch.zeros((inp.shape[0], num_genes), device=device)
+
+    # Process each batch
+    for lower in range(0, inp.shape[0], batsize):
+        upper = min(lower + batsize, inp.shape[0])
+        lower = min(inp.shape[0] - batsize, lower)
+        batch = inp[lower:upper, :]
+        batchvar = inpvar[lower:upper, :]
+        reparam = net.reparameterize(batch, batchvar)  # Reparameterize to get latent variables
+        decod = net.decode(reparam)  # Decode latent variables to reconstruct data
+        out[lower:upper, :] = decod  # Store reconstructed data
+
+    # Convert tensor back to numpy array and return
+    out = out.cpu().detach().numpy()
+    return out
+
+
+def VAE():
+    def __init__(self, config, input_dim, device, pert_ids):
+        self.training_config = config['training']
+        self.model_config = config['model']
+        self.input_dim = input_dim
+        self.device = device
+        self.model = Net(input_dim, self.model_config['hidden_dim'],
+                         self.model_config['latent_dim'], 
+                         self.training_config['alpha'],
+                         self.training_config['dropout_rate'])
+        
+        self.epochs = self.training_config['epochs']
+        self.batsize = self.training_config['batsize']
+        self.model.to(device)
+
+        #Stores the latent space shift associated which each perturbation
+        self.perts = pert_ids
+        self.deltas =  None
+        self.perts_to_idx = {pert: idx for idx, pert in enumerate(pert_ids)}
+
+        logger.debug(f"VAE predictor initialized, perturbations: {self.perts}, perts to idx: {self.perts_to_idx}")
+        self.cell_ids = None
+        self.invalid_perts = set()
+
+        self.train_params = None
+     
+    def train(self, adata):
+        self.cell_ids = adata.obs[CELL_KEY].unique()
+        device = self.device
+        epochs = self.epochs
+        batsize = self.batsize
+
+        #This excludes any cell type that does not have a perturbation
+        cell_types_with_pert = adata.obs[adata.obs[PERT_KEY] != CONTROL_PERT][CELL_KEY].unique()
+
+        #TODO bad if we start passing batches to the model, it will see only part of the data and the len of the data will be wrong.
+        datalen = len(adata)
+        indices = np.random.permutation(datalen)
+
+        train = adata[indices[:np.int32(datalen*0.9)]]  # 90% training data
+        valid = adata[indices[np.int32(datalen*0.9):]]    
+
+        self.model, self.train_params = Train_VAE(
+            self.model, train, valid, epochs=epochs, batsize=batsize, 
+            latent_dim=self.model_config['latent_dim'], hidden_dim=self.model_config['hidden_dim'], 
+            dropout_rate=self.training_config['dropout_rate'], learning_rate=self.training_config['learning_rate'], 
+            alpha=self.training_config['alpha']
+        )
+
+    def save(self, savepath):
+        if self.train_params is None:
+            raise ValueError("Model has not been trained yet")
+        torch.save(self.model.state_dict(), f'{savepath}/trained_model')
+        with open(f'{savepath}/train_params.pkl', 'wb') as fp:
+            pickle.dump(self.train_params, fp)
+
+    def load(self, savepath):
+        with open(f'{savepath}/train_params.pkl', 'rb') as fp:
+            self.train_params = pickle.load(fp)
+        self.model.load_state_dict(torch.load(f'{savepath}/trained_model'))
+        self.model.to(self.device)
+
+    def encode(self, adata):
+        if self.train_params is None:
+            raise ValueError("Model has not been trained yet")
+        return Encode(self.model, self.train_params, adata.X)
+    
+    def decode(self, latent):
+        inp, inpvar = latent
+        if self.train_params is None:
+            raise ValueError("Model has not been trained yet")
+        return Decode(self.model, self.train_params, inp, inpvar)
+

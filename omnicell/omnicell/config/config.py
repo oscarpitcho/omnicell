@@ -9,10 +9,9 @@ import logging
 logger = logging.getLogger(__name__)
 class Config:
     """Immutable class representing a config file for a model or task"""
-
     VALID_KEYS = ['model_config', 'eval_config', 'data_config']
 
-    #So what is the config object, what does it do? - Some top level dictionary that contains all subjacent configs
+    # So what is the config object, what does it do? - Some top level dictionary that contains all subjacent configs
     def __init__(self, config):
         #self.task_config = config['task'].copy() if 'task' in config else None
         self.model_config = config['model_config'].copy() if 'model_config' in config else None
@@ -24,24 +23,18 @@ class Config:
             if key not in self.VALID_KEYS:
                 logger.warning(f"Key {key} is not a valid key in the config file, will be discarded")
 
-
-
-
     @classmethod
     def empty(cls):
         return Config({})
     
-
     def copy(self):
         config = {}
         config = self.to_dict()
         return Config(config)
-    
 
     def __eq__(self, other):
         return self.to_dict() == other.to_dict()
     
-
     #We completely control the serialization of the config object in this class 
     def to_dict(self):
         config = {}
@@ -77,8 +70,7 @@ class Config:
         model_config = self.model_config.copy()
         return Config({'data_config': data_config, 'model_config': model_config})
     
-    
-    #GETTERS FOR MODEL
+    # GETTERS FOR MODEL
     def get_model_name(self)-> str:
         return self.model_config['name']
     
@@ -86,7 +78,7 @@ class Config:
         return self.model_config.copy()
 
 
-    #GETTERS FOR TRAINING
+    # GETTERS FOR TRAINING
     def get_training_dataset_name(self)-> str:
         return self.data_config['data']['dataset']
     
@@ -97,7 +89,6 @@ class Config:
     def get_mode(self):
         return self.data_config['datasplit']['mode']
     
-
     def get_heldout_cells(self):
         """Returns the heldout cells for the training data, returns an empty list if no cells are held out"""
         return self.data_config['datasplit'].get('holdout_cells', [])
@@ -106,7 +97,6 @@ class Config:
         """Returns the heldout perturbations for the training data, returns an empty list if no perturbations are held out"""
         return self.data_config['datasplit'].get('holdout_perts', [])
     
-
     def get_apply_normalization(self) -> bool:
         return self.data_config['data']['count_norm']
     
@@ -120,12 +110,7 @@ class Config:
     def get_pert_embedding_name(self) -> Optional[str]:
         return self.data_config['data'].get('pert_embedding', None) 
     
-
-
-
-
-
-    #GETTERS FOR EVAL
+    # GETTERS FOR EVAL
     def get_eval_config_name(self)-> str:
         return self.eval_config['name']
     
