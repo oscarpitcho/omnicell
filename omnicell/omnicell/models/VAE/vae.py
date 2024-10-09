@@ -12,6 +12,7 @@ from numpy import genfromtxt
 import numpy as np
 import logging
 
+from omnicell.processing.utils import to_dense
 from omnicell.constants import CELL_KEY, CONTROL_PERT, PERT_KEY
 
 logger = logging.getLogger(__name__)
@@ -236,7 +237,10 @@ class VAE():
         indices = np.random.permutation(datalen)
 
         train = adata[indices[:np.int32(datalen*0.9)]]  # 90% training data
-        valid = adata[indices[np.int32(datalen*0.9):]]    
+        valid = adata[indices[np.int32(datalen*0.9):]]   
+
+        train = to_dense(train.X)
+        valid = to_dense(valid.X)
 
         self.model, self.train_params = Train_VAE(
             self.model, train, valid, epochs=epochs, batsize=batsize, 
