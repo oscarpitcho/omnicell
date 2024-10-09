@@ -262,10 +262,11 @@ class VAE():
         self.model.load_state_dict(torch.load(f'{savepath}/trained_model'))
         self.model.to(self.device)
 
-    def encode(self, adata):
+    def encode(self, adata): 
+        X = to_dense(adata.X)
         if self.train_params is None:
             raise ValueError("Model has not been trained yet")
-        return Encode(self.model, self.train_params, adata.X)
+        return Encode(self.model, self.train_params, X)
     
     def decode(self, latent):
         inp, inpvar = latent
