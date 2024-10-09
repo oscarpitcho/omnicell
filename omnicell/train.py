@@ -46,7 +46,6 @@ def get_model(model_name, config_model, loader):
         logger.info("Transformer model selected")
         model = LLMPredictor(config_model, input_dim, device, pert_ids)
         
-
     elif 'vae' in model_name:
         from omnicell.models.VAE.vae import VAE
         logger.info("VAE model selected")
@@ -152,6 +151,9 @@ def main(*args):
 
     # if model has encode function then encode the full adata and save in the model dir
     logger.debug(f"Model has encode {hasattr(model, 'encode')}")
+    logger.debug(f"Model methods {dir(model)}")
+    logger.debug(f"Model encode {model.encode}")
+
     if hasattr(model, 'encode'):
         logger.info("Encoding full dataset")
         adata = loader.get_complete_training_dataset()
