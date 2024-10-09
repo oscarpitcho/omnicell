@@ -196,7 +196,7 @@ def Decode(net, train_params, inp, inpvar):
     return out
 
 
-def VAE():
+class VAE():
     def __init__(self, config, input_dim, device, pert_ids):
         self.training_config = config['training']
         self.model_config = config['model']
