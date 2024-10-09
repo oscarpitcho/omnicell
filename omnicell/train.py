@@ -137,7 +137,7 @@ def main(*args):
     #Trained Model exists
     if os.path.exists(f"{model_savepath}/trained_model"):
         logger.info(f"Model already trained, loading model from {model_savepath}")
-        model = model.load(model_savepath)
+        model.load(model_savepath)
         logger.info("Model loaded")
     #Model must be trained
     else:
@@ -150,10 +150,6 @@ def main(*args):
         model.save(model_savepath)
 
     # if model has encode function then encode the full adata and save in the model dir
-    logger.debug(f"Model has encode {hasattr(model, 'encode')}")
-    logger.debug(f"Model methods {dir(model)}")
-    logger.debug(f"Model encode {model.encode}")
-
     if hasattr(model, 'encode'):
         logger.info("Encoding full dataset")
         adata = loader.get_complete_training_dataset()
