@@ -26,9 +26,49 @@ logger = logging.getLogger(__name__)
 
 random.seed(42)
 
+def get_model(model_name, config_model, loader):
+    adata, pert_embedding = loader.get_training_data()   
+
+    input_dim = adata.shape[1]
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    pert_ids = adata.obs[PERT_KEY].unique()
+
+    logger.info(f"Data loaded, # of cells: {adata.shape[0]}, # of features: {input_dim} # of perts: {len(pert_ids)}")
+    logger.info(f"Running experiment on {device}")
+
+    if 'nearest-neighbor' in model_name:
+        from omnicell.models.nearest_neighbor.predictor import NearestNeighborPredictor
+        logger.info("Nearest Neighbor model selected")
+        model = NearestNeighborPredictor(config_model)
+
+    elif 'llm' in model_name:
+        from omnicell.models.llm.llm_predictor import LLMPredictor
+        logger.info("Transformer model selected")
+        model = LLMPredictor(config_model, input_dim, device, pert_ids)
+        
+
+    elif 'vae' in model_name:
+        from omnicell.models.VAE.vae import VAE
+        logger.info("VAE model selected")
+        model = VAE(config_model, input_dim, device, pert_ids)
+
+    elif 'scVIDR' in model_name:
+        from omnicell.models.VAE.scVIDR_predictor import ScVIDRPredictor
+        logger.info("scVIDR model selected")
+        model = ScVIDRPredictor(config_model, input_dim, device, pert_ids)
+
+    elif "test" in model_name:
+        from omnicell.models.dummy_predictor.predictor import TestPredictor
+        logger.info("Test model selected")
+        adata_cheat = loader.get_complete_training_dataset()
+        model = TestPredictor(adata_cheat)
+        
+    else:
+        raise ValueError('Unknown model name')
+    
+    return model, adata
+
 def main(*args):
-
-
     print("Running main")
     parser = argparse.ArgumentParser(description='Analysis settings.')
 
@@ -45,12 +85,8 @@ def main(*args):
 
     now = now.strftime("%Y-%m-%d_%H:%M:%S")
 
-
     data_catalogue = json.load(open('dataset_catalogue.json'))
     pert_catalogue = json.load(open('pert_embedding_catalogue.json'))
-
-
- 
 
     model_config_path = Path(args.model_config).resolve()
     data_config_path = Path(args.data_config).resolve()
@@ -60,172 +96,69 @@ def main(*args):
     config_data = yaml.load(open(data_config_path), Loader=yaml.UnsafeLoader)
     config_evals = yaml.load(open(evaluation_config_path), Loader=yaml.UnsafeLoader) if not evaluation_config_path == None else None
 
-
-    
-
     config = Config.empty()
     config = config.add_model_config(config_model) #There will always be a model config
     config = config.add_data_config(config_data) #There will always be a training config
     config = config.add_eval_config(config_evals) if not config_evals == None else config #There might not be an eval config
 
-    
-
-
-    logging.basicConfig(filename= f'output_{args.slurm_id}_{config.get_model_name()}_{config.get_data_config_name()}.log', filemode= 'w', level=args.loglevel, format='%(asctime)s - %(levelname)s - %(message)s')
-    
+    logging.basicConfig(
+        filename=f'output_{args.slurm_id}_{config.get_model_name()}_{config.get_data_config_name()}.log', 
+        filemode= 'w', level=args.loglevel, format='%(asctime)s - %(levelname)s - %(message)s'
+    )
     
     logger.info("Application started")
 
-
-    model = None
-    model_name = config.get_model_name()
-    dataconfig_name = config.get_data_config_name()
+    model, model_name, dataconfig_name = None, config.get_model_name(), config.get_data_config_name()
     
-
     print(f"Training config {config.get_training_config().to_dict()}")
-
-            
-    #TODO: Check if model has been trained before and load it if it is the case, careful with timestamp causing failed equalities.
-
+    
     #Hash dir to avoid conflicts when training the same model on same data but with different configs
     hash_dir = hashlib.sha256(json.dumps(config.get_training_config().to_dict()).encode()).hexdigest()
     hash_dir = hash_dir[:8]
     
-    model_savepath = Path(f"./models/{model_name}/{dataconfig_name}/{hash_dir}").resolve()
+    model_savepath = Path(f"./models/{dataconfig_name}/{model_name}/{hash_dir}").resolve()
 
     logger.info(f"Saving to model to {model_savepath}")
-
-
 
     #Saving run config
     if not os.path.exists(model_savepath):
         os.makedirs(model_savepath)
 
-
-
     #We only save the training config (Split + Model)
-
     logger.info(f"Saving Training config to {model_savepath}")
     with open(f"{model_savepath}/config.yaml", 'w+') as f:
         yaml.dump(config.get_training_config().to_dict(), f, indent=2, default_flow_style=False)
 
 
     loader = DataLoader(config, data_catalogue, pert_catalogue)
+    
+
+    model, adata = get_model(model_name, config_model, loader)
 
     #Trained Model exists
-    if os.path.exists(f"{model_savepath}/trained_model.pkl"):
+    if os.path.exists(f"{model_savepath}/trained_model"):
         logger.info(f"Model already trained, loading model from {model_savepath}")
-
-
-
-        #Note: Some models might have a save method that does nothing (e.g. the test model)
-        #These models will never be loaded even if they we check their case.
-        if 'nearest-neighbor' in model_name:          
-            from omnicell.models.nearest_neighbor.predictor import NearestNeighborPredictor
-            logger.info("Nearest Neighbor model selected")
-            model_class = NearestNeighborPredictor
-
-        elif 'llm' in model_name:
-            from omnicell.models.llm.llm_predictor import LLMPredictor
-            logger.info("Transformer model selected")
-            model_class = LLMPredictor
-            
-        elif 'vae' in model_name:
-            from omnicell.models.VAE.predictor import VAEPredictor
-            logger.info("VAE model selected")
-            model_class = VAEPredictor
-
-        elif 'scVIDR' in model_name:
-            from omnicell.models.VAE.scVIDR_predictor import ScVIDRPredictor
-            logger.info("scVIDR model selected")
-            model_class = ScVIDRPredictor
-
-        elif model_name == 'test':
-            from omnicell.models.dummy_predictor.predictor import TestPredictor
-            logger.info("Test model selected")
-            model_class = TestPredictor
-            
-        else:
-            raise ValueError('Unknown model name')
-
-
-
-
-        model = model_class.load(model_savepath)
-        logger.info(f"Model loaded")
-
-
+        model = model.load(model_savepath)
+        logger.info("Model loaded")
     #Model must be trained
     else:
-        logger.info(f"Model not trained, training model")
-
-        adata, pert_embedding = loader.get_training_data()   
-
-      
-        input_dim = adata.shape[1]
-        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        pert_ids = adata.obs[PERT_KEY].unique()
-
-        logger.info(f"Data loaded, # of cells: {adata.shape[0]}, # of features: {input_dim} # of perts: {len(pert_ids)}")
-        logger.info(f"Running experiment on {device}")
-
-
-
-
-        #Register your models here
-        #TODO: Change for prefix checking
-
-        if 'nearest-neighbor' in model_name:
-
-            if config.get_mode() == 'iid':
-                raise ValueError("Nearest Neighbor model does not support iid mode")
-            
-            from omnicell.models.nearest_neighbor.predictor import NearestNeighborPredictor
-            logger.info("Nearest Neighbor model selected")
-            model = NearestNeighborPredictor(config_model)
-
-        elif 'llm' in model_name:
-            from omnicell.models.llm.llm_predictor import LLMPredictor
-            logger.info("Transformer model selected")
-            model = LLMPredictor(config_model, input_dim, device, pert_ids)
-            
-
-        elif 'vae' in model_name:
-            from omnicell.models.VAE.predictor import VAEPredictor
-            logger.info("VAE model selected")
-            model = VAEPredictor(config_model, input_dim, device, pert_ids)
-
-        elif 'scVIDR' in model_name:
-            from omnicell.models.VAE.scVIDR_predictor import ScVIDRPredictor
-            logger.info("scVIDR model selected")
-            model = ScVIDRPredictor(config_model, input_dim, device, pert_ids)
-
-        elif "test" in model_name:
-            from omnicell.models.dummy_predictor.predictor import TestPredictor
-            logger.info("Test model selected")
-            adata_cheat = loader.get_complete_training_dataset()
-            model = TestPredictor(adata_cheat)
-            
-
-
-        else:
-            raise ValueError('Unknown model name')
-
-
-
+        logger.info("Model not trained, training model")
         #TODO: We need to save the model, and the config with it.
         #We should save the configs with it but only the ones that are relevant for the model, i.e. training and model config
         model.train(adata)
-
-        logger.info(f"Training completed")
-
+        logger.info("Training completed")
         logger.info(f"Saving model to {model_savepath}")
         model.save(model_savepath)
 
-
+    # if model has encode function then encode the full adata and save in the model dir
+    if hasattr(model, 'encode'):
+        logger.info("Encoding full dataset")
+        adata = loader.get_complete_training_dataset()
+        embedded_data = model.encode(adata)
+        np.save(f"{model_savepath}/embedded_data.npy", embedded_data)
 
     #It is not none --> We are going to evaluate
-    if args.eval_config is not None:
+    if args.eval_config is not None and hasattr(model, 'make_predict'):
         logger.info("Running evaluation")
 
         eval_config_name = config.get_eval_config_name()

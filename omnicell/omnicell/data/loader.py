@@ -99,8 +99,8 @@ class DataLoader:
 
 
 
-    #TODO: This processing should be common between the training and the eval data
-    #Mutates the adata object
+    # TODO: This processing should be common between the training and the eval data
+    # Mutates the adata object
     def preprocess_data(self, adata: sc.AnnData, training: bool) -> sc.AnnData:
 
         # Standardize column names and key values
@@ -108,12 +108,10 @@ class DataLoader:
         cell_key = self.training_dataset_details.cell_key if training else self.eval_dataset_details.cell_key
         control = self.training_dataset_details.control if training else self.eval_dataset_details.control
 
-
         #TODO: If we could rename the columns it would be better
         adata.obs[PERT_KEY] = adata.obs[condition_key]
         adata.obs[CELL_KEY] = adata.obs[cell_key]
         adata.obs[PERT_KEY] = adata.obs[PERT_KEY].cat.rename_categories({control: CONTROL_PERT})
-
 
         if (self.config.get_cell_embedding_name() is not None) & (self.config.get_apply_normalization() | self.config.get_apply_log1p()):
             raise ValueError("Cannot both apply cell embedding and normalization/log1p transformation")
@@ -123,9 +121,8 @@ class DataLoader:
             if self.config.get_cell_embedding_name() not in self.training_dataset_details.cell_embeddings:
                 raise ValueError(f"Cell embedding {self.config.get_cell_embedding_name()} not found in embeddings available for dataset {self.training_dataset_details.name}")
             
-            
             #We replace the data matrix with the cell embeddings
-            adata.X = adata.obsm[self.config.get_cell_embedding_name()]
+            # adata.X = adata.obsm[self.config.get_cell_embedding_name()]
 
         else:
 
@@ -138,12 +135,12 @@ class DataLoader:
             if self.config.get_apply_normalization() & (not self.training_dataset_details.count_normalized):
                 sc.pp.normalize_total(adata, target_sum=10_000)
             elif not self.config.get_apply_normalization() & self.training_dataset_details.count_normalized:
-                raise ValueError(f"Specified dataset is count normalized, but normalization is turned off in the config")
+                raise ValueError("Specified dataset is count normalized, but normalization is turned off in the config")
             
             if self.config.get_apply_log1p() & (not self.training_dataset_details.log1p_transformed):
                 sc.pp.log1p(adata)
             elif not self.config.get_apply_log1p() & self.training_dataset_details.log1p_transformed:
-                raise ValueError(f"Specified dataset is log1p transformed, but log1p transformation is turned off in the config")
+                raise ValueError("Specified dataset is log1p transformed, but log1p transformation is turned off in the config")
 
 
         return adata
@@ -155,33 +152,28 @@ class DataLoader:
         How do we handl
         """
 
-        #Checking if we have already a cached version of the training data
+        # Checking if we have already a cached version of the training data
         if self.training_adata is None:
-
             adata = sc.read(self.training_dataset_details.path)
 
-            logger.info(f"Preprocessing training data")
+            logger.info("Preprocessing training data")
             adata = self.preprocess_data(adata, training=True)
 
             if self.config.get_mode() == "ood":
                 logger.info("Doing OOD split")
 
-                #Taking cells for training where neither the cell nor the perturbation is held out
+                # Taking cells for training where neither the cell nor the perturbation is held out
                 holdout_mask = (adata.obs[PERT_KEY].isin(self.config.get_heldout_perts())) | (adata.obs[CELL_KEY].isin(self.config.get_heldout_cells()))
                 train_mask = ~holdout_mask
 
-
-            #IID, we include unperturbed holdouts cells
+            # IID, we include unperturbed holdouts cells
             else:
                 logger.info("Doing IID split")
-
-
-                #Holding out only cells that have heldout perturbations AND cell. Thus:
+                # Holding out only cells that have heldout perturbations AND cell. Thus:
                 # A perturbation will be included on the non holdout cell type eg
-                #Control of heldout cell type will be included
+                # Control of heldout cell type will be included
                 holdout_mask = (adata.obs[CELL_KEY].isin(self.config.get_heldout_cells())) & (adata.obs[PERT_KEY].isin(self.config.get_heldout_perts()))
                 train_mask = ~holdout_mask
-
 
             adata_train = adata[train_mask]
             self.training_adata = adata_train        
@@ -194,22 +186,18 @@ class DataLoader:
         Returns the entire dataset for training, including the heldout cells and perturbations.
         Data is preprocessed according to config
         """
-
         adata = sc.read(self.training_dataset_details.path)
-
-        logger.info(f"Preprocessing training data")
+        logger.info("Preprocessing training data")
         adata = self.preprocess_data(adata, training=True)
-
         return adata
 
     def get_eval_data(self):
-
         self.eval_dataset_details = self._get_dataset_details(self.config.get_eval_dataset_name(), self.data_catalogue)
 
         logger.info(f"Loading evaluation data at path: {self.eval_dataset_details.path}")
         adata = sc.read(self.eval_dataset_details.path)
 
-        logger.info(f"Preprocessing evaluation data")
+        logger.info("Preprocessing evaluation data")
         adata = self.preprocess_data(adata, training=False)
 
         for cell_id, pert_id in self.config.get_eval_targets():
