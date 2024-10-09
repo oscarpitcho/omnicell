@@ -160,7 +160,6 @@ def main(*args):
     #It is not none --> We are going to evaluate
     if args.eval_config is not None and hasattr(model, 'make_predict'):
         logger.info("Running evaluation")
-
         eval_config_name = config.get_eval_config_name()
         results_path = Path(f"./results/{dataconfig_name}/{model_name}/{eval_config_name}/{hash_dir}").resolve()
         logger.info(f"Saving results to {results_path}")
@@ -172,26 +171,17 @@ def main(*args):
         with open(f"{results_path}/config.yaml", 'w+') as f:
             yaml.dump(config.to_dict(), f, indent=2, default_flow_style=False)
 
-
         for cell_id, pert_id, ctrl_data, gt_data, pert_embedding in loader.get_eval_data():
-
             logger.debug(f"Making predictions for cell: {cell_id}, pert: {pert_id}")
-
-
             preds = model.make_predict(ctrl_data, pert_embedding, pert_id, cell_id)
-
             preds = to_coo(preds)
             control  = to_coo(ctrl_data.X)
             ground_truth = to_coo(gt_data.X)
 
-
             #TODO: We only need to save one control file per cell, if we have several perts we can reuse the same control file
-
             scipy.sparse.save_npz(f"{results_path}/{prediction_filename(pert_id, cell_id)}-preds", preds)
             scipy.sparse.save_npz(f"{results_path}/{prediction_filename(pert_id, cell_id)}-control", control)
             scipy.sparse.save_npz(f"{results_path}/{prediction_filename(pert_id, cell_id)}-ground_truth", ground_truth)
-
-
 
 
 if __name__ == '__main__':
