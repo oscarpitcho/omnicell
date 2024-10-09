@@ -15,23 +15,16 @@ class NearestNeighborPredictor():
         self.seen_cell_types = None
         self.seen_perts = None
         self.mean_shift = config['mean_shift']
-
-
         #TODO: We can compute means here for some extra perf
 
     def train(self, adata):
-
         self.train_adata = adata
-
         self.seen_cell_types = adata.obs[CELL_KEY].unique()
         self.seen_perts = adata.obs[PERT_KEY].unique()
-
-        #Mode across perturbations
 
     
     def make_predict(self, adata: sc.AnnData, pert_id: str, cell_type: str) -> np.ndarray:
         assert self.train_adata is not None, "Model has not been trained yet"
-    
         if cell_type in self.seen_cell_types:
             if pert_id in self.seen_perts:
                 raise NotImplementedError("Both cell type and perturbation are in the training data, in distribution prediction not implemented yet")
@@ -71,14 +64,11 @@ class NearestNeighborPredictor():
         assert heldout_cell_adata.obs[PERT_KEY].nunique() == 1, "Heldout cell data must contain only control data"
         assert heldout_cell_adata.obs[PERT_KEY].unique()[0] == CONTROL_PERT, "Heldout cell data must contain only control data"
 
-
-
         cell_types = self.train_adata.obs[CELL_KEY].unique()
 
         logger.debug(f"Cell types in training data {cell_types}")
 
         train_cell_type_ctrl_means = []
-
         for cell_type in cell_types:
             train_cell_type_ctrl_means.append(self.train_adata[(self.train_adata.obs[CELL_KEY] == cell_type) & (self.train_adata.obs[PERT_KEY] == CONTROL_PERT)].X.mean(axis=0))
 
@@ -100,49 +90,28 @@ class NearestNeighborPredictor():
         squared_diffs = np.square(diffs)
 
 
-
         distances_to_heldout = np.sum(squared_diffs, axis=1)
-
         closest_cell_type_idx = np.argmin(distances_to_heldout)
 
-
         logger.debug(f"Closest cell type to evaluated cell_type {cell_id} is {cell_types[closest_cell_type_idx]}")
-
         closest_cell_type = cell_types[closest_cell_type_idx]
-    
+
         if self.mean_shift:
-
-
             perturbed_closest_cell_type = self.train_adata[(self.train_adata.obs[CELL_KEY] == closest_cell_type) & (self.train_adata.obs[PERT_KEY] == target_pert)].X.mean(axis=0)
-
-
             pert_effect = perturbed_closest_cell_type - train_cell_type_ctrl_means[closest_cell_type_idx]
-
             pert_effect_norm = np.linalg.norm(pert_effect)
 
             logger.debug(f"Perturbation effect norm {pert_effect_norm}")
-
-
             #Apply the perturbation effect to the heldout cell data
             predicted_perts = heldout_cell_adata.X + pert_effect
-
             return predicted_perts
     
         else:
             adata_nbr = self.train_adata[(self.train_adata.obs[CELL_KEY] == closest_cell_type) & (self.train_adata.obs[PERT_KEY] == target_pert)]
-            
-            
-
             #TODO: FIX - It might cause issue with the predict method returns a different number of cells than the heldout cell data
             #res = sc.pp.subsample(adata_nbr, n_obs=len(heldout_cell_adata), copy=True)
-
             res = adata_nbr #sc.pp.subsample(adata_nbr, n_obs=len(adata), replace=True, copy=True)
             return res.X
-        
-
-
-    
-
 
     #SO I want to predict across genes --> Two options either we provide the data or we don't provide the data on which the prediction is made
     def _predict_across_pert(self, adata: sc.AnnData, target: str, cell_id: str) -> np.ndarray:
@@ -168,7 +137,6 @@ class NearestNeighborPredictor():
             The predicted perturbation for the target using the control perturbation datapoints of the training.
 
         """
-
 
         assert self.train_adata is not None, "Model has not been trained yet"
         assert target not in self.train_adata.obs[PERT_KEY].unique(), "Target perturbation is already in the training data"
