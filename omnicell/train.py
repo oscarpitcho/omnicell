@@ -125,25 +125,21 @@ def main(*args):
 
     #We only save the training config (Split + Model)
     logger.info(f"Saving Training config to {model_savepath}")
-    with open(f"{model_savepath}/config.yaml", 'w+') as f:
+    with open(f"{model_savepath}/training_config.yaml", 'w+') as f:
         yaml.dump(config.get_training_config().to_dict(), f, indent=2, default_flow_style=False)
 
 
     loader = DataLoader(config, data_catalogue, pert_catalogue)
-    
-
     model, adata = get_model(model_name, config_model, loader)
 
-    #Trained Model exists
     if os.path.exists(f"{model_savepath}/trained_model"):
         logger.info(f"Model already trained, loading model from {model_savepath}")
         model.load(model_savepath)
         logger.info("Model loaded")
-    #Model must be trained
     else:
         logger.info("Model not trained, training model")
         #TODO: We need to save the model, and the config with it.
-        #We should save the configs with it but only the ones that are relevant for the model, i.e. training and model config
+        # We should save the configs with it but only the ones that are relevant for the model, i.e. training and model config
         model.train(adata)
         logger.info("Training completed")
         logger.info(f"Saving model to {model_savepath}")
