@@ -55,27 +55,19 @@ class ScVIDRPredictor():
     #Note this model needs the entire data or sth like that. 
     #The mean operations are computed on the entire dataset.
     def train(self, adata):
-
-
         self.cell_ids = adata.obs[CELL_KEY].unique()
         device = self.device
         epochs = self.epochs
         batsize = self.batsize
 
-
-
         #This excludes any cell type that does not have a perturbation
         cell_types_with_pert = adata.obs[adata.obs[PERT_KEY] != CONTROL_PERT][CELL_KEY].unique()
-
-
-
 
         #TODO bad if we start passing batches to the model, it will see only part of the data and the len of the data will be wrong.
         datalen = len(adata)
         indices = np.random.permutation(datalen)
 
-        train = adata[indices[:np.int32(datalen*0.9)]]  # 90% training data
-        valid = adata[indices[np.int32(datalen*0.9):]]         
+        train = adata  # 90% training data 
 
         #Compute the deltas for each perturbation
         cell_means = []
@@ -100,7 +92,6 @@ class ScVIDRPredictor():
         # Altough scgen theoretically only uses one perturbation, we will use multiple for the sake of generality
         # On Kang the number of perts is 1
         for i in range(len(self.perts)):
-            
             model = LinearRegression(self.model_config['latent_dim'], self.model_config['latent_dim'])
             criterion = nn.MSELoss()
             optimizer = optim.SGD(model.parameters(), lr=0.01)
@@ -145,7 +136,7 @@ class ScVIDRPredictor():
         assert len(adata.obs[CELL_KEY].unique()) == 1, 'Input data contains multiple cell types'
         assert len(adata.obs[PERT_KEY].unique()) == 1, 'Input data contains multiple perturbations'
         assert adata.obs[CELL_KEY].unique() == [cell_type], f'Cell type {cell_type} not in the provided data'
-        assert adata.obs[PERT_KEY].unique() == [CONTROL_PERT], f'Input data contains non control perturbations'  
+        assert adata.obs[PERT_KEY].unique() == [CONTROL_PERT], 'Input data contains non control perturbations'  
         
         if pert_id in self.invalid_perts:
             raise ValueError(f'Perturbation {pert_id} is not applied to any cell in the training data - Delta is NaN')
@@ -158,13 +149,10 @@ class ScVIDRPredictor():
 
         logger.debug(f"Pert idx = {self.perts_to_idx[pert_id]}")
 
-
-
         with torch.no_grad():
             pert_predictor = self.regressors[self.perts_to_idx[pert_id]]
             pert_predictor.eval()
             pert_delta = pert_predictor(mu.cpu())
-        
 
         pert_mu = mu + pert_delta.to(self.device)
 

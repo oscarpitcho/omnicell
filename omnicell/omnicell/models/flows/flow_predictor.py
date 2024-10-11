@@ -15,7 +15,7 @@ from omnicell.constants import CELL_KEY, CONTROL_PERT, PERT_KEY
 
 
 class FlowPredictor():
-    def __init__(self, config, input_size, device, pert_ids):
+    def __init__(self, config, input_size, device, pert_rep=None, pert_map=None, cell_rep=None):
         self.model_config = config['model']
         self.trainig_config = config['training']
         self.device = device
@@ -24,6 +24,13 @@ class FlowPredictor():
 
         self.pert_ids = None
         self.pert_reps = None
+
+        if self.arch.lower() == self.model_config['arch']:
+            self.model = CMLP(training_module=CFM, feat_dim=xt.shape[1], cond_dim=pert_rep.shape[1], time_varying=True, **self.model_config)
+        elif self.arch.lower() == self.model_config['arch']:
+            self.model = CMHA(training_module=CFM, feat_dim=xt.shape[1], cond_dim=pert_rep.shape[1], time_varying=True, **self.model_config)
+        else:
+            raise NotImplemented
         
 
     #Should take care of saving the model under some results/model/checkpoints in 
@@ -49,16 +56,6 @@ class FlowPredictor():
 
         _, xt, _, pert_rep = next(iter(dl))
 
-
-        # todo: if we can check the pert rep size this can be moved up to the init
-        # but until then it needs to live here
-
-        if arch.lower() == self.model_config['arch']:
-            self.model = CMLP(training_module=CFM, feat_dim=xt.shape[1], cond_dim=pert_rep.shape[1], time_varying=True, **self.model_config)
-        elif arch.lower() == self.model_config['arch']:
-            self.model = CMHA(training_module=CFM, feat_dim=xt.shape[1], cond_dim=pert_rep.shape[1], time_varying=True, **self.model_config)
-        else:
-            raise NotImplemented
         
         self.model = self.model.to(device)            
         trainer.fit(self.model, dl)

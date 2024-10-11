@@ -103,7 +103,6 @@ class Config:
     def get_apply_log1p(self) -> bool:
         return self.data_config['data']['log1p']
    
-
     def get_cell_embedding_name(self) -> Optional[str]:
         return self.data_config['data'].get('cell_embedding', None)
     
