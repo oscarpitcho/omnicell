@@ -5,6 +5,7 @@ import pandas as pd
 import torch
 from omnicell.constants import PERT_KEY, CELL_KEY, CONTROL_PERT
 import logging
+from typing import Optional, Tuple, Dict
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +35,17 @@ class NearestNeighborPredictor():
         self.pert_rep = pert_rep
         self.pert_map = pert_map
 
-    def train(self, adata):
+    def train(self, adata, pert_embedding: Optional[Dict[str, torch.Tensor]]):
+        """
+        Trains the model on the given data.
+
+        Parameters
+        ----------
+        adata : AnnData
+                
+        pert_embedding : Tuple[Dict, np.ndarray]
+            Tuple containing the perturbation embedding dictionary and the perturbation embedding matrix
+        """
         self.train_adata = adata
         self.seen_cell_types = adata.obs[CELL_KEY].unique()
         self.seen_perts = adata.obs[PERT_KEY].unique()
