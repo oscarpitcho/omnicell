@@ -10,7 +10,7 @@ hostname                     # Print the hostname of the compute node
 
 
 source ~/.bashrc
-mamba activate sandbox
+conda activate dsbm
 
 # Run the training script
 python train.py --data_config configs/splits/kang/kang_ho_CD4T.yaml --model_config configs/models/nearest-neighbor/nearest-neighbor_substitute.yaml \
