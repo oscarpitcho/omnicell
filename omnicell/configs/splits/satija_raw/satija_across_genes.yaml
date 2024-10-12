@@ -2,12 +2,10 @@ name: satija_across_genes
 
 data:
   dataset: satija_IFNB_raw
-  apply_norm: True
-  apply_log1p: True
-  var_names_key: gene
-  cell_key: cell_type
-  pert_key: gene
-  control: NT
+  log1p: True 
+  count_norm: True
+  #cell_embedding: False #Note, whatt if we have both log1p and count_norm true and an embedding, can we ensure that the embedding is applied after the log1p and count_norm?
+  pert_embedding: UCE_ESM2_Mean_Imputed
 
 datasplit:
   
