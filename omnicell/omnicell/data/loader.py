@@ -185,6 +185,7 @@ class DataLoader:
         
         if self.pert_embedding_name is not None:
             if self.pert_embedding_name not in self.training_dataset_details.pert_embeddings:
+                print(self.training_dataset_details.pert_embeddings)
                 raise ValueError(f"Perturbation embedding {self.pert_embedding_name} not found in embeddings available for dataset {self.training_dataset_details.name}")
             else:
                 logger.info(f"Loading perturbation embedding from {self.training_dataset_details.folder_path}/{self.pert_embedding_name}.pt")
