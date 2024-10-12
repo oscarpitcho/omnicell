@@ -12,7 +12,6 @@ logger = logging.getLogger(__name__)
 
 
 def main():
-
     DATA_CATALOGUE_PATH = 'dataset_catalogue.json'
 
     parser = argparse.ArgumentParser(description='Generate static embedding')
@@ -21,33 +20,22 @@ def main():
     parser.add_argument('--static_embedding_path', type=str, help='Path to the static embedding')
     parser.add_argument('--embedding_name', type=str, help='Name of the embedding, this will be used to save the embedding')
 
-
     #Can be None or Mean
     parser.add_argument('--imputing_method', choices=['None', 'mean'], help='Imputing method to use, if None, perts with not data will be left out, if Mean, the mean of all pert embeddings will be used.')
-
     args = parser.parse_args()
-
     catalogue = json.load(open(DATA_CATALOGUE_PATH))
 
 
-
     #Getting the dataset details from the data_catalogue.json
-
     ds_details = DataLoader._get_dataset_details(args.dataset_name, catalogue)
-
     pert_key = ds_details.pert_key
     control_pert = ds_details.control
 
     #Loading the dataset
     adata = sc.read(ds_details.path, backed='r')
 
-
-
     #Selecting all non Control Perts
-
     perts = [x for x in adata.obs[pert_key].unique() if x != control_pert]
-
-
 
     #Getting the static embedding
 
@@ -64,7 +52,6 @@ def main():
             embedding[pert] = static_embedding[pert]
             coverage += 1
         else:
-
             if args.imputing_method == 'None':
                 embedding[pert] = None
 
