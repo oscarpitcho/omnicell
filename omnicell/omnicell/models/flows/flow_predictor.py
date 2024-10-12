@@ -8,6 +8,7 @@ from omnicell.models.datamodules import get_dataloader
 from omnicell.models.flows.arch import CMHA, CMLP, CFM
 from omnicell.models.flows.flow_utils import compute_conditional_flow
 from pytorch_lightning.callbacks import TQDMProgressBar
+import pytorch_lightning as pl
 
 import scanpy as sc
 
@@ -22,15 +23,15 @@ class FlowPredictor():
 
         self.max_epochs = self.trainig_config['max_epochs']
 
-        self.pert_ids = None
-        self.pert_reps = None
+        self.pert_map = None
+        self.pert_rep = None
 
         if self.arch.lower() == self.model_config['arch']:
             self.model = CMLP(training_module=CFM, feat_dim=xt.shape[1], cond_dim=pert_rep.shape[1], time_varying=True, **self.model_config)
         elif self.arch.lower() == self.model_config['arch']:
             self.model = CMHA(training_module=CFM, feat_dim=xt.shape[1], cond_dim=pert_rep.shape[1], time_varying=True, **self.model_config)
         else:
-            raise NotImplemented
+            raise NotImplementedError(f"Model architecture {self.model_config['arch']} not implemented")
         
 
     #Should take care of saving the model under some results/model/checkpoints in 

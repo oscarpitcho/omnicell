@@ -27,7 +27,11 @@ logger = logging.getLogger(__name__)
 random.seed(42)
 
 def get_model(model_name, config_model, loader):
-    adata, pert_embedding = loader.get_training_data()   
+    adata, pert_rep_map = loader.get_training_data()   
+    pert_keys = list(pert_rep_map.keys())
+    pert_rep = np.array([pert_rep_map[k] for k in pert_keys])
+    pert_map = {k: i for i, k in enumerate(pert_keys)}
+
 
     input_dim = adata.shape[1]
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -39,7 +43,7 @@ def get_model(model_name, config_model, loader):
     if 'nearest-neighbor' in model_name:
         from omnicell.models.nearest_neighbor.predictor import NearestNeighborPredictor
         logger.info("Nearest Neighbor model selected")
-        model = NearestNeighborPredictor(config_model)
+        model = NearestNeighborPredictor(config_model, pert_rep=pert_rep, pert_map=pert_map)
 
     elif 'llm' in model_name:
         from omnicell.models.llm.llm_predictor import LLMPredictor
