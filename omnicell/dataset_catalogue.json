@@ -13,8 +13,6 @@
         "description": "Some description of the dataset", 
         "pert_embeddings": ["UCE_ESM_Mean_Imputed", "Smile"], 
         "cell_embeddings": ["vae_blah_blah_custom"]
-
-
     },
     {
         "name": "kang",
