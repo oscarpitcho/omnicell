@@ -50,7 +50,7 @@ class NearestNeighborPredictor():
         """
         self.train_adata = adata
         self.seen_cell_types = adata.obs[CELL_KEY].unique()
-        self.seen_perts = adata.obs[PERT_KEY].unique()
+        self.seen_perts = [pert for pert in adata.obs[PERT_KEY].unique() if pert != CONTROL_PERT]
 
         if self.cell_rep is None:
             cell_rep = []
