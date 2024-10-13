@@ -170,9 +170,9 @@ def main(*args):
         with open(f"{results_path}/config.yaml", 'w+') as f:
             yaml.dump(config.to_dict(), f, indent=2, default_flow_style=False)
 
-        for cell_id, pert_id, ctrl_data, gt_data, pert_embedding in loader.get_eval_data():
+        for cell_id, pert_id, ctrl_data, gt_data in loader.get_eval_data():
             logger.debug(f"Making predictions for cell: {cell_id}, pert: {pert_id}")
-            preds = model.make_predict(ctrl_data, pert_embedding, pert_id, cell_id)
+            preds = model.make_predict(ctrl_data, pert_id, cell_id)
             preds = to_coo(preds)
             control  = to_coo(ctrl_data.X)
             ground_truth = to_coo(gt_data.X)
