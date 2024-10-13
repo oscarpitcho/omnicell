@@ -155,6 +155,14 @@ class DataLoader:
         Returns the training data according to the config.
         If an pert embedding is specified then it is also returned
         """
+        if self.pert_embedding_name is not None:
+            if self.pert_embedding_name not in self.training_dataset_details.pert_embeddings:
+                print(self.training_dataset_details.pert_embeddings)
+                raise ValueError(f"Perturbation embedding {self.pert_embedding_name} not found in embeddings available for dataset {self.training_dataset_details.name}")
+            else:
+                logger.info(f"Loading perturbation embedding from {self.training_dataset_details.folder_path}/{self.pert_embedding_name}.pt")
+                pert_embedding = torch.load(f"{self.training_dataset_details.folder_path}/{self.pert_embedding_name}.pt")
+        print(pert_embedding.keys())
 
         # Checking if we have already a cached version of the training data
         if self.training_adata is None:
@@ -181,15 +189,6 @@ class DataLoader:
 
             adata_train = adata[train_mask]
             self.training_adata = adata_train   
-
-        
-        if self.pert_embedding_name is not None:
-            if self.pert_embedding_name not in self.training_dataset_details.pert_embeddings:
-                print(self.training_dataset_details.pert_embeddings)
-                raise ValueError(f"Perturbation embedding {self.pert_embedding_name} not found in embeddings available for dataset {self.training_dataset_details.name}")
-            else:
-                logger.info(f"Loading perturbation embedding from {self.training_dataset_details.folder_path}/{self.pert_embedding_name}.pt")
-                pert_embedding = torch.load(f"{self.training_dataset_details.folder_path}/{self.pert_embedding_name}.pt")
 
         return self.training_adata, pert_embedding
 
