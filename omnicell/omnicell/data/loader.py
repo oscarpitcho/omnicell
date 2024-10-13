@@ -162,7 +162,6 @@ class DataLoader:
             else:
                 logger.info(f"Loading perturbation embedding from {self.training_dataset_details.folder_path}/{self.pert_embedding_name}.pt")
                 pert_embedding = torch.load(f"{self.training_dataset_details.folder_path}/{self.pert_embedding_name}.pt")
-        print(pert_embedding.keys())
 
         # Checking if we have already a cached version of the training data
         if self.training_adata is None:
