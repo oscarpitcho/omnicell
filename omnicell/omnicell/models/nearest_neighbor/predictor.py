@@ -35,7 +35,7 @@ class NearestNeighborPredictor():
         self.pert_rep = pert_rep
         self.pert_map = pert_map
 
-    def train(self, adata, pert_embedding: Optional[Dict[str, torch.Tensor]]):
+    def train(self, adata):
         """
         Trains the model on the given data.
 
