@@ -168,7 +168,8 @@ class NearestNeighborPredictor():
         
         cell_type_idx = np.where(self.seen_cell_types == cell_type)[0][0]
         # Computing distances
-        distances_to_target = l2(self.pert_rep[map(self.pert_map, self.seen_perts)], self.pert_rep[self.pert_map[target_pert]])
+        print(map(self.pert_map, self.seen_perts))
+        distances_to_target = l2(self.pert_rep[list(map(self.pert_map, self.seen_perts))], self.pert_rep[self.pert_map[target_pert]])
         closest_pert = self.seen_perts[np.argmin(distances_to_target)]
                     
         logger.debug(f'Nearest neighbor perturbation of {target_pert} is {closest_pert}')
