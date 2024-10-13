@@ -6,6 +6,8 @@ import torch
 from omnicell.constants import PERT_KEY, CELL_KEY, CONTROL_PERT
 import logging
 from typing import Optional, Tuple, Dict
+import pickle
+
 
 logger = logging.getLogger(__name__)
 
@@ -188,7 +190,32 @@ class NearestNeighborPredictor():
             logger.debug(f"Number of cells with cell_id {cell_type} and perturbation {closest_pert} in training data {len(adata_nbr)}")
             res = adata_nbr #sc.pp.subsample(adata_nbr, n_obs=len(adata), replace=True, copy=True)
             return res.X
+        
 
+    def save(self, savepath: str):
+        """
+        Saves the model to disk.
+
+        Parameters
+        ----------
+        path : str
+            The path to save the model to
+        """
+        with open(f'{savepath}/trained_models', 'wb') as fp:
+            pickle.dump(self.__dict__, fp)
+
+
+    def load(self, path: str):
+        """
+        Loads the model from disk.
+
+        Parameters
+        ----------
+        path : str
+            The path to load the model from
+        """
+        with open(f'{path}/trained_models', 'rb') as fp:
+            self.__dict__ = pickle.load(fp)
         
 
     
