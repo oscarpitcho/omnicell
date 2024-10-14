@@ -15,6 +15,21 @@
         "cell_embeddings": ["vae_blah_blah_custom"]
     },
     {
+        "name": "satija_IFNB_hvg",
+        "path": "/orcd/archive/abugoot/001/Projects/jason/sandbox/Datasets/satija_IFNB_HVG_and_perturbed_genes_raw/Data/satija_IFNB_HVG_and_perturbed_genes_raw.h5ad",
+        "folder_path": "/orcd/archive/abugoot/001/Projects/jason/sandbox/Datasets/satija_IFNB_HVG_and_perturbed_genes_raw/Data/",
+        "cell_key": "cell_type",
+        "control": "NT",
+        "pert_key": "gene",
+        "var_names_key": "gene",
+        "HVG": true,
+        "log1p_transformed": false,
+        "count_normalized": false,
+        "description": "Some description of the dataset", 
+        "pert_embeddings": ["UCE_ESM2_Mean_Imputed", "Smile"], 
+        "cell_embeddings": ["vae_blah_blah_custom"]
+    },
+    {
         "name": "kang",
         "path": "/orcd/archive/abugoot/001/Projects/dlesman/datasets/kang/kang.h5ad",
         "folder_path": "/orcd/archive/abugoot/001/Projects/dlesman/datasets/kang/",
