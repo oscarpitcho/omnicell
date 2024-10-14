@@ -2,7 +2,27 @@ import math
 import torch
 import numpy as np
 from torchdyn.core import NeuralODE
-from omnicell.models.datamodules import torch_wrapper
+
+class torch_wrapper(torch.nn.Module):
+    def __init__(self, model, perturbation=None):
+        super().__init__()
+        self.model = model
+        self.perturbation = perturbation
+
+    def forward(self, t, x, args=None):
+        if self.perturbation is not None:
+            return self.model(
+                torch.cat(
+                    [
+                        x,
+                        self.perturbation.repeat(x.shape[0], 1).to(x.device),
+                        t.repeat(x.shape[0])[:, None],
+                    ],
+                    1,
+                )
+            )
+        else:
+            return self.model(torch.cat([x, t.repeat(x.shape[0])[:, None]], 1))
 
 def compute_conditional_flow(model, control, pert_ids, pert_mat, batch_size=100, num_steps=400, n_batches=1e8):
     device = "cuda:0"
@@ -46,24 +66,3 @@ def compute_supervised_preds(model, control, pert_ids, pert_mat, batch_size=1_00
             preds[batch_size*i:batch_size*(i+1), :] = outp
             
     return preds
-
-class torch_wrapper(torch.nn.Module):
-    def __init__(self, model, perturbation=None):
-        super().__init__()
-        self.model = model
-        self.perturbation = perturbation
-
-    def forward(self, t, x, args=None):
-        if self.perturbation is not None:
-            return self.model(
-                torch.cat(
-                    [
-                        x,
-                        self.perturbation.repeat(x.shape[0], 1).to(x.device),
-                        t.repeat(x.shape[0])[:, None],
-                    ],
-                    1,
-                )
-            )
-        else:
-            return self.model(torch.cat([x, t.repeat(x.shape[0])[:, None]], 1))
