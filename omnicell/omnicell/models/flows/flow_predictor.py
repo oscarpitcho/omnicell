@@ -16,20 +16,20 @@ from omnicell.constants import CELL_KEY, CONTROL_PERT, PERT_KEY
 
 
 class FlowPredictor():
-    def __init__(self, config, input_size, device, pert_rep=None, pert_map=None, cell_rep=None):
+    def __init__(self, config, input_size, pert_rep=None, pert_map=None, cell_rep=None):
         self.model_config = config['model']
         self.trainig_config = config['training']
-        self.device = device
 
         self.max_epochs = self.trainig_config['max_epochs']
 
-        self.pert_map = None
-        self.pert_rep = None
+        self.pert_map = pert_map
+        self.pert_rep = pert_rep
+        self.cell_rep = cell_rep
 
         if self.arch.lower() == self.model_config['arch']:
-            self.model = CMLP(training_module=CFM, feat_dim=xt.shape[1], cond_dim=pert_rep.shape[1], time_varying=True, **self.model_config)
+            self.model = CMLP(training_module=CFM, feat_dim=input_size, cond_dim=pert_rep.shape[1], time_varying=True, **self.model_config)
         elif self.arch.lower() == self.model_config['arch']:
-            self.model = CMHA(training_module=CFM, feat_dim=xt.shape[1], cond_dim=pert_rep.shape[1], time_varying=True, **self.model_config)
+            self.model = CMHA(training_module=CFM, feat_dim=input_size, cond_dim=pert_rep.shape[1], time_varying=True, **self.model_config)
         else:
             raise NotImplementedError(f"Model architecture {self.model_config['arch']} not implemented")
         
@@ -40,11 +40,13 @@ class FlowPredictor():
 
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
+        self.pert_ids = adata.obs[PERT_KEY].map(self.pert_map)
+
         adata.X = adata.X.toarray()
         adata.X = adata.X / adata.X.sum(axis=1)[:, None]
         adata.obsm["standard"] = adata.X
 
-        dl = get_dataloader(adata, pert_ids=self.pert_ids, pert_reps=self.pert_reps)
+        dl = get_dataloader(adata, pert_ids=self.pert_ids, pert_reps=self.pert_rep)
 
         print("Training model")
         # Train the model
@@ -54,8 +56,6 @@ class FlowPredictor():
             # default_root_dir=save_path,
             callbacks=[TQDMProgressBar(refresh_rate=100)]
         )
-
-        _, xt, _, pert_rep = next(iter(dl))
 
         
         self.model = self.model.to(device)            
@@ -76,7 +76,7 @@ class FlowPredictor():
             self.model, 
             control_eval, 
             np.repeat(pert_id, control_eval.shape[0]), 
-            self.pert_rep[pert_id],
+            self.pert_rep,
             n_batches = 5 
         )  
         return traj[-1, :, :]
