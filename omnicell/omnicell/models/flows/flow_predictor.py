@@ -16,7 +16,7 @@ from omnicell.constants import CELL_KEY, CONTROL_PERT, PERT_KEY
 
 
 class FlowPredictor():
-    def __init__(self, config, input_size, pert_rep=None, pert_map=None, cell_rep=None):
+    def __init__(self, config, input_size, pert_rep=None, pert_map=None):
         self.model_config = config['model']
         self.trainig_config = config['training']
 
@@ -24,7 +24,6 @@ class FlowPredictor():
 
         self.pert_map = pert_map
         self.pert_rep = pert_rep
-        self.cell_rep = cell_rep
 
         if self.model_config['arch'] == 'mlp':
             self.model = CMLP(training_module=CFM, feat_dim=input_size, cond_dim=pert_rep.shape[1], time_varying=True, **self.model_config)
