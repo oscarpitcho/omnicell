@@ -6,9 +6,7 @@ data:
   cell_embedding: False #Note, whatt if we have both log1p and count_norm true and an embedding, can we ensure that the embedding is applied after the log1p and count_norm?
   pert_embedding: null
 
-
 datasplit:
-
   mode: iid
   #Annoying part is if we have random splits how will we define the tasks? -
   holdout_cells: [CD4T]
