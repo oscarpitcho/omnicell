@@ -41,7 +41,7 @@
         "log1p_transformed": false,
         "count_normalized": false,
         "description": "Some description of the dataset", 
-        "pert_embeddings": [], 
+        "pert_embeddings": ["UCE_ESM2_Mean_Imputed"], 
         "cell_embeddings": []
 
     },
@@ -57,7 +57,7 @@
         "log1p_transformed": false,
         "count_normalized": false,
         "description": "Essential genes across cells dataset with basic out-of-distribution setup, no normalization applied", 
-        "pert_embeddings": [], 
+        "pert_embeddings": ["UCE_ESM2_Mean_Imputed"], 
         "cell_embeddings": []
     }
 
