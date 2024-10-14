@@ -45,7 +45,7 @@ class FlowPredictor():
         # adata.X = adata.X / adata.X.sum(axis=1)[:, None]
         # adata.obsm["standard"] = adata.X
 
-        dl = get_dataloader(adata, pert_ids=self.pert_ids, pert_reps=self.pert_rep)
+        dl = get_dataloader(adata, pert_ids=self.pert_ids, pert_reps=self.pert_rep, collate='cfm')
 
         print("Training model")
         # Train the model
