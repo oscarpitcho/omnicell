@@ -39,7 +39,7 @@ class FlowPredictor():
 
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-        self.pert_ids = adata.obs[PERT_KEY].map(self.pert_map).values
+        self.pert_ids = adata.obs[PERT_KEY].map(self.pert_map).values.astype(int)
 
         # adata.X = adata.X.toarray()
         # adata.X = adata.X / adata.X.sum(axis=1)[:, None]
