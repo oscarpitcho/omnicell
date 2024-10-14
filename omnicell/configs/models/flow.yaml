@@ -1,0 +1,14 @@
+#version: This can be any text_field
+
+name: flow
+cell_dist_metric: l2
+
+training:
+  epochs: 100
+  lr: 0.001
+  weight_decay: 0.0001
+  early_stopping: 10
+  seed: 42
+
+model:
+  arch: mlp

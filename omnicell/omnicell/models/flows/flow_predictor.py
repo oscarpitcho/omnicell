@@ -26,9 +26,9 @@ class FlowPredictor():
         self.pert_rep = pert_rep
         self.cell_rep = cell_rep
 
-        if self.arch.lower() == self.model_config['arch']:
+        if self.model_config['arch'] == 'mlp':
             self.model = CMLP(training_module=CFM, feat_dim=input_size, cond_dim=pert_rep.shape[1], time_varying=True, **self.model_config)
-        elif self.arch.lower() == self.model_config['arch']:
+        elif self.model_config['arch'] == 'mha':
             self.model = CMHA(training_module=CFM, feat_dim=input_size, cond_dim=pert_rep.shape[1], time_varying=True, **self.model_config)
         else:
             raise NotImplementedError(f"Model architecture {self.model_config['arch']} not implemented")
