@@ -2,8 +2,8 @@ name: satija_across_genes
 
 data:
   dataset: satija_IFNB_raw
-  log1p: True 
-  count_norm: True
+  log1p: False 
+  count_norm: False
   cell_embedding: X_uce #Note, whatt if we have both log1p and count_norm true and an embedding, can we ensure that the embedding is applied after the log1p and count_norm?
   pert_embedding: UCE_ESM2_Mean_Imputed
 
