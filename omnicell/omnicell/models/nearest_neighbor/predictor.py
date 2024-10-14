@@ -152,7 +152,6 @@ class NearestNeighborPredictor():
         assert adata.obs[CELL_KEY].unique()[0] == cell_type, "Heldout cell data must contain only one cell type"
         assert adata.obs[PERT_KEY].nunique() == 1, "Heldout cell data must contain only control data"
         assert adata.obs[PERT_KEY].unique()[0] == CONTROL_PERT, "Heldout cell data must contain only control data"
-        
         logger.debug(f'Predicting unseen perturbation {target_pert} using all training data')
 
         # inp = self.train_adata[self.train_adata.obs[CELL_KEY] == cell_id].copy()
@@ -207,7 +206,7 @@ class NearestNeighborPredictor():
         """
         with open(f'{path}/trained_models', 'rb') as fp:
             self.__dict__ = pickle.load(fp)
-        
+
 
     
 
