@@ -3,7 +3,7 @@ name: essential_genes_across_cells_basic_ood_no_norm
 data: 
   path: /orcd/archive/abugoot/001/Projects/dlesman/datasets/essential_gene_knockouts_raw.h5ad
   apply_norm: False
-  apply_log1p: True
+  apply_log1p: False
   
   cell_key: cell_type
   pert_key: gene
