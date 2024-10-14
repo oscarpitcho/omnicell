@@ -174,8 +174,7 @@ class NearestNeighborPredictor():
                 logger.debug(f'{p} not in pert map')
                 self.pert_map[p] = len(self.pert_map)
                 self.pert_rep = np.vstack([self.pert_rep, self.pert_rep.mean(axis=0)])
-            print(f'{p} -> {self.pert_map[p]}')
-        distances_to_target = l2(self.pert_rep[list(map(self.pert_map.get, self.seen_perts))], self.pert_rep[self.pert_map[target_pert]])
+        distances_to_target = self.pert_dist_fn(self.pert_rep[list(map(self.pert_map.get, self.seen_perts))], self.pert_rep[self.pert_map[target_pert]])
         closest_pert = self.seen_perts[np.argmin(distances_to_target)]
                     
         logger.debug(f'Nearest neighbor perturbation of {target_pert} is {closest_pert}')
