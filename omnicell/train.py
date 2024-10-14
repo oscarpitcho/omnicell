@@ -169,6 +169,7 @@ def main(*args):
     if args.eval_config is not None and hasattr(model, 'make_predict'):
         logger.info("Running evaluation")
         eval_config_name = config.get_eval_config_name()
+        results_path = Path(f"{results_path}/{eval_config_name}").resolve()
         logger.info(f"Saving results to {results_path}")
 
         #Saving run config

@@ -127,11 +127,11 @@ class DataLoader:
                 raise ValueError(f"Cell embedding {self.config.get_cell_embedding_name()} not found in embeddings available for dataset {self.training_dataset_details.name}")
             
             #We replace the data matrix with the cell embeddings
-            # adata.X = adata.obsm[self.config.get_cell_embedding_name()]
+            adata.X = adata.obsm[self.config.get_cell_embedding_name()]
 
         else:
 
-
+            adata.X = adata.X.toarray().astype('float32')
             # Set gene names
             if self.training_dataset_details.var_names_key:
                 adata.var_names = adata.var[self.training_dataset_details.var_names_key]
