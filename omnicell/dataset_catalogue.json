@@ -1,26 +1,25 @@
 [   
     {
-        "name": "satija_IFNB_normalized",
-        "path": "Some Absolute path on OM",
-        "meta_data_path": "Do we actually need that?",
-        "condition_key": "condition",
+        "name": "satija_IFNB_raw",
+        "path": "/orcd/archive/abugoot/001/Projects/dlesman/datasets/satija_IFNB_raw/Seurat_IFNB.h5ad",
+        "folder_path": "/orcd/archive/abugoot/001/Projects/dlesman/datasets/satija_IFNB_raw/",
         "cell_key": "cell_type",
-        "control_pert": "pert",
-        "perturbation_key": "perturbation",
-        "var_names_key": "genes",
-        "HVG": true,
-        "log1p_transformed": true,
-        "count_normalized": true,
+        "control": "NT",
+        "pert_key": "gene",
+        "var_names_key": "gene",
+        "HVG": false,
+        "log1p_transformed": false,
+        "count_normalized": false,
         "description": "Some description of the dataset", 
-        "pert_embeddings": ["VAE", "Smile"], 
-        "cell_embeddings": ["scGPT", "vae_blah_blah_custom"]
+        "pert_embeddings": ["UCE_ESM_Mean_Imputed", "Smile"], 
+        "cell_embeddings": []
 
 
     },
     {
         "name": "kang",
         "path": "/orcd/archive/abugoot/001/Projects/dlesman/datasets/kang/kang.h5ad",
-        "meta_data_path": "Some absolute path to metadata, will contains genes of the dataset, perts, cell types, etc.",
+        "folder_path": "/orcd/archive/abugoot/001/Projects/dlesman/datasets/kang/",
         "cell_key": "cell_type",
         "control": "control",
         "pert_key": "condition_key",
@@ -29,15 +28,24 @@
         "log1p_transformed": false,
         "count_normalized": false,
         "description": "Some description of the dataset", 
-        "pert_embeddings": [], 
+        "pert_embeddings": ["UCE_ESM2_Mean_Imputed"], 
         "cell_embeddings": []
 
     },
     {
-        "name": "Dataset_name",
-        "path": "Some Absolute path on OM",
-        "description": "Some description of the dataset"
+        "name": "essential_gene_knockouts_raw",
+        "path": "/orcd/archive/abugoot/001/Projects/dlesman/datasets/essential_gene_knockouts_raw/essential_gene_knockouts_raw.h5ad",
+        "folder_path": "/orcd/archive/abugoot/001/Projects/dlesman/datasets/essential_gene_knockouts_raw",
+        "cell_key": "cell_type",
+        "control": "non-targeting",
+        "pert_key": "gene",
+        "var_names_key": null,
+        "HVG": false,
+        "log1p_transformed": false,
+        "count_normalized": false,
+        "description": "Essential genes across cells dataset with basic out-of-distribution setup, no normalization applied", 
+        "pert_embeddings": ["UCE_ESM2_Mean_Imputed"], 
+        "cell_embeddings": []
     }
-
 
 ]
