@@ -1,0 +1,4 @@
+
+name: ev_CD4T
+dataset: kang
+evaluation_targets: [[CD4T, perturbed]]
