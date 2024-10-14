@@ -126,8 +126,10 @@ def main(*args):
     
     if config.get_cell_embedding_name() is not None:
         model_savepath = Path(f"./models/{dataconfig_name}/{config.get_cell_embedding_name()}/{model_name}/{hash_dir}").resolve()
+        results_path = Path(f"./results/{dataconfig_name}/{config.get_cell_embedding_name()}/{model_name}/{hash_dir}").resolve()
     else:
         model_savepath = Path(f"./models/{dataconfig_name}/base/{model_name}/{hash_dir}").resolve()
+        results_path = Path(f"./results/{dataconfig_name}/base/{model_name}/{hash_dir}").resolve()
 
     logger.info(f"Saving to model to {model_savepath}")
 
@@ -167,7 +169,6 @@ def main(*args):
     if args.eval_config is not None and hasattr(model, 'make_predict'):
         logger.info("Running evaluation")
         eval_config_name = config.get_eval_config_name()
-        results_path = Path(f"./results/{dataconfig_name}/{model_name}/{eval_config_name}/{hash_dir}").resolve()
         logger.info(f"Saving results to {results_path}")
 
         #Saving run config
