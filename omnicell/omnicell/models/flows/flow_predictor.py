@@ -41,9 +41,9 @@ class FlowPredictor():
 
         self.pert_ids = adata.obs[PERT_KEY].map(self.pert_map)
 
-        adata.X = adata.X.toarray()
-        adata.X = adata.X / adata.X.sum(axis=1)[:, None]
-        adata.obsm["standard"] = adata.X
+        # adata.X = adata.X.toarray()
+        # adata.X = adata.X / adata.X.sum(axis=1)[:, None]
+        # adata.obsm["standard"] = adata.X
 
         dl = get_dataloader(adata, pert_ids=self.pert_ids, pert_reps=self.pert_rep)
 
@@ -65,12 +65,13 @@ class FlowPredictor():
     def make_predict(self, adata: sc.AnnData, pert_id: str, cell_type: str) -> np.ndarray:
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-        X = adata.obsm["standard"]
-        X = X.toarray()
-        X = X / X.sum(axis=1)[:, None]
+        # X = adata.obsm["standard"]
+        # X = X.toarray()
+        # X = X / X.sum(axis=1)[:, None]
+        X = adata.X
 
         cell_types = adata.obs[CELL_KEY].values
-        control_eval = adata.obsm[self.embedding][cell_types == cell_type]
+        control_eval = adata.obsm[self.embedding][cell_types == cell_type].X
         traj = compute_conditional_flow(
             self.model, 
             control_eval, 
