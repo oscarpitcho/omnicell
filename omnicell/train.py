@@ -119,7 +119,10 @@ def main(*args):
     hash_dir = hashlib.sha256(json.dumps(config.get_training_config().to_dict()).encode()).hexdigest()
     hash_dir = hash_dir[:8]
     
-    model_savepath = Path(f"./models/{dataconfig_name}/{model_name}/{hash_dir}").resolve()
+    if config.get_cell_embedding_name() is not None:
+        model_savepath = Path(f"./models/{dataconfig_name}/{config.get_cell_embedding_name()}/{model_name}/{hash_dir}").resolve()
+    else:
+        model_savepath = Path(f"./models/{dataconfig_name}/base/{model_name}/{hash_dir}").resolve()
 
     logger.info(f"Saving to model to {model_savepath}")
 
@@ -131,7 +134,6 @@ def main(*args):
     logger.info(f"Saving Training config to {model_savepath}")
     with open(f"{model_savepath}/training_config.yaml", 'w+') as f:
         yaml.dump(config.get_training_config().to_dict(), f, indent=2, default_flow_style=False)
-
 
     loader = DataLoader(config, data_catalogue, pert_catalogue)
     model, adata = get_model(model_name, config_model, loader)

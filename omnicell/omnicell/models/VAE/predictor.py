@@ -49,8 +49,6 @@ class VAEPredictor():
         epochs = self.epochs
         batsize = self.batsize
 
-
-
         #This excludes any cell type that does not have a perturbation
         cell_types_with_pert = adata.obs[adata.obs[PERT_KEY] != CONTROL_PERT][CELL_KEY].unique()
 
