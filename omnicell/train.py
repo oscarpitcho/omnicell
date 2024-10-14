@@ -45,6 +45,11 @@ def get_model(model_name, config_model, loader):
         logger.info("Nearest Neighbor model selected")
         model = NearestNeighborPredictor(config_model, pert_rep=pert_rep, pert_map=pert_map)
 
+    elif 'flow' in model_name:
+        from omnicell.models.flows.flow_predictor import FlowPredictor
+        logger.info("Flow model selected")
+        model = FlowPredictor(config_model, input_dim, pert_rep, pert_map)
+
     elif 'llm' in model_name:
         from omnicell.models.llm.llm_predictor import LLMPredictor
         logger.info("Transformer model selected")
