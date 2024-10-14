@@ -10,12 +10,12 @@ import scipy
 import logging
 import numpy as np
 import random
-from omnicell.constants import PERT_KEY, CELL_KEY, CONTROL_PERT
+from omnicell.constants import PERT_KEY, CELL_KEY, CONTROL_PERT, DATA_CATALOGUE_PATH
 from omnicell.data.utils import prediction_filename
 from omnicell.processing.utils import to_dense, to_coo
 from omnicell.config.config import Config
 from omnicell.data.loader import DataLoader
-
+from omnicell.data.catalogue import Catalogue
 import time
 import datetime
 import torch
@@ -72,6 +72,7 @@ def main(*args):
     parser = argparse.ArgumentParser(description='Analysis settings.')
 
     parser.add_argument('--data_config', type=str, default=None, help='Path to yaml config of the datasplit.')
+    parser.add_argument('--etl_config', type=str, default=None, help='Path to yaml config file of the etl process.')
     parser.add_argument('--model_config', type=str, default=None, help='Path to yaml config file of the model.')
     parser.add_argument('--eval_config', type=str, default=None, help='Path to yaml config file of the evaluations, if none provided the model will only be trained.')
     parser.add_argument('--test_mode', action='store_true', default=False, help='Run in test mode, datasetsize will be capped at 10000')
@@ -84,8 +85,8 @@ def main(*args):
 
     now = now.strftime("%Y-%m-%d_%H:%M:%S")
 
-    data_catalogue = json.load(open('dataset_catalogue.json'))
-    pert_catalogue = json.load(open('pert_embedding_catalogue.json'))
+
+
 
     model_config_path = Path(args.model_config).resolve()
     data_config_path = Path(args.data_config).resolve()
@@ -129,7 +130,8 @@ def main(*args):
         yaml.dump(config.get_training_config().to_dict(), f, indent=2, default_flow_style=False)
 
 
-    loader = DataLoader(config, data_catalogue, pert_catalogue)
+    catalogue = Catalogue(DATA_CATALOGUE_PATH)
+    loader = DataLoader(config, catalogue)
     
 
     model, adata = get_model(model_name, config_model, loader)
