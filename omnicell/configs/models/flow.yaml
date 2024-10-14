@@ -10,5 +10,7 @@ training:
   early_stopping: 10
   seed: 42
 
+arch: mlp
+
 model:
-  arch: mlp
+  
