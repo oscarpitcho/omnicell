@@ -3,6 +3,7 @@ from typing import Optional, List, Tuple
 from dataclasses import dataclass, field
 from omnicell.config.config import Config
 from omnicell.constants import PERT_KEY, CELL_KEY, CONTROL_PERT
+from omnicell.data.catalogue import DatasetDetails, Catalogue
 import torch
 
 import logging
@@ -50,22 +51,6 @@ Bullet points are sorted by increasing difficulty
 
 """
 
-@dataclass
-class DatasetDetails:
-    name: str
-    path: str
-    folder_path: str
-    cell_key: str
-    control: str
-    pert_key: str
-    var_names_key: str
-    HVG: bool
-    log1p_transformed: bool
-    count_normalized: bool
-    description: Optional[str] = None
-    pert_embeddings: List[str] = field(default_factory=list)
-    cell_embeddings: List[str] = field(default_factory=list)
-
 
 #We define an enum which is either Training or Evaluation
 #We can then use this to determine which data to load
@@ -75,11 +60,10 @@ class DatasetDetails:
 #TODO: Want to include generic dataset caching, we might starting having many datasets involved in training, not just one
 
 class DataLoader:
-    def __init__(self, config: Config, data_catalogue: List[dict], pert_emb_catalogue: List[dict]):
+    def __init__(self, config: Config, data_catalogue: Catalogue):
         self.config = config
         self.data_catalogue = data_catalogue
-        self.pert_emb_catalogue = pert_emb_catalogue
-        self.training_dataset_details: DatasetDetails = self._get_dataset_details(config.get_training_dataset_name(), data_catalogue)
+        self.training_dataset_details: DatasetDetails = data_catalogue.get_dataset_details(config.get_training_dataset_name())
 
         self.pert_embedding_name: Optional[str] = config.get_pert_embedding_name()
 
@@ -94,15 +78,6 @@ class DataLoader:
         self.training_adata: Optional[sc.AnnData] = None
         self.eval_adata: Optional[sc.AnnData] = None
         
-
-    @staticmethod
-    def _get_dataset_details(dataset_name: str, catalogue) -> DatasetDetails:
-        details = next((x for x in catalogue if x['name'] == dataset_name), None)
-        if not details:
-            raise ValueError(f"Dataset {dataset_name} not found in catalogue")
-        return DatasetDetails(**details)
-
-
 
     # TODO: This processing should be common between the training and the eval data
     # Mutates the adata object

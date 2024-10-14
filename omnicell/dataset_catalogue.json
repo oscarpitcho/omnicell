@@ -11,7 +11,7 @@
         "log1p_transformed": false,
         "count_normalized": false,
         "description": "Some description of the dataset", 
-        "pert_embeddings": ["UCE_ESM_Mean_Imputed", "Smile"], 
+        "pert_embeddings": ["UCE_ESM_Mean_Imputed"], 
         "cell_embeddings": []
 
 
