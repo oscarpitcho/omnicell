@@ -13,8 +13,8 @@ source ~/.bashrc
 conda activate dsbm
 
 # Run the training script
-python train.py --data_config configs/splits/satija_raw/satija_across_genes_hvg.yaml --model_config configs/models/nearest-neighbor/nearest-neighbor_substitute.yaml \
- --eval_config configs/evals/satija_raw/ev_satija_across_genes.yaml -l DEBUG
+python train.py --data_config configs/splits/satija_raw/satija_across_genes_hvg.yaml --model_config configs/models/flow.yaml \
+ --eval_config configs/evals/satija_raw/ev_satija_across_genes_hvg.yaml -l DEBUG
 
 
 # python generate_evaluations.py --root_dir ./results/nn/satija_across_genes
