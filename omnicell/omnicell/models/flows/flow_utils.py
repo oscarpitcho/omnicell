@@ -2,7 +2,7 @@ import math
 import torch
 import numpy as np
 from torchdyn.core import NeuralODE
-from datamodules import torch_wrapper
+from omnicell.models.datamodules import torch_wrapper
 
 def compute_conditional_flow(model, control, pert_ids, pert_mat, batch_size=100, num_steps=400, n_batches=1e8):
     device = "cuda:0"
