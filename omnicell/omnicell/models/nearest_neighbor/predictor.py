@@ -8,19 +8,10 @@ import logging
 from typing import Optional, Tuple, Dict
 import pickle
 
+from omnicell.models.metric_fns import distance_metrics
+
 
 logger = logging.getLogger(__name__)
-
-def l2(X, y):
-    return np.sum(np.abs(X - y)**2, axis=1)
-
-def l1(X, y):
-    return np.sum(np.abs(X - y), axis=1)
-
-distance_metrics = {
-    'l1': l1,
-    'l2': l2
-}
 
 class NearestNeighborPredictor():
     def __init__(self, config, pert_rep=None, pert_map=None, cell_rep=None):
