@@ -25,9 +25,9 @@ class FlowPredictor():
         self.pert_map = pert_map
         self.pert_rep = pert_rep
 
-        if self.config['arch'] == 'mlp':
+        if config['arch'] == 'mlp':
             self.model = CMLP(training_module=CFM, feat_dim=input_size, cond_dim=pert_rep.shape[1], time_varying=True, **self.model_config)
-        elif self.config['arch'] == 'mha':
+        elif config['arch'] == 'mha':
             self.model = CMHA(training_module=CFM, feat_dim=input_size, cond_dim=pert_rep.shape[1], time_varying=True, **self.model_config)
         else:
             raise NotImplementedError(f"Model architecture {self.model_config['arch']} not implemented")
