@@ -5,7 +5,6 @@ import pandas as pd
 import torch
 from omnicell.constants import PERT_KEY, CELL_KEY, CONTROL_PERT
 import logging
-from typing import Optional, Tuple, Dict
 
 logger = logging.getLogger(__name__)
 
@@ -18,17 +17,7 @@ class NearestNeighborPredictor():
         self.mean_shift = config['mean_shift']
         #TODO: We can compute means here for some extra perf
 
-    def train(self, adata, pert_embedding: Optional[Dict[str, torch.Tensor]]):
-        """
-        Trains the model on the given data.
-
-        Parameters
-        ----------
-        adata : AnnData
-                
-        pert_embedding : Tuple[Dict, np.ndarray]
-            Tuple containing the perturbation embedding dictionary and the perturbation embedding matrix
-        """
+    def train(self, adata):
         self.train_adata = adata
         self.seen_cell_types = adata.obs[CELL_KEY].unique()
         self.seen_perts = adata.obs[PERT_KEY].unique()
@@ -156,79 +145,11 @@ class NearestNeighborPredictor():
         assert adata.obs[PERT_KEY].nunique() == 1, "Heldout cell data must contain only control data"
         assert adata.obs[PERT_KEY].unique()[0] == CONTROL_PERT, "Heldout cell data must contain only control data"
         
-
-        if self.config["pert_distance"] == "L2":
-            nnbr = self.L2_Pert_Space_NN(self.pert_embedding, target)
-
-        elif  self.config["pert_distance"] == "simlar_effect":
-            nnbr = self.similarity_effect_neighbor(self.config['num_of_degs'], self.config['pvalcut'], self.train_adata, target, cell_id)
-
-        else:
-            raise NotImplementedError(f"Distance metric {self.config['pert_distance']} not implemented")
+        logger.debug(f'Predicting unseen perturbation {target} using all training data')
         
-        nnbr_pert = nnbr
+        num_of_degs = self.config['num_of_degs']
 
-
-        #Mean control state of each cell type
-
-
-        if self.mean_shift:
-
-
-            selected_cell_control_mean = self.train_adata[(self.train_adata.obs[CELL_KEY] == cell_id) & (self.train_adata.obs[PERT_KEY] == CONTROL_PERT)].X.mean(axis=0)
-
-            selected_cell_nbr_pert_mean = self.train_adata[(self.train_adata.obs[CELL_KEY] == cell_id) & (self.train_adata.obs[PERT_KEY] == nnbr_pert)].X.mean(axis=0)
-            
-        
-            pert_effect = selected_cell_nbr_pert_mean - selected_cell_control_mean
-
-            predictions = adata.copy()
-
-    
-            predictions.X = pert_effect + predictions.X
-
-
-            return predictions.X
-        
-        else:
-            logger.debug(f"Running substitution method")
-            adata_nbr = self.train_adata[(self.train_adata.obs[CELL_KEY] == cell_id) & (self.train_adata.obs[PERT_KEY] == nnbr_pert)]
-            logger.debug(f"Number of cells with cell_id {cell_id} and perturbation {nnbr_pert} in training data {len(adata_nbr)}")
-            res = adata_nbr #sc.pp.subsample(adata_nbr, n_obs=len(adata), replace=True, copy=True)
-            return res.X
-
-        
-    def L2_Pert_Space_NN(pert_embeddings, target) -> str:
-
-        """
-        Find the nearest neighbor perturbation in the embedding space using L2 distance
-
-        Parameters
-        ----------
-        pert_embeddings : Dict[str, np.ndarray]
-            Dictionary containing the perturbation embeddings
-
-        target : str
-            The target perturbation ID
-
-        Returns
-        -------
-        str
-            The nearest neighbor perturbation ID
-        """
-        assert (target in pert_embeddings) & (pert_embeddings[target] is not None), "Target perturbation not in the embeddings"
-
-        #TODO: Handle if there is no perturbation in the embeddings
-        distances = {}
-        for pert_id, emb in pert_embeddings.items():
-            distances[pert_id] = np.linalg.norm(emb - pert_embeddings[target])
-        
-        return min(distances, key=distances.get)
-    
-
-    def similarity_effect_neighbor(num_of_degs, pvalcut, train_adata: sc.AnnData, target: str, cell_id: str) -> str:
-                
-        unique_perturbations = train_adata.obs[PERT_KEY].unique()
+        unique_perturbations = self.train_adata.obs[PERT_KEY].unique()
         unique_genes_noholdout = [ug for ug in unique_perturbations if (ug!=target and ug!=CONTROL_PERT)]
 
         logger.debug(f"Len of unique genes_no_ho: {len(unique_genes_noholdout)}")
@@ -236,12 +157,23 @@ class NearestNeighborPredictor():
         DEGSlist = []
         GTOlist = []
 
-        inp = train_adata[train_adata.obs[CELL_KEY] == cell_id].copy()
+        inp = self.train_adata[self.train_adata.obs[CELL_KEY] == cell_id].copy()
         
         
         #TODO: FIX, WILL ONLY WORK ON Seurat_IFNB.h5ad
 
-   
+        logger.debug(f'Input.var shape {inp.var.shape}')
+        logger.debug(f"Input.var {inp.var}")        
+        
+        
+        logger.debug(f' # Of cell with type {cell_id} in training data {len(inp)}')
+        logger.debug(f'Finding nearest neighbor perturbation for {target}')
+        logger.debug(f"inp.var_names shape {inp.var_names.shape}")
+
+        logger.debug(f"Inp.var_name == target {inp.var_names==target}")
+
+        logger.debug(f" Inp.var_name == target count {np.count_nonzero(inp.var_names==target)}")
+        
         logger.info(f"Number of genes to compare to {len(unique_genes_noholdout)}")
         for ug in unique_genes_noholdout:
             cont = np.array(inp[inp.obs[PERT_KEY] == CONTROL_PERT].X.todense())
@@ -288,7 +220,7 @@ class NearestNeighborPredictor():
             mask1 = np.where(inp.var_names==target)[0][0]
             mask2 = torch.where(DEGSlist[unique_genes_noholdout.index(genno)] == mask1)[0][0].item()
             rank = gto_gene[mask2]
-            if ((0 <= rank) and (rank <= pvalcut)):
+            if ((0 <= rank) and (rank <= self.config['pvalcut'])):
                 significant_reducers.append(genno)
                 significant_reducers_pval.append(rank) 
 
@@ -324,6 +256,41 @@ class NearestNeighborPredictor():
                     
 
         logger.debug(f'Nearest neighbor perturbation of {target} is {nnbr}')
+        #We have the neighboring perturbation, now we find the effect of this perturbation on each cell type and then apply the corresponding to each cell in the heldout data.
 
-        return nnbr
+        nnbr_pert = nnbr
+
+
+        #Mean control state of each cell type
+
+
+        if self.mean_shift:
+
+
+            selected_cell_control_mean = self.train_adata[(self.train_adata.obs[CELL_KEY] == cell_id) & (self.train_adata.obs[PERT_KEY] == CONTROL_PERT)].X.mean(axis=0)
+
+            selected_cell_nbr_pert_mean = self.train_adata[(self.train_adata.obs[CELL_KEY] == cell_id) & (self.train_adata.obs[PERT_KEY] == nnbr_pert)].X.mean(axis=0)
+            
+        
+            pert_effect = selected_cell_nbr_pert_mean - selected_cell_control_mean
+
+            predictions = adata.copy()
+
+    
+            predictions.X = pert_effect + predictions.X
+
+
+            return predictions.X
+        
+        else:
+            logger.debug(f"Running substitution method")
+            adata_nbr = self.train_adata[(self.train_adata.obs[CELL_KEY] == cell_id) & (self.train_adata.obs[PERT_KEY] == nnbr_pert)]
+            logger.debug(f"Number of cells with cell_id {cell_id} and perturbation {nnbr_pert} in training data {len(adata_nbr)}")
+            res = adata_nbr #sc.pp.subsample(adata_nbr, n_obs=len(adata), replace=True, copy=True)
+            return res.X
+
+        
+
+    
+
 
