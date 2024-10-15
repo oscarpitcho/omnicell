@@ -27,10 +27,12 @@ logger = logging.getLogger(__name__)
 random.seed(42)
 
 def get_model(model_name, config_model, loader):
-    adata, pert_rep_map = loader.get_training_data()   
-    pert_keys = list(pert_rep_map.keys())
-    pert_rep = np.array([pert_rep_map[k] for k in pert_keys])
-    pert_map = {k: i for i, k in enumerate(pert_keys)}
+    adata, pert_rep_map = loader.get_training_data()
+
+    if pert_rep_map is not None:
+        pert_keys = list(pert_rep_map.keys())
+        pert_rep = np.array([pert_rep_map[k] for k in pert_keys])
+        pert_map = {k: i for i, k in enumerate(pert_keys)}
 
 
     input_dim = adata.shape[1]
@@ -113,13 +115,13 @@ def main(*args):
     config = config.add_eval_config(config_evals) if not config_evals == None else config #There might not be an eval config
 
     logging.basicConfig(
-        filename=f'output_{args.slurm_id}_{config.get_model_name()}_{config.get_data_config_name()}.log', 
+        filename=f'output_{args.slurm_id}_{config.get_model_name()}_{config.get_datasplit_config_name()}.log', 
         filemode= 'w', level=args.loglevel, format='%(asctime)s - %(levelname)s - %(message)s'
     )
     
     logger.info("Application started")
 
-    model, model_name, dataconfig_name = None, config.get_model_name(), config.get_data_config_name()
+    model, model_name, datasplit_name = None, config.get_model_name(), config.get_datasplit_config_name()
     
     
     #Hash dir to avoid conflicts when training the same model on same data but with different configs
@@ -141,19 +143,9 @@ def main(*args):
 
     f"{config.get_cell_embedding_name()}_and_{config.get_pert_embedding_name()}"
     
-    model_savepath = Path(f"./models/{dataconfig_name}/{pert_and_cell_emb_path}{model_name}/{hash_dir}").resolve()
+    model_savepath = Path(f"./models/{datasplit_name}/{pert_and_cell_emb_path}{model_name}/{hash_dir}").resolve()
 
     logger.info(f"Saving to model to {model_savepath}")
-
-    #Saving run config
-    if not os.path.exists(model_savepath):
-        os.makedirs(model_savepath)
-
-    #We only save the training config (ETL + Split + Model)
-    logger.info(f"Saving Training config to {model_savepath}")
-    with open(f"{model_savepath}/training_config.yaml", 'w+') as f:
-        yaml.dump(config.get_training_config().to_dict(), f, indent=2, default_flow_style=False)
-
 
     catalogue = Catalogue(DATA_CATALOGUE_PATH)
     loader = DataLoader(config, catalogue)
@@ -163,6 +155,8 @@ def main(*args):
 
 
     if hasattr(model, 'save') and hasattr(model, 'load'):
+
+        #Path depends on hash of config
         if os.path.exists(model_savepath):
             logger.info(f"Model already trained, loading model from {model_savepath}")
             model.load(model_savepath)
@@ -171,8 +165,16 @@ def main(*args):
             logger.info("Model not trained, training model")
             model.train(adata)
             logger.info("Training completed")
+            
+            os.makedirs(os.path.dirname(model_savepath), exist_ok=True)
+
             logger.info(f"Saving model to {model_savepath}")
             model.save(model_savepath)
+            
+            #We only save the training config (ETL + Split + Model)
+            logger.info(f"Saving Training config to {model_savepath}")
+            with open(f"{model_savepath}/training_config.yaml", 'w+') as f:
+                yaml.dump(config.get_training_config().to_dict(), f, indent=2, default_flow_style=False)
     else:
         logger.info("Model does not support saving/loading, training from scratch")
         model.train(adata)
@@ -190,7 +192,7 @@ def main(*args):
         logger.info("Running evaluation")
         eval_config_name = config.get_eval_config_name()
         
-        results_path = Path(f"./results/{dataconfig_name}/{pert_and_cell_emb_path}{model_name}/{eval_config_name}{hash_dir}").resolve()
+        results_path = Path(f"./results/{datasplit_name}/{pert_and_cell_emb_path}{model_name}/{eval_config_name}{hash_dir}").resolve()
         logger.info(f"Saving results to {results_path}")
 
         #Saving run config
