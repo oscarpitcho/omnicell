@@ -13,12 +13,16 @@ source ~/.bashrc
 mamba activate sandbox
 
 # Run the training script
+
+echo "Running training"
 python train.py --etl_config configs/kang/ETL/normalize_and_log1p.yaml \
  --datasplit_config configs/kang/splits/ho_CD4T.yaml \
  --eval_config configs/kang/evals/ev_CD4T.yaml \
- --model_config configs/models/vae.yaml -l DEBUG
+ --model_config configs/models/test.yaml -l DEBUG
 
 
-python generate_evaluations.py --root_dir ./reseults/kang
+echo "Training Done - Generating Evaluations"
+
+python generate_evaluations.py --root_dir ./results/ho_CD4T
 
 echo "Job Finished"

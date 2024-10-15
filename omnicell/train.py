@@ -42,6 +42,8 @@ def get_model(model_name, config_model, loader):
     logger.info(f"Data loaded, # of cells: {adata.shape[0]}, # of features: {input_dim} # of perts: {len(pert_ids)}")
     logger.info(f"Running experiment on {device}")
 
+    logger.debug(f"Training data loaded, perts are: {adata.obs[PERT_KEY].unique()}")
+
     if 'nearest-neighbor' in model_name:
         from omnicell.models.nearest_neighbor.predictor import NearestNeighborPredictor
         logger.info("Nearest Neighbor model selected")
