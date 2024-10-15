@@ -1,6 +1,0 @@
-name: ho_CD4T
-dataset: kang
-log1p: True 
-count_norm: True
-cell_embedding: False #Note, whatt if we have both log1p and count_norm true and an embedding, can we ensure that the embedding is applied after the log1p and count_norm?
-pert_embedding: null
