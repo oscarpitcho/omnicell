@@ -143,9 +143,7 @@ def main(*args):
 
     f"{config.get_cell_embedding_name()}_and_{config.get_pert_embedding_name()}"
     
-    model_savepath = Path(f"./models/{datasplit_name}/{pert_and_cell_emb_path}{model_name}/{hash_dir}").resolve()
 
-    logger.info(f"Saving to model to {model_savepath}")
 
     catalogue = Catalogue(DATA_CATALOGUE_PATH)
     loader = DataLoader(config, catalogue)
@@ -156,6 +154,9 @@ def main(*args):
 
     if hasattr(model, 'save') and hasattr(model, 'load'):
 
+        model_savepath = Path(f"./models/{datasplit_name}/{pert_and_cell_emb_path}{model_name}/{hash_dir}").resolve()
+
+
         #Path depends on hash of config
         if os.path.exists(model_savepath):
             logger.info(f"Model already trained, loading model from {model_savepath}")
@@ -165,10 +166,10 @@ def main(*args):
             logger.info("Model not trained, training model")
             model.train(adata)
             logger.info("Training completed")
-            
-            os.makedirs(os.path.dirname(model_savepath), exist_ok=True)
-
             logger.info(f"Saving model to {model_savepath}")
+            os.makedirs(model_savepath, exist_ok=True)
+
+
             model.save(model_savepath)
             
             #We only save the training config (ETL + Split + Model)

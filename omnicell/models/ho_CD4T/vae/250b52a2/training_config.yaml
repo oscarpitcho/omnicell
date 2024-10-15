@@ -1,0 +1,21 @@
+datasplit_config:
+  holdout_cells:
+  - CD4T
+  holdout_perts: []
+  mode: iid
+  name: ho_CD4T
+etl_config:
+  count_norm: true
+  dataset: kang
+  log1p: true
+model_config:
+  model:
+    hidden_dim: 800
+    latent_dim: 100
+  name: vae
+  training:
+    alpha: 0.001
+    batsize: 32
+    dropout_rate: 0.2
+    epochs: 30
+    learning_rate: 0.001
