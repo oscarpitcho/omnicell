@@ -1,0 +1,26 @@
+name: satija_across_genes
+
+data:
+  dataset: satija_IFNB_raw
+  log1p: False 
+  count_norm: False
+  cell_embedding: X_uce #Note, whatt if we have both log1p and count_norm true and an embedding, can we ensure that the embedding is applied after the log1p and count_norm?
+  pert_embedding: UCE_ESM2_Mean_Imputed
+
+datasplit:
+  
+  mode: ood
+  holdout_perts: [IFNAR2, TYK2, STAT2, IFNAR1]
+
+  
+
+  #holdout_cells: [xxx]
+  
+  #test_size: 0.2
+  #Something like this later on, i.e. stratification
+  #groupby: ['species', 'condition']
+
+    
+dataloader:
+  batch_size: 128
+  shuffle: true

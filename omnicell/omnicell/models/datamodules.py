@@ -116,7 +116,7 @@ def get_identity_features(adata, cell_type_features=True):
 
 
 def get_dataloader(
-        adata, batch_size=512, embedding="standard", verbose=0, pert_reps=None, pert_ids=None, collate='ot'
+        adata, batch_size=512, verbose=0, pert_reps=None, pert_ids=None, collate='ot'
 ):
         control_idx = adata.obs[PERT_KEY] == CONTROL_PERT
         pert_idx = adata.obs[PERT_KEY] != CONTROL_PERT
@@ -125,7 +125,7 @@ def get_dataloader(
         if pert_reps is None:
             pert_ids, pert_reps, cell_types = get_identity_features(adata)
 
-        X = adata.obsm[embedding]
+        X = adata.X # obsm[embedding]
 
         control_train = X[control_idx]
         pert_train = X[pert_idx]
