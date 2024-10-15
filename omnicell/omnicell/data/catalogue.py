@@ -36,12 +36,13 @@ class Catalogue:
 
         #Iterate over all files in the catalogue directory
         for fp in os.listdir(self.path):
-            if fp.endswith(".yaml"):
-                with open(fp) as f:
+            file_path = os.path.join(self.path, fp)
+            if file_path.endswith(".yaml"):
+                with open(file_path) as f:
                     file_name = os.path.basename(fp)
                     dataset_name = file_name.split(".")[0]
 
-                    self._catalogue[dataset_name] = yaml.load(f, Loader=yaml.FullLoader)
+                    self._catalogue[dataset_name] = DatasetDetails(**yaml.load(f, Loader=yaml.FullLoader))
 
 
 
