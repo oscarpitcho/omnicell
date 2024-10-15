@@ -27,7 +27,11 @@ logger = logging.getLogger(__name__)
 random.seed(42)
 
 def get_model(model_name, config_model, loader):
-    adata, pert_embedding = loader.get_training_data()   
+    adata, pert_rep_map = loader.get_training_data()   
+    pert_keys = list(pert_rep_map.keys())
+    pert_rep = np.array([pert_rep_map[k] for k in pert_keys])
+    pert_map = {k: i for i, k in enumerate(pert_keys)}
+
 
     input_dim = adata.shape[1]
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -39,7 +43,12 @@ def get_model(model_name, config_model, loader):
     if 'nearest-neighbor' in model_name:
         from omnicell.models.nearest_neighbor.predictor import NearestNeighborPredictor
         logger.info("Nearest Neighbor model selected")
-        model = NearestNeighborPredictor(config_model)
+        model = NearestNeighborPredictor(config_model, pert_rep=pert_rep, pert_map=pert_map)
+
+    elif 'flow' in model_name:
+        from omnicell.models.flows.flow_predictor import FlowPredictor
+        logger.info("Flow model selected")
+        model = FlowPredictor(config_model, input_dim, pert_rep, pert_map)
 
     elif 'llm' in model_name:
         from omnicell.models.llm.llm_predictor import LLMPredictor
@@ -94,6 +103,7 @@ def main(*args):
 
     config_model = yaml.load(open(model_config_path), Loader=yaml.UnsafeLoader)
     config_data = yaml.load(open(data_config_path), Loader=yaml.UnsafeLoader)
+    config_etl = yaml.load(open(args.etl_config), Loader=yaml.UnsafeLoader)
     config_evals = yaml.load(open(evaluation_config_path), Loader=yaml.UnsafeLoader) if not evaluation_config_path == None else None
 
     config = Config.empty()
@@ -115,8 +125,20 @@ def main(*args):
     #Hash dir to avoid conflicts when training the same model on same data but with different configs
     hash_dir = hashlib.sha256(json.dumps(config.get_training_config().to_dict()).encode()).hexdigest()
     hash_dir = hash_dir[:8]
+
+    pert_and_cell_emb_path = None
+    if(config.get_cell_embedding_name() is not None and config.get_pert_embedding_name() is not None):
+        pert_and_cell_emb_path = f"{config.get_cell_embedding_name()}_and_{config.get_pert_embedding_name}/"
+    elif(config.get_cell_embedding_name() is not None) and config.get_pert_embedding_name() is None:
+        pert_and_cell_emb_path = f"{config.get_cell_embedding_name()}/"
+    elif(config.get_cell_embedding_name() is None) and config.get_pert_embedding_name() is not None:
+        pert_and_cell_emb_path = f"{config.get_pert_embedding_name()}/"
+    else:
+        pert_and_cell_emb_path = ""
+
+    f"{config.get_cell_embedding_name()}_and_{config.get_pert_embedding_name()}"
     
-    model_savepath = Path(f"./models/{dataconfig_name}/{model_name}/{hash_dir}").resolve()
+    model_savepath = Path(f"./models/{dataconfig_name}/{pert_and_cell_emb_path}{model_name}/{hash_dir}").resolve()
 
     logger.info(f"Saving to model to {model_savepath}")
 
@@ -126,7 +148,7 @@ def main(*args):
 
     #We only save the training config (Split + Model)
     logger.info(f"Saving Training config to {model_savepath}")
-    with open(f"{model_savepath}/config.yaml", 'w+') as f:
+    with open(f"{model_savepath}/training_config.yaml", 'w+') as f:
         yaml.dump(config.get_training_config().to_dict(), f, indent=2, default_flow_style=False)
 
 
@@ -136,16 +158,14 @@ def main(*args):
 
     model, adata = get_model(model_name, config_model, loader)
 
-    #Trained Model exists
     if os.path.exists(f"{model_savepath}/trained_model"):
         logger.info(f"Model already trained, loading model from {model_savepath}")
         model.load(model_savepath)
         logger.info("Model loaded")
-    #Model must be trained
     else:
         logger.info("Model not trained, training model")
         #TODO: We need to save the model, and the config with it.
-        #We should save the configs with it but only the ones that are relevant for the model, i.e. training and model config
+        # We should save the configs with it but only the ones that are relevant for the model, i.e. training and model config
         model.train(adata)
         logger.info("Training completed")
         logger.info(f"Saving model to {model_savepath}")
@@ -162,7 +182,8 @@ def main(*args):
     if args.eval_config is not None and hasattr(model, 'make_predict'):
         logger.info("Running evaluation")
         eval_config_name = config.get_eval_config_name()
-        results_path = Path(f"./results/{dataconfig_name}/{model_name}/{eval_config_name}/{hash_dir}").resolve()
+        
+        results_path = Path(f"./results/{dataconfig_name}/{pert_and_cell_emb_path}{model_name}/{eval_config_name}{hash_dir}").resolve()
         logger.info(f"Saving results to {results_path}")
 
         #Saving run config
@@ -172,9 +193,9 @@ def main(*args):
         with open(f"{results_path}/config.yaml", 'w+') as f:
             yaml.dump(config.to_dict(), f, indent=2, default_flow_style=False)
 
-        for cell_id, pert_id, ctrl_data, gt_data, pert_embedding in loader.get_eval_data():
+        for cell_id, pert_id, ctrl_data, gt_data in loader.get_eval_data():
             logger.debug(f"Making predictions for cell: {cell_id}, pert: {pert_id}")
-            preds = model.make_predict(ctrl_data, pert_embedding, pert_id, cell_id)
+            preds = model.make_predict(ctrl_data, pert_id, cell_id)
             preds = to_coo(preds)
             control  = to_coo(ctrl_data.X)
             ground_truth = to_coo(gt_data.X)
