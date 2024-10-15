@@ -32,86 +32,11 @@ class NearestNeighborPredictor():
                 return self._predict_across_pert(adata, pert_id, cell_type)
         else:
             if pert_id in self.seen_perts:
-                return self._predict_across_cell(adata, pert_id, cell_type)
+                raise NotImplementedError("Gene distance version of NN can only do across perts, not across cells.")
             else:
                 raise NotImplementedError("Both cell type and perturbation are not in the training data, out of distribution prediction not implemented yet")
                
 
-    def _predict_across_cell(self, heldout_cell_adata: sc.AnnData, target_pert: str, cell_id: str) -> np.ndarray:
-        """
-        Makes a prediction for a seen target perturbation given some unseen cell type. 
-        
-        We find the closest cell type in the control state and apply apply the average effect of the perturbation on the neighboring cell type to our heldout cell data.
-
-        Parameters
-        ----------
-        heldout_cell_adata : AnnData
-            The AnnData object containing the unseen cell type (and only that cell type) with control perturbation
-        target_pert : str
-            The target perturbation ID to predict
-
-        Returns
-        -------
-        np.ndarray
-            The predicted perturbation for the target using the control perturbation
-
-        """
-
-
-        assert self.train_adata is not None, "Model has not been trained yet"
-        assert heldout_cell_adata.obs[CELL_KEY].nunique() == 1, "Heldout cell data must contain only one cell type"
-        assert heldout_cell_adata.obs[CELL_KEY].unique()[0] == cell_id, "Heldout cell data must contain only one cell type"
-        assert heldout_cell_adata.obs[PERT_KEY].nunique() == 1, "Heldout cell data must contain only control data"
-        assert heldout_cell_adata.obs[PERT_KEY].unique()[0] == CONTROL_PERT, "Heldout cell data must contain only control data"
-
-        cell_types = self.train_adata.obs[CELL_KEY].unique()
-
-        logger.debug(f"Cell types in training data {cell_types}")
-
-        train_cell_type_ctrl_means = []
-        for cell_type in cell_types:
-            train_cell_type_ctrl_means.append(self.train_adata[(self.train_adata.obs[CELL_KEY] == cell_type) & (self.train_adata.obs[PERT_KEY] == CONTROL_PERT)].X.mean(axis=0))
-
-        
-        train_cell_type_ctrl_means = np.squeeze(np.array(train_cell_type_ctrl_means))
-
-        logger.debug(f"train_cell_type_ctrl_means shape {train_cell_type_ctrl_means.shape}")
-
-        #Mean control state of the heldout cell
-        heldout_cell_ctrl_mean = heldout_cell_adata.X.mean(axis=0)
-
-        logger.debug(f"train_cell_type_ctrl_means shape {train_cell_type_ctrl_means.shape}")
-        logger.debug(f"heldout_cell_ctrl_mean shape {heldout_cell_ctrl_mean.shape}")
-    
-        #Computing distances
-        diffs = train_cell_type_ctrl_means - heldout_cell_ctrl_mean
-
-        #Applying L2 distance, could be changed to L1
-        squared_diffs = np.square(diffs)
-
-
-        distances_to_heldout = np.sum(squared_diffs, axis=1)
-        closest_cell_type_idx = np.argmin(distances_to_heldout)
-
-        logger.debug(f"Closest cell type to evaluated cell_type {cell_id} is {cell_types[closest_cell_type_idx]}")
-        closest_cell_type = cell_types[closest_cell_type_idx]
-
-        if self.mean_shift:
-            perturbed_closest_cell_type = self.train_adata[(self.train_adata.obs[CELL_KEY] == closest_cell_type) & (self.train_adata.obs[PERT_KEY] == target_pert)].X.mean(axis=0)
-            pert_effect = perturbed_closest_cell_type - train_cell_type_ctrl_means[closest_cell_type_idx]
-            pert_effect_norm = np.linalg.norm(pert_effect)
-
-            logger.debug(f"Perturbation effect norm {pert_effect_norm}")
-            #Apply the perturbation effect to the heldout cell data
-            predicted_perts = heldout_cell_adata.X + pert_effect
-            return predicted_perts
-    
-        else:
-            adata_nbr = self.train_adata[(self.train_adata.obs[CELL_KEY] == closest_cell_type) & (self.train_adata.obs[PERT_KEY] == target_pert)]
-            #TODO: FIX - It might cause issue with the predict method returns a different number of cells than the heldout cell data
-            #res = sc.pp.subsample(adata_nbr, n_obs=len(heldout_cell_adata), copy=True)
-            res = adata_nbr #sc.pp.subsample(adata_nbr, n_obs=len(adata), replace=True, copy=True)
-            return res.X
 
     #SO I want to predict across genes --> Two options either we provide the data or we don't provide the data on which the prediction is made
     def _predict_across_pert(self, adata: sc.AnnData, target: str, cell_id: str) -> np.ndarray:
