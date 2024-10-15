@@ -144,10 +144,15 @@ class DataLoader:
 
         # Checking if we have already a cached version of the training data
         if self.training_adata is None:
+
+            logger.info(f"Loading training data at path: {self.training_dataset_details.path}")
             adata = sc.read(self.training_dataset_details.path)
+
 
             logger.info("Preprocessing training data")
             adata = self.preprocess_data(adata, training=True)
+
+            logger.debug(f"Loaded complete data, # of data points: {len(adata)}, # of genes: {len(adata.var)}, # of conditions: {len(adata.obs[PERT_KEY].unique())}")
 
             if self.config.get_mode() == "ood":
                 logger.info("Doing OOD split")
@@ -182,18 +187,23 @@ class DataLoader:
         return adata
 
     def get_eval_data(self):
-        self.eval_dataset_details = self._get_dataset_details(self.config.get_eval_dataset_name(), self.data_catalogue)
+        self.eval_dataset_details = self.data_catalogue.get_dataset_details(self.config.get_eval_dataset_name())
 
         logger.info(f"Loading evaluation data at path: {self.eval_dataset_details.path}")
         adata = sc.read(self.eval_dataset_details.path)
+        
 
         logger.info("Preprocessing evaluation data")
         adata = self.preprocess_data(adata, training=False)
 
 
+        logger.debug(f"Eval targets are {self.config.get_eval_targets()}")
         for cell_id, pert_id in self.config.get_eval_targets():
             gt_data = adata[(adata.obs[PERT_KEY] == pert_id) & (adata.obs[CELL_KEY] == cell_id)]
             ctrl_data = adata[(adata.obs[CELL_KEY] == cell_id) & (adata.obs[PERT_KEY] == CONTROL_PERT)]
+
+            assert len(gt_data) > 0, f"No data found for {cell_id} and {pert_id} in {self.eval_dataset_details.name}"
+            assert len(ctrl_data) > 0, f"No control data found for {cell_id} in {self.eval_dataset_details.name}"
             
             yield cell_id, pert_id, ctrl_data, gt_data
 

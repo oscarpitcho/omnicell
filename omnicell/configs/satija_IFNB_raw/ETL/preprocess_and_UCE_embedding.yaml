@@ -1,4 +1,4 @@
-dataset: kang
+dataset: satija_IFNB_raw
 log1p: True 
 count_norm: True
 pert_embedding: UCE_ESM2_Mean_Imputed

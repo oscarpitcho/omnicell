@@ -54,14 +54,14 @@ class NearestNeighborPredictor():
         assert self.train_adata is not None, "Model has not been trained yet"
         if cell_type in self.seen_cell_types:
             if pert_id in self.seen_perts:
-                raise NotImplementedError("Both cell type and perturbation are in the training data, in distribution prediction not implemented yet")
+                raise NotImplementedError(f"Both cell type: {cell_type} and perturbation: {pert_id} are in the training data, in distribution prediction not implemented yet")
             else:
                 return self._predict_across_pert(adata, pert_id, cell_type)
         else:
             if pert_id in self.seen_perts:
                 return self._predict_across_cell(adata, pert_id, cell_type)
             else:
-                raise NotImplementedError("Both cell type and perturbation are not in the training data, out of distribution prediction not implemented yet")
+                raise NotImplementedError(f"Neither cell type: {cell_type} and perturbation: {pert_id}, out of distribution prediction not implemented yet")
                
 
     def _predict_across_cell(self, heldout_cell_adata: sc.AnnData, target_pert: str, cell_id: str) -> np.ndarray:
@@ -158,6 +158,8 @@ class NearestNeighborPredictor():
         
         cell_type_idx = np.where(self.seen_cell_types == cell_type)[0][0]
         # Computing distances
+
+        #TODO: Why does it matter which metrics we use here, the closest perturbation is the same no ?
         distances_to_target = self.pert_dist_fn(self.pert_rep[list(map(self.pert_map.get, self.seen_perts))], self.pert_rep[self.pert_map[target_pert]])
         closest_pert = self.seen_perts[np.argmin(distances_to_target)]
                     
