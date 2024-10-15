@@ -196,7 +196,7 @@ def main(*args):
         eval_config_name = config.get_eval_config_name()
         
         results_path = Path(f"./results/{datasplit_name}/{pert_and_cell_emb_path}{model_name}/{eval_config_name}{hash_dir}").resolve()
-        logger.info(f"Saving results to {results_path}")
+        logger.info(f"Will save results to {results_path}")
 
         #Saving run config
         if not os.path.exists(results_path):
