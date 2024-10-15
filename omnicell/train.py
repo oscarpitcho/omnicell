@@ -80,7 +80,7 @@ def main(*args):
     print("Running main")
     parser = argparse.ArgumentParser(description='Analysis settings.')
 
-    parser.add_argument('--data_config', type=str, default=None, help='Path to yaml config of the datasplit.')
+    parser.add_argument('--datasplit_config', type=str, default=None, help='Path to yaml config of the datasplit.')
     parser.add_argument('--etl_config', type=str, default=None, help='Path to yaml config file of the etl process.')
     parser.add_argument('--model_config', type=str, default=None, help='Path to yaml config file of the model.')
     parser.add_argument('--eval_config', type=str, default=None, help='Path to yaml config file of the evaluations, if none provided the model will only be trained.')
@@ -98,17 +98,18 @@ def main(*args):
 
 
     model_config_path = Path(args.model_config).resolve()
-    data_config_path = Path(args.data_config).resolve()
+    datasplit_config_path = Path(args.datasplit_config).resolve()
     evaluation_config_path = Path(args.eval_config).resolve() if not args.eval_config == None else None
 
     config_model = yaml.load(open(model_config_path), Loader=yaml.UnsafeLoader)
-    config_data = yaml.load(open(data_config_path), Loader=yaml.UnsafeLoader)
+    config_datasplit = yaml.load(open(datasplit_config_path), Loader=yaml.UnsafeLoader)
     config_etl = yaml.load(open(args.etl_config), Loader=yaml.UnsafeLoader)
     config_evals = yaml.load(open(evaluation_config_path), Loader=yaml.UnsafeLoader) if not evaluation_config_path == None else None
 
     config = Config.empty()
     config = config.add_model_config(config_model) #There will always be a model config
-    config = config.add_data_config(config_data) #There will always be a training config
+    config = config.add_etl_config(config_etl) #There will always be an etl config
+    config = config.add_datasplit_config(config_datasplit) #There will always be a training config
     config = config.add_eval_config(config_evals) if not config_evals == None else config #There might not be an eval config
 
     logging.basicConfig(
@@ -126,6 +127,9 @@ def main(*args):
     hash_dir = hashlib.sha256(json.dumps(config.get_training_config().to_dict()).encode()).hexdigest()
     hash_dir = hash_dir[:8]
 
+
+
+    #Building the path for where to save the model / results
     pert_and_cell_emb_path = None
     if(config.get_cell_embedding_name() is not None and config.get_pert_embedding_name() is not None):
         pert_and_cell_emb_path = f"{config.get_cell_embedding_name()}_and_{config.get_pert_embedding_name}/"
@@ -158,18 +162,22 @@ def main(*args):
 
     model, adata = get_model(model_name, config_model, loader)
 
-    if os.path.exists(f"{model_savepath}/trained_model"):
-        logger.info(f"Model already trained, loading model from {model_savepath}")
-        model.load(model_savepath)
-        logger.info("Model loaded")
+
+    if hasattr(model, 'save') and hasattr(model, 'load'):
+        if os.path.exists(model_savepath):
+            logger.info(f"Model already trained, loading model from {model_savepath}")
+            model.load(model_savepath)
+            logger.info("Model loaded")
+        else:
+            logger.info("Model not trained, training model")
+            model.train(adata)
+            logger.info("Training completed")
+            logger.info(f"Saving model to {model_savepath}")
+            model.save(model_savepath)
     else:
-        logger.info("Model not trained, training model")
-        #TODO: We need to save the model, and the config with it.
-        # We should save the configs with it but only the ones that are relevant for the model, i.e. training and model config
+        logger.info("Model does not support saving/loading, training from scratch")
         model.train(adata)
-        logger.info("Training completed")
-        logger.info(f"Saving model to {model_savepath}")
-        model.save(model_savepath)
+        logger.info("Training completed")    
 
     # if model has encode function then encode the full adata and save in the model dir
     if hasattr(model, 'encode'):

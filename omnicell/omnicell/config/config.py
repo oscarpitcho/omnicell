@@ -71,12 +71,12 @@ class Config:
         return config
     
     """
-    Returns a config with only the portions of the config that are relevant for training
+    Returns a config with only the portions of the config that are relevant for training: etl, datasplit and model
     """
     def get_training_config(self) -> 'Config':
         datasplit_config = self.datasplit_config.copy()
         model_config = self.model_config.copy()
-        return Config({'datasplit_config': datasplit_config, 'model_config': model_config})
+        return Config({'datasplit_config': datasplit_config, 'model_config': model_config, 'etl_config': self.etl_config})
     
     # GETTERS FOR MODEL
     def get_model_name(self)-> str:
@@ -94,22 +94,22 @@ class Config:
         return self.datasplit_config['name']
     
     """Returns mode of data split, iid or ood"""
-    def get_mode(self):
-        return self.datasplit_config['datasplit']['mode']
+    def get_mode(self) -> str:
+        return self.datasplit_config['mode']
     
-    def get_heldout_cells(self):
+    def get_heldout_cells(self) -> List[str]:
         """Returns the heldout cells for the training data, returns an empty list if no cells are held out"""
-        return self.datasplit_config['datasplit'].get('holdout_cells', [])
+        return self.datasplit_config.get('holdout_cells', [])
     
-    def get_heldout_perts(self):
+    def get_heldout_perts(self) -> List[str]:
         """Returns the heldout perturbations for the training data, returns an empty list if no perturbations are held out"""
-        return self.datasplit_config['datasplit'].get('holdout_perts', [])
+        return self.datasplit_config.get('holdout_perts', [])
     
     def get_apply_normalization(self) -> bool:
-        return self.datasplit_config['data']['count_norm']
+        return self.etl_config['count_norm']
     
     def get_apply_log1p(self) -> bool:
-        return self.datasplit_config['data']['log1p']
+        return self.etl_config['log1p']
    
     def get_cell_embedding_name(self) -> Optional[str]:
         return self.etl_config.get('cell_embedding', None)
