@@ -268,9 +268,8 @@ class VAE():
             raise ValueError("Model has not been trained yet")
         return Encode(self.model, self.train_params, X)
     
-    def decode(self, latent):
-        inp, inpvar = latent
+    def decode(self, latent, latent_var):
         if self.train_params is None:
             raise ValueError("Model has not been trained yet")
-        return Decode(self.model, self.train_params, inp, inpvar)
+        return Decode(self.model, self.train_params, latent, latent_var)
 
