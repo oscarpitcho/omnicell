@@ -65,6 +65,8 @@ class DataLoader:
         self.data_catalogue = data_catalogue
         self.training_dataset_details: DatasetDetails = data_catalogue.get_dataset_details(config.get_training_dataset_name())
 
+        logger.debug(f"Training dataset details: {self.training_dataset_details}")
+
         self.pert_embedding_name: Optional[str] = config.get_pert_embedding_name()
 
         self.cell_embedding_name: Optional[str] = config.get_cell_embedding_name()
@@ -130,6 +132,8 @@ class DataLoader:
         Returns the training data according to the config.
         If an pert embedding is specified then it is also returned
         """
+
+        pert_embedding = None 
         if self.pert_embedding_name is not None:
             if self.pert_embedding_name not in self.training_dataset_details.pert_embeddings:
                 print(self.training_dataset_details.pert_embeddings)
