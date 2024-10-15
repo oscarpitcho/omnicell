@@ -121,7 +121,6 @@ def main(*args):
 
     model, model_name, dataconfig_name = None, config.get_model_name(), config.get_data_config_name()
     
-    print(f"Training config {config.get_training_config().to_dict()}")
     
     #Hash dir to avoid conflicts when training the same model on same data but with different configs
     hash_dir = hashlib.sha256(json.dumps(config.get_training_config().to_dict()).encode()).hexdigest()
@@ -150,7 +149,7 @@ def main(*args):
     if not os.path.exists(model_savepath):
         os.makedirs(model_savepath)
 
-    #We only save the training config (Split + Model)
+    #We only save the training config (ETL + Split + Model)
     logger.info(f"Saving Training config to {model_savepath}")
     with open(f"{model_savepath}/training_config.yaml", 'w+') as f:
         yaml.dump(config.get_training_config().to_dict(), f, indent=2, default_flow_style=False)
