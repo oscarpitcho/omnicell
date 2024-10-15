@@ -2,6 +2,7 @@
 import scanpy as sc
 import numpy as np
 from typing import Optional
+from pathlib import Path
 
 class TemplateModel():
 
@@ -47,15 +48,17 @@ class TemplateModel():
         pass
 
 
-    def save(self, path):
+
+    #These should only be present if the model can actually be saved, otherwise these functions should NOT be defined in the model
+    def save(self, path: Path):
         """
-        Saves the model to the path
+        Saves the model to the file path
         """
         pass
 
-    def load(self, path) -> 'TemplateModel':
+    def load(self, path: Path) -> 'TemplateModel':
         """
-        Returns a new instance of the model loaded from the path
+        Returns a new instance of the model loaded from the file path
         """
         pass
         

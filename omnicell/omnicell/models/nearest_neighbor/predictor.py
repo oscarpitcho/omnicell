@@ -182,30 +182,7 @@ class NearestNeighborPredictor():
             return res.X
         
 
-    def save(self, savepath: str):
-        """
-        Saves the model to disk.
 
-        Parameters
-        ----------
-        path : str
-            The path to save the model to
-        """
-        with open(f'{savepath}/trained_models', 'wb') as fp:
-            pickle.dump(self.__dict__, fp)
-
-
-    def load(self, path: str):
-        """
-        Loads the model from disk.
-
-        Parameters
-        ----------
-        path : str
-            The path to load the model from
-        """
-        with open(f'{path}/trained_models', 'rb') as fp:
-            self.__dict__ = pickle.load(fp)
 
 
     
