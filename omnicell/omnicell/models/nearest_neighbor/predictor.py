@@ -154,16 +154,24 @@ class NearestNeighborPredictor():
         assert adata.obs[PERT_KEY].unique()[0] == CONTROL_PERT, "Heldout cell data must contain only control data"
         logger.debug(f'Predicting unseen perturbation {target_pert} using all training data')
 
-        # inp = self.train_adata[self.train_adata.obs[CELL_KEY] == cell_id].copy()
         
         cell_type_idx = np.where(self.seen_cell_types == cell_type)[0][0]
+        
+        
         # Computing distances
-
-        #TODO: Why does it matter which metrics we use here, the closest perturbation is the same no ?
         distances_to_target = self.pert_dist_fn(self.pert_rep[list(map(self.pert_map.get, self.seen_perts))], self.pert_rep[self.pert_map[target_pert]])
-        closest_pert = self.seen_perts[np.argmin(distances_to_target)]
-                    
+        
+        # Sort perturbations by distance
+        sorted_indices = np.argsort(distances_to_target)
+        sorted_perts = [self.seen_perts[i] for i in sorted_indices]
+
+        # Log the ranking of perturbations
+        num_to_log = min(10, len(sorted_perts))  # Log top 10 or all if less than 10
+        logger.debug(f'Top {num_to_log} closest perts to {target_pert}: {sorted_perts[:num_to_log]}')
+
+        closest_pert = sorted_perts[0]
         logger.debug(f'Nearest neighbor perturbation of {target_pert} is {closest_pert}')
+
 
         #Mean control state of each cell type
         if self.mean_shift:

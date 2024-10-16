@@ -101,8 +101,8 @@ class NearestNeighborPredictor():
         
         logger.info(f"Number of genes to compare to {len(unique_genes_noholdout)}")
         for ug in unique_genes_noholdout:
-            cont = np.array(inp[inp.obs[PERT_KEY] == CONTROL_PERT].X.todense())
-            pert = np.array(inp[inp.obs[PERT_KEY] == ug].X.todense())
+            cont = np.array(inp[inp.obs[PERT_KEY] == CONTROL_PERT].X)
+            pert = np.array(inp[inp.obs[PERT_KEY] == ug].X)
             
             logger.debug(f'Finding nearest neighbor perturbation for {target} using {ug}')
             logger.debug(f'Control shape {cont.shape}, pert shape {pert.shape}')
@@ -165,9 +165,13 @@ class NearestNeighborPredictor():
 
         bestnnscore = 0
         bestpval = 0
+
+        ranking = []
+
+        
         for jq, sr in enumerate(significant_reducers):
             nnscore = len(np.intersect1d(duplicated_DEGs.cpu().detach().numpy(),DEGSlist[unique_genes_noholdout.index(sr)][-num_of_degs:].cpu().detach().numpy()))
-             
+            ranking.append([sr, nnscore])
             if nnscore > bestnnscore:
                 nnbr = sr
                 bestnnscore = nnscore
@@ -181,6 +185,12 @@ class NearestNeighborPredictor():
                     
 
         logger.debug(f'Nearest neighbor perturbation of {target} is {nnbr}')
+
+        ranking = sorted(ranking, key=lambda x: x[1], reverse=True)
+
+        logger.debug(f'Nearest neighbor ranking: {ranking}')
+
+
         #We have the neighboring perturbation, now we find the effect of this perturbation on each cell type and then apply the corresponding to each cell in the heldout data.
 
         nnbr_pert = nnbr
