@@ -44,10 +44,15 @@ def get_model(model_name, config_model, loader):
 
     logger.debug(f"Training data loaded, perts are: {adata.obs[PERT_KEY].unique()}")
 
-    if 'nearest-neighbor' in model_name:
+    if 'nearest-neighbor-generic' in model_name:
         from omnicell.models.nearest_neighbor.predictor import NearestNeighborPredictor
         logger.info("Nearest Neighbor model selected")
         model = NearestNeighborPredictor(config_model, pert_rep=pert_rep, pert_map=pert_map)
+
+    elif 'nearest-neighbor-gene-dist' in model_name:
+        from omnicell.models.nearest_neighbor.gene_distance import NearestNeighborPredictor
+        logger.info("Nearest Neighbor Gene Distance model selected")
+        model = NearestNeighborPredictor(config_model)
 
     elif 'flow' in model_name:
         from omnicell.models.flows.flow_predictor import FlowPredictor

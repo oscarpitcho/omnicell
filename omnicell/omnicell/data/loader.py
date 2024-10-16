@@ -200,7 +200,7 @@ class DataLoader:
 
 
         #To avoid loading the same data twice
-        if self.eval_dataset_details.name == self.training_dataset_details.name:
+        if self.config.get_training_dataset_name() == self.config.get_eval_dataset_name():
             self.complete_eval_adata = self.get_complete_training_dataset()
 
         else:
@@ -215,8 +215,8 @@ class DataLoader:
 
         logger.debug(f"Eval targets are {self.config.get_eval_targets()}")
         for cell_id, pert_id in self.config.get_eval_targets():
-            gt_data = self.complete_eval_adata[(adata.obs[PERT_KEY] == pert_id) & (self.complete_eval_adata.obs[CELL_KEY] == cell_id)]
-            ctrl_data = self.complete_eval_adata[(adata.obs[CELL_KEY] == cell_id) & (self.complete_eval_adata.obs[PERT_KEY] == CONTROL_PERT)]
+            gt_data = self.complete_eval_adata[(self.complete_eval_adata.obs[PERT_KEY] == pert_id) & (self.complete_eval_adata.obs[CELL_KEY] == cell_id)]
+            ctrl_data = self.complete_eval_adata[(self.complete_eval_adata.obs[CELL_KEY] == cell_id) & (self.complete_eval_adata.obs[PERT_KEY] == CONTROL_PERT)]
 
 
             #TODO: We might want to handle this differently, e.g. warning logs or sth

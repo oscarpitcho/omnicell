@@ -1,9 +1,8 @@
-#version: This can be any text_field
+
 
 name: nearest-neighbor_mean_shift
-mean_shift: True
+mean_shift: False
 num_of_degs: 20
 pvalcut: 0.05
-
-
-
+pert_dist_metric: l2
+cell_dist_metric: l2
