@@ -3,7 +3,9 @@ import scanpy as sc
 from omnicell.data.loader import DataLoader, DatasetDetails
 import torch 
 import argparse
+from omnicell.constants import DATA_CATALOGUE_PATH
 import json
+from omnicell.data.catalogue import Catalogue, DatasetDetails
 
 import logging
 
@@ -12,7 +14,6 @@ logger = logging.getLogger(__name__)
 
 
 def main():
-    DATA_CATALOGUE_PATH = 'dataset_catalogue.json'
 
     parser = argparse.ArgumentParser(description='Generate static embedding')
 
@@ -30,11 +31,14 @@ def main():
     assert args.embedding_name is not None, "Please provide a name for the embedding"
     assert args.imputing_method is not None, "Please provide an imputing method"
 
-    catalogue = json.load(open(DATA_CATALOGUE_PATH))
 
+
+    catalogue = Catalogue(DATA_CATALOGUE_PATH)
 
     #Getting the dataset details from the data_catalogue.json
-    ds_details = DataLoader._get_dataset_details(args.dataset_name, catalogue)
+
+    ds_details = catalogue.get_dataset_details(args.dataset_name)
+
     pert_key = ds_details.pert_key
     control_pert = ds_details.control
 
@@ -81,14 +85,8 @@ def main():
     print(f"Size of the embedding: {len(embedding)}")
 
 
-    #TODO: Automatically extend json catalogue with the new embedding
-
-
-    #How do we generate the embedding:
-
-    # We either have a static file which we subset
-
-    # Or we have a function which generates the embedding, e.g. for small molecules embedding where we generate all embeddings that corresp
+    #Register the new embedding in the catalogue, This modifies the underlying yaml file
+    catalogue.register_new_pert_embedding(args.dataset_name, args.embedding_name)
 
 
 

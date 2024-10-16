@@ -1,0 +1,13 @@
+path: /orcd/archive/abugoot/001/Projects/dlesman/datasets/essential_gene_knockouts_raw/essential_gene_knockouts_raw.h5ad
+folder_path: /orcd/archive/abugoot/001/Projects/dlesman/datasets/essential_gene_knockouts_raw
+cell_key: cell_type
+control: non-targeting
+pert_key: gene
+var_names_key: null
+HVG: false
+log1p_transformed: false
+count_normalized: false
+description: Essential genes across cells dataset with basic out-of-distribution setup, no normalization applied
+pert_embeddings:
+  - UCE_ESM2_Mean_Imputed
+cell_embeddings: []

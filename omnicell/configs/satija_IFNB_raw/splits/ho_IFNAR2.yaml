@@ -1,0 +1,6 @@
+
+name: ho_IFNAR2
+mode: ood
+#Annoying part is if we have random splits how will we define the tasks? -
+holdout_perts: [IFNAR2]
+

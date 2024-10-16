@@ -10,13 +10,19 @@ hostname                     # Print the hostname of the compute node
 
 
 source ~/.bashrc
-conda activate dsbm
+mamba activate sandbox
 
 # Run the training script
-python train.py --data_config configs/splits/satija_raw/satija_across_genes_hvg.yaml --model_config configs/models/nearest-neighbor/nearest-neighbor_substitute.yaml \
- --eval_config configs/evals/satija_raw/ev_satija_across_genes_hvg.yaml -l DEBUG
+
+echo "Running training"
+python train.py --etl_config configs/kang/ETL/normalize_and_log1p.yaml \
+ --datasplit_config configs/kang/splits/ho_CD4T.yaml \
+ --eval_config configs/kang/evals/ev_CD4T.yaml \
+ --model_config configs/models/test.yaml -l DEBUG
 
 
-python generate_evaluations.py --root_dir ./results/nn/satija_across_genes
+echo "Training Done - Generating Evaluations"
+
+python generate_evaluations.py --root_dir ./results/ho_CD4T
 
 echo "Job Finished"
