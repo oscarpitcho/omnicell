@@ -1,0 +1,42 @@
+name: essential_genes_across_cells_basic_ood_no_norm
+
+data: 
+  path: /orcd/archive/abugoot/001/Projects/dlesman/datasets/essential_gene_knockouts_raw.h5ad
+  apply_norm: False
+  apply_log1p: False
+  
+  cell_key: cell_type
+  pert_key: gene
+  control: non-targeting
+  
+
+datasplit:
+
+  mode: ood
+  training:
+    #Random folds need to be implemented
+    #TODO: More complex splits
+
+    #Annoying part is if we have random splits how will we define the tasks? -
+    holdout_cells: ['k562']
+
+  evals:
+
+    #What if there was a random fold before
+
+    #Targets on which we evaluate when we do the holdout, can be ALL
+    #If these are also heldout then we are evaluating on unseen cell + unseen pert
+    #Set the combinations to evaluate on, we can implement more complex commands later on
+    evaluation_targets: [[k562, EIF6], [k562, PDCD11], [k562, SF3B1], [k562, LRRC37B], [k562, CHMP6], [k562, YEATS2], [k562, MRPS23], [k562, RPL37A], [k562, ZMAT2], [k562, CLNS1A]]
+
+
+  #holdout_cells: [xxx]
+  
+  #test_size: 0.2
+  #Something like this later on, i.e. stratification
+  #groupby: ['species', 'condition']
+
+    
+dataloader:
+  batch_size: 128
+  shuffle: true

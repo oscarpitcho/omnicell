@@ -113,8 +113,8 @@ def Train_VAE(
             loss.backward() 
             running_loss += loss.item()
             optimizer.step() 
-        print(f'Epoch {e+1}/{epochs}')
-        print(f'Train loss: {running_loss/1000000}')
+        logger.debug(f'Epoch {e+1}/{epochs}')
+        logger.debug(f'Train loss: {running_loss/1000000}')
     
         running_loss = 0
 
@@ -129,7 +129,7 @@ def Train_VAE(
                 out, mu, logvar = net(batch)
                 loss = net.loss_function(out, batch, mu, logvar)
                 running_loss += loss.item()
-            print(f'Valid loss: {running_loss/1000000}')
+            logger.debug(f'Valid loss: {running_loss/1000000}')
     
 
     params = [epochs, batsize, latent_dim, hidden_dim, dropout_rate, learning_rate, alpha, num_genes]
@@ -252,7 +252,9 @@ class VAE():
     def save(self, savepath):
         if self.train_params is None:
             raise ValueError("Model has not been trained yet")
-        torch.save(self.model.state_dict(), f'{savepath}/trained_model')
+
+
+        torch.save(self.model.state_dict(), f'{savepath}/state_dict.pt')
         with open(f'{savepath}/train_params.pkl', 'wb') as fp:
             pickle.dump(self.train_params, fp)
 

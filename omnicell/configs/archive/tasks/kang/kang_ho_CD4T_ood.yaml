@@ -1,0 +1,39 @@
+name: kang_ho_CD4T_ood
+data: 
+  path: /orcd/archive/abugoot/001/Projects/opitcho/sandbox/omnicell/kang.h5ad
+  cell_key: cell_type
+  pert_key: condition_key
+  apply_norm: True
+  apply_log1p: True
+  control: control
+
+datasplit:
+  #test_size: 1000
+  #control_size: 1000
+  #Mode can be ood or iid --> 
+
+  mode: ood
+
+  training:
+    #Random folds need to be implemented
+    #TODO: More complex splits
+
+    #Annoying part is if we have random splits how will we define the tasks? -
+    holdout_cells: [CD4T]
+
+
+  evals:
+
+    #What if there was a random fold before
+
+    #Targets on which we evaluate when we do the holdout, can be ALL
+    #If these are also heldout then we are evaluating on unseen cell + unseen pert
+    #Set the combinations to evaluate on, we can implement more complex commands later on
+    evaluation_targets: [[CD4T, perturbed]]
+
+
+
+    
+dataloader:
+  batch_size: 128
+  shuffle: true

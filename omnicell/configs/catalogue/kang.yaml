@@ -1,0 +1,13 @@
+path: /orcd/archive/abugoot/001/Projects/dlesman/datasets/kang/kang.h5ad
+folder_path: /orcd/archive/abugoot/001/Projects/dlesman/datasets/kang/
+cell_key: cell_type
+control: control
+pert_key: condition_key
+var_names_key: null
+HVG: false
+log1p_transformed: false
+count_normalized: false
+description: Some description of the dataset
+pert_embeddings:
+  - UCE_ESM2_Mean_Imputed
+cell_embeddings: []

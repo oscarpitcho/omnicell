@@ -250,9 +250,3 @@ class VAEPredictor():
 
 
 
-
-    def save(self, path):
-        pass
-
-    def load(self, path) -> 'VAEPredictor':
-        pass

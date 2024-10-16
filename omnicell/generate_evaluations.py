@@ -11,7 +11,6 @@ from omnicell.data.utils import prediction_filename
 from omnicell.config.config import Config
 from omnicell.processing.utils import to_dense
 from statistics import mean
-from scipy.sparse import issparse   
 import scipy.sparse as sparse
 from utils.encoder import NumpyTypeEncoder
 
