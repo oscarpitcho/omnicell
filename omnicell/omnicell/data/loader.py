@@ -77,8 +77,8 @@ class DataLoader:
         self.eval_dataset_details: DatasetDetails = None
 
         #We only store the data once it has been preprocessed
-        self.training_adata: Optional[sc.AnnData] = None
-        self.eval_adata: Optional[sc.AnnData] = None
+        self.complete_training_adata: Optional[sc.AnnData] = None
+        self.complete_eval_adata: Optional[sc.AnnData] = None
         
 
     # TODO: This processing should be common between the training and the eval data
@@ -143,7 +143,7 @@ class DataLoader:
                 pert_embedding = torch.load(f"{self.training_dataset_details.folder_path}/{self.pert_embedding_name}.pt")
 
         # Checking if we have already a cached version of the training data
-        if self.training_adata is None:
+        if self.complete_training_adata is None:
 
             logger.info(f"Loading training data at path: {self.training_dataset_details.path}")
             adata = sc.read(self.training_dataset_details.path)
@@ -152,28 +152,30 @@ class DataLoader:
             logger.info("Preprocessing training data")
             adata = self.preprocess_data(adata, training=True)
 
+            self.complete_training_adata = adata
+
             logger.debug(f"Loaded complete data, # of data points: {len(adata)}, # of genes: {len(adata.var)}, # of conditions: {len(adata.obs[PERT_KEY].unique())}")
 
-            if self.config.get_mode() == "ood":
-                logger.info("Doing OOD split")
 
-                # Taking cells for training where neither the cell nor the perturbation is held out
-                holdout_mask = (adata.obs[PERT_KEY].isin(self.config.get_heldout_perts())) | (adata.obs[CELL_KEY].isin(self.config.get_heldout_cells()))
-                train_mask = ~holdout_mask
+        if self.config.get_mode() == "ood":
+            logger.info("Doing OOD split")
 
-            # IID, we include unperturbed holdouts cells
-            else:
-                logger.info("Doing IID split")
-                # Holding out only cells that have heldout perturbations AND cell. Thus:
-                # A perturbation will be included on the non holdout cell type eg
-                # Control of heldout cell type will be included
-                holdout_mask = (adata.obs[CELL_KEY].isin(self.config.get_heldout_cells())) & (adata.obs[PERT_KEY].isin(self.config.get_heldout_perts()))
-                train_mask = ~holdout_mask
+            # Taking cells for training where neither the cell nor the perturbation is held out
+            holdout_mask = (adata.obs[PERT_KEY].isin(self.config.get_heldout_perts())) | (adata.obs[CELL_KEY].isin(self.config.get_heldout_cells()))
+            train_mask = ~holdout_mask
 
-            adata_train = adata[train_mask]
-            self.training_adata = adata_train   
+        # IID, we include unperturbed holdouts cells
+        else:
+            logger.info("Doing IID split")
+            # Holding out only cells that have heldout perturbations AND cell. Thus:
+            # A perturbation will be included on the non holdout cell type eg
+            # Control of heldout cell type will be included
+            holdout_mask = (adata.obs[CELL_KEY].isin(self.config.get_heldout_cells())) & (adata.obs[PERT_KEY].isin(self.config.get_heldout_perts()))
+            train_mask = ~holdout_mask
 
-        return self.training_adata, pert_embedding
+        adata_train = adata[train_mask]
+
+        return adata_train, pert_embedding
 
 
     def get_complete_training_dataset(self) -> sc.AnnData:
@@ -181,26 +183,33 @@ class DataLoader:
         Returns the entire dataset for training, including the heldout cells and perturbations.
         Data is preprocessed according to config
         """
-        adata = sc.read(self.training_dataset_details.path)
-        logger.info("Preprocessing training data")
-        adata = self.preprocess_data(adata, training=True)
-        return adata
+        if self.complete_training_adata is None:
+            adata = sc.read(self.training_dataset_details.path)
+            logger.info("Preprocessing training data")
+            self.complete_training_adata = self.preprocess_data(adata, training=True)
+ 
+        return self.complete_training_adata
 
     def get_eval_data(self):
         self.eval_dataset_details = self.data_catalogue.get_dataset_details(self.config.get_eval_dataset_name())
 
-        logger.info(f"Loading evaluation data at path: {self.eval_dataset_details.path}")
-        adata = sc.read(self.eval_dataset_details.path)
-        
+        if self.eval_dataset_details.name == self.training_dataset_details.name:
+            self.complete_eval_adata = self.get_complete_training_dataset()
 
-        logger.info("Preprocessing evaluation data")
-        adata = self.preprocess_data(adata, training=False)
+        else:
+
+            logger.info(f"Loading evaluation data at path: {self.eval_dataset_details.path}")
+            adata = sc.read(self.eval_dataset_details.path)
+
+            logger.info("Preprocessing evaluation data")
+            adata = self.preprocess_data(adata, training=False)
+            self.complete_eval_adata = adata
 
 
         logger.debug(f"Eval targets are {self.config.get_eval_targets()}")
         for cell_id, pert_id in self.config.get_eval_targets():
-            gt_data = adata[(adata.obs[PERT_KEY] == pert_id) & (adata.obs[CELL_KEY] == cell_id)]
-            ctrl_data = adata[(adata.obs[CELL_KEY] == cell_id) & (adata.obs[PERT_KEY] == CONTROL_PERT)]
+            gt_data = self.complete_eval_adata[(adata.obs[PERT_KEY] == pert_id) & (self.complete_eval_adata.obs[CELL_KEY] == cell_id)]
+            ctrl_data = self.complete_eval_adata[(adata.obs[CELL_KEY] == cell_id) & (self.complete_eval_adata.obs[PERT_KEY] == CONTROL_PERT)]
 
             assert len(gt_data) > 0, f"No data found for {cell_id} and {pert_id} in {self.eval_dataset_details.name}"
             assert len(ctrl_data) > 0, f"No control data found for {cell_id} in {self.eval_dataset_details.name}"
