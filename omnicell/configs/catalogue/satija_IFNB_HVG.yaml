@@ -1,0 +1,12 @@
+path: /orcd/archive/abugoot/001/Projects/dlesman/datasets/satija_IFNB_raw/Seurat_IFNB.h5ad
+folder_path: /orcd/archive/abugoot/001/Projects/dlesman/datasets/satija_IFNB_raw/
+cell_key: cell_type
+control: NT
+pert_key: gene
+var_names_key: gene
+HVG: true
+log1p_transformed: false
+count_normalized: false
+description: Some description of the dataset
+pert_embeddings: []
+cell_embeddings: []
