@@ -3,6 +3,7 @@ from typing import Optional, List, Tuple
 from dataclasses import dataclass, field
 from omnicell.config.config import Config
 from omnicell.constants import PERT_KEY, CELL_KEY, CONTROL_PERT
+from omnicell.data.catalogue import DatasetDetails, Catalogue
 import torch
 
 import logging
@@ -50,22 +51,6 @@ Bullet points are sorted by increasing difficulty
 
 """
 
-@dataclass
-class DatasetDetails:
-    name: str
-    path: str
-    folder_path: str
-    cell_key: str
-    control: str
-    pert_key: str
-    var_names_key: str
-    HVG: bool
-    log1p_transformed: bool
-    count_normalized: bool
-    description: Optional[str] = None
-    pert_embeddings: List[str] = field(default_factory=list)
-    cell_embeddings: List[str] = field(default_factory=list)
-
 
 #We define an enum which is either Training or Evaluation
 #We can then use this to determine which data to load
@@ -75,11 +60,12 @@ class DatasetDetails:
 #TODO: Want to include generic dataset caching, we might starting having many datasets involved in training, not just one
 
 class DataLoader:
-    def __init__(self, config: Config, data_catalogue: List[dict], pert_emb_catalogue: List[dict]):
+    def __init__(self, config: Config, data_catalogue: Catalogue):
         self.config = config
         self.data_catalogue = data_catalogue
-        self.pert_emb_catalogue = pert_emb_catalogue
-        self.training_dataset_details: DatasetDetails = self._get_dataset_details(config.get_training_dataset_name(), data_catalogue)
+        self.training_dataset_details: DatasetDetails = data_catalogue.get_dataset_details(config.get_training_dataset_name())
+
+        logger.debug(f"Training dataset details: {self.training_dataset_details}")
 
         self.pert_embedding_name: Optional[str] = config.get_pert_embedding_name()
 
@@ -91,18 +77,9 @@ class DataLoader:
         self.eval_dataset_details: DatasetDetails = None
 
         #We only store the data once it has been preprocessed
-        self.training_adata: Optional[sc.AnnData] = None
-        self.eval_adata: Optional[sc.AnnData] = None
+        self.complete_training_adata: Optional[sc.AnnData] = None
+        self.complete_eval_adata: Optional[sc.AnnData] = None
         
-
-    @staticmethod
-    def _get_dataset_details(dataset_name: str, catalogue) -> DatasetDetails:
-        details = next((x for x in catalogue if x['name'] == dataset_name), None)
-        if not details:
-            raise ValueError(f"Dataset {dataset_name} not found in catalogue")
-        return DatasetDetails(**details)
-
-
 
     # TODO: This processing should be common between the training and the eval data
     # Mutates the adata object
@@ -155,6 +132,9 @@ class DataLoader:
         Returns the training data according to the config.
         If an pert embedding is specified then it is also returned
         """
+
+        #Getting the per embedding if it is specified
+        pert_embedding = None 
         if self.pert_embedding_name is not None:
             if self.pert_embedding_name not in self.training_dataset_details.pert_embeddings:
                 print(self.training_dataset_details.pert_embeddings)
@@ -164,32 +144,43 @@ class DataLoader:
                 pert_embedding = torch.load(f"{self.training_dataset_details.folder_path}/{self.pert_embedding_name}.pt")
 
         # Checking if we have already a cached version of the training data
-        if self.training_adata is None:
+        if self.complete_training_adata is None:
+
+            logger.info(f"Loading training data at path: {self.training_dataset_details.path}")
             adata = sc.read(self.training_dataset_details.path)
+
 
             logger.info("Preprocessing training data")
             adata = self.preprocess_data(adata, training=True)
 
-            if self.config.get_mode() == "ood":
-                logger.info("Doing OOD split")
+            self.complete_training_adata = adata
 
-                # Taking cells for training where neither the cell nor the perturbation is held out
-                holdout_mask = (adata.obs[PERT_KEY].isin(self.config.get_heldout_perts())) | (adata.obs[CELL_KEY].isin(self.config.get_heldout_cells()))
-                train_mask = ~holdout_mask
+            logger.debug(f"Loaded complete data, # of data points: {len(adata)}, # of genes: {len(adata.var)}, # of conditions: {len(adata.obs[PERT_KEY].unique())}")
 
-            # IID, we include unperturbed holdouts cells
-            else:
-                logger.info("Doing IID split")
-                # Holding out only cells that have heldout perturbations AND cell. Thus:
-                # A perturbation will be included on the non holdout cell type eg
-                # Control of heldout cell type will be included
-                holdout_mask = (adata.obs[CELL_KEY].isin(self.config.get_heldout_cells())) & (adata.obs[PERT_KEY].isin(self.config.get_heldout_perts()))
-                train_mask = ~holdout_mask
 
-            adata_train = adata[train_mask]
-            self.training_adata = adata_train   
 
-        return self.training_adata, pert_embedding
+        # Doing the data split
+        if self.config.get_mode() == "ood":
+            logger.info("Doing OOD split")
+
+            # Taking cells for training where neither the cell nor the perturbation is held out
+            holdout_mask = (self.complete_training_adata.obs[PERT_KEY].isin(self.config.get_heldout_perts())) | (self.complete_training_adata.obs[CELL_KEY].isin(self.config.get_heldout_cells()))
+            train_mask = ~holdout_mask
+
+        # IID, we include unperturbed holdouts cells
+        else:
+            logger.info("Doing IID split")
+            # Holding out only cells that have heldout perturbations AND cell. Thus:
+            # A perturbation will be included on the non holdout cell type eg
+            # Control of heldout cell type will be included
+            holdout_mask = (self.complete_training_adata.obs[CELL_KEY].isin(self.config.get_heldout_cells())) & (self.complete_training_adata.obs[PERT_KEY].isin(self.config.get_heldout_perts()))
+            train_mask = ~holdout_mask
+
+
+        #Subsetting complete dataset to entries for training
+        adata_train = self.complete_training_adata[train_mask]
+
+        return adata_train, pert_embedding
 
 
     def get_complete_training_dataset(self) -> sc.AnnData:
@@ -197,24 +188,40 @@ class DataLoader:
         Returns the entire dataset for training, including the heldout cells and perturbations.
         Data is preprocessed according to config
         """
-        adata = sc.read(self.training_dataset_details.path)
-        logger.info("Preprocessing training data")
-        adata = self.preprocess_data(adata, training=True)
-        return adata
+        if self.complete_training_adata is None:
+            adata = sc.read(self.training_dataset_details.path)
+            logger.info("Preprocessing training data")
+            self.complete_training_adata = self.preprocess_data(adata, training=True)
+ 
+        return self.complete_training_adata
 
     def get_eval_data(self):
-        self.eval_dataset_details = self._get_dataset_details(self.config.get_eval_dataset_name(), self.data_catalogue)
-
-        logger.info(f"Loading evaluation data at path: {self.eval_dataset_details.path}")
-        adata = sc.read(self.eval_dataset_details.path)
-
-        logger.info("Preprocessing evaluation data")
-        adata = self.preprocess_data(adata, training=False)
+        self.eval_dataset_details = self.data_catalogue.get_dataset_details(self.config.get_eval_dataset_name())
 
 
+        #To avoid loading the same data twice
+        if self.config.get_training_dataset_name() == self.config.get_eval_dataset_name():
+            self.complete_eval_adata = self.get_complete_training_dataset()
+
+        else:
+
+            logger.info(f"Loading evaluation data at path: {self.eval_dataset_details.path}")
+            adata = sc.read(self.eval_dataset_details.path)
+
+            logger.info("Preprocessing evaluation data")
+            adata = self.preprocess_data(adata, training=False)
+            self.complete_eval_adata = adata
+
+
+        logger.debug(f"Eval targets are {self.config.get_eval_targets()}")
         for cell_id, pert_id in self.config.get_eval_targets():
-            gt_data = adata[(adata.obs[PERT_KEY] == pert_id) & (adata.obs[CELL_KEY] == cell_id)]
-            ctrl_data = adata[(adata.obs[CELL_KEY] == cell_id) & (adata.obs[PERT_KEY] == CONTROL_PERT)]
+            gt_data = self.complete_eval_adata[(self.complete_eval_adata.obs[PERT_KEY] == pert_id) & (self.complete_eval_adata.obs[CELL_KEY] == cell_id)]
+            ctrl_data = self.complete_eval_adata[(self.complete_eval_adata.obs[CELL_KEY] == cell_id) & (self.complete_eval_adata.obs[PERT_KEY] == CONTROL_PERT)]
+
+
+            #TODO: We might want to handle this differently, e.g. warning logs or sth
+            assert len(gt_data) > 0, f"No data found for {cell_id} and {pert_id} in {self.eval_dataset_details.name}"
+            assert len(ctrl_data) > 0, f"No control data found for {cell_id} in {self.eval_dataset_details.name}"
             
             yield cell_id, pert_id, ctrl_data, gt_data
 

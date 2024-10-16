@@ -9,14 +9,15 @@ import logging
 logger = logging.getLogger(__name__)
 class Config:
     """Immutable class representing a config file for a model or task"""
-    VALID_KEYS = ['model_config', 'eval_config', 'data_config']
+    VALID_KEYS = ['model_config', 'eval_config', 'datasplit_config', 'etl_config']
 
     # So what is the config object, what does it do? - Some top level dictionary that contains all subjacent configs
     def __init__(self, config):
         #self.task_config = config['task'].copy() if 'task' in config else None
         self.model_config = config['model_config'].copy() if 'model_config' in config else None
         self.eval_config = config['eval_config'].copy() if 'eval_config' in config else None
-        self.data_config = config['data_config'].copy() if 'data_config' in config else None
+        self.datasplit_config = config['datasplit_config'].copy() if 'datasplit_config' in config else None
+        self.etl_config = config['etl_config'].copy() if 'etl_config' in config else None
 
         #Log if any non valid keys
         for key in config.keys():
@@ -42,14 +43,16 @@ class Config:
             config['model_config'] = self.model_config.copy()
         if self.eval_config is not None:
             config['eval_config'] = self.eval_config.copy()
-        if self.data_config is not None:
-            config['data_config'] = self.data_config.copy()
+        if self.datasplit_config is not None:
+            config['datasplit_config'] = self.datasplit_config.copy()
+        if self.etl_config is not None:
+            config['etl_config'] = self.etl_config.copy()
         return config
     
     #Bunch of getters and setters to no longer be fixed by the config file structure in the code
-    def add_data_config(self, data_config)-> 'Config':
+    def add_datasplit_config(self, datasplit_config)-> 'Config':
         config = self.copy()
-        config.data_config = data_config
+        config.datasplit_config = datasplit_config
         return config
     
     def add_model_config(self, model_config) -> 'Config':
@@ -62,13 +65,18 @@ class Config:
         config.eval_config = eval_config
         return config
     
+    def add_etl_config(self, etl_config)-> 'Config':
+        config = self.copy()
+        config.etl_config = etl_config
+        return config
+    
     """
-    Returns a config with only the portions of the config that are relevant for training
+    Returns a config with only the portions of the config that are relevant for training: etl, datasplit and model
     """
     def get_training_config(self) -> 'Config':
-        data_config = self.data_config.copy()
+        datasplit_config = self.datasplit_config.copy()
         model_config = self.model_config.copy()
-        return Config({'data_config': data_config, 'model_config': model_config})
+        return Config({'datasplit_config': datasplit_config, 'model_config': model_config, 'etl_config': self.etl_config})
     
     # GETTERS FOR MODEL
     def get_model_name(self)-> str:
@@ -80,34 +88,34 @@ class Config:
 
     # GETTERS FOR TRAINING
     def get_training_dataset_name(self)-> str:
-        return self.data_config['data']['dataset']
+        return self.etl_config['dataset']
     
-    def get_data_config_name(self)-> str:
-        return self.data_config['name']
+    def get_datasplit_config_name(self)-> str:
+        return self.datasplit_config['name']
     
     """Returns mode of data split, iid or ood"""
-    def get_mode(self):
-        return self.data_config['datasplit']['mode']
+    def get_mode(self) -> str:
+        return self.datasplit_config['mode']
     
-    def get_heldout_cells(self):
+    def get_heldout_cells(self) -> List[str]:
         """Returns the heldout cells for the training data, returns an empty list if no cells are held out"""
-        return self.data_config['datasplit'].get('holdout_cells', [])
+        return self.datasplit_config.get('holdout_cells', [])
     
-    def get_heldout_perts(self):
+    def get_heldout_perts(self) -> List[str]:
         """Returns the heldout perturbations for the training data, returns an empty list if no perturbations are held out"""
-        return self.data_config['datasplit'].get('holdout_perts', [])
+        return self.datasplit_config.get('holdout_perts', [])
     
     def get_apply_normalization(self) -> bool:
-        return self.data_config['data']['count_norm']
+        return self.etl_config['count_norm']
     
     def get_apply_log1p(self) -> bool:
-        return self.data_config['data']['log1p']
+        return self.etl_config['log1p']
    
     def get_cell_embedding_name(self) -> Optional[str]:
-        return self.data_config['data'].get('cell_embedding', None)
+        return self.etl_config.get('cell_embedding', None)
     
     def get_pert_embedding_name(self) -> Optional[str]:
-        return self.data_config['data'].get('pert_embedding', None) 
+        return self.etl_config.get('pert_embedding', None) 
     
     # GETTERS FOR EVAL
     def get_eval_config_name(self)-> str:

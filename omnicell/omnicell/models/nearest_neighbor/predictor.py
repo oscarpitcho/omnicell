@@ -54,14 +54,14 @@ class NearestNeighborPredictor():
         assert self.train_adata is not None, "Model has not been trained yet"
         if cell_type in self.seen_cell_types:
             if pert_id in self.seen_perts:
-                raise NotImplementedError("Both cell type and perturbation are in the training data, in distribution prediction not implemented yet")
+                raise NotImplementedError(f"Both cell type: {cell_type} and perturbation: {pert_id} are in the training data, in distribution prediction not implemented yet")
             else:
                 return self._predict_across_pert(adata, pert_id, cell_type)
         else:
             if pert_id in self.seen_perts:
                 return self._predict_across_cell(adata, pert_id, cell_type)
             else:
-                raise NotImplementedError("Both cell type and perturbation are not in the training data, out of distribution prediction not implemented yet")
+                raise NotImplementedError(f"Neither cell type: {cell_type} and perturbation: {pert_id}, out of distribution prediction not implemented yet")
                
 
     def _predict_across_cell(self, heldout_cell_adata: sc.AnnData, target_pert: str, cell_id: str) -> np.ndarray:
@@ -154,14 +154,24 @@ class NearestNeighborPredictor():
         assert adata.obs[PERT_KEY].unique()[0] == CONTROL_PERT, "Heldout cell data must contain only control data"
         logger.debug(f'Predicting unseen perturbation {target_pert} using all training data')
 
-        # inp = self.train_adata[self.train_adata.obs[CELL_KEY] == cell_id].copy()
         
         cell_type_idx = np.where(self.seen_cell_types == cell_type)[0][0]
+        
+        
         # Computing distances
         distances_to_target = self.pert_dist_fn(self.pert_rep[list(map(self.pert_map.get, self.seen_perts))], self.pert_rep[self.pert_map[target_pert]])
-        closest_pert = self.seen_perts[np.argmin(distances_to_target)]
-                    
+        
+        # Sort perturbations by distance
+        sorted_indices = np.argsort(distances_to_target)
+        sorted_perts = [self.seen_perts[i] for i in sorted_indices]
+
+        # Log the ranking of perturbations
+        num_to_log = min(10, len(sorted_perts))  # Log top 10 or all if less than 10
+        logger.debug(f'Top {num_to_log} closest perts to {target_pert}: {sorted_perts[:num_to_log]}')
+
+        closest_pert = sorted_perts[0]
         logger.debug(f'Nearest neighbor perturbation of {target_pert} is {closest_pert}')
+
 
         #Mean control state of each cell type
         if self.mean_shift:
@@ -182,30 +192,7 @@ class NearestNeighborPredictor():
             return res.X
         
 
-    def save(self, savepath: str):
-        """
-        Saves the model to disk.
 
-        Parameters
-        ----------
-        path : str
-            The path to save the model to
-        """
-        with open(f'{savepath}/trained_models', 'wb') as fp:
-            pickle.dump(self.__dict__, fp)
-
-
-    def load(self, path: str):
-        """
-        Loads the model from disk.
-
-        Parameters
-        ----------
-        path : str
-            The path to load the model from
-        """
-        with open(f'{path}/trained_models', 'rb') as fp:
-            self.__dict__ = pickle.load(fp)
 
 
     
