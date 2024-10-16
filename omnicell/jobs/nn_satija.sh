@@ -18,7 +18,12 @@ echo "Running training"
 python train.py --etl_config configs/satija_IFNB_raw/ETL/preprocess_and_UCE_embedding.yaml \
  --datasplit_config configs/satija_IFNB_raw/splits/ho_IFNAR2.yaml \
  --eval_config configs/satija_IFNB_raw/evals/ev_IFNAR2_A549.yaml \
- --model_config configs/models/nearest-neighbor/nearest-neighbor_substitute.yaml -l DEBUG
+ --model_config configs/models/nearest-neighbor/nearest-neighbor_generic_substitute.yaml -l DEBUG
+
+python train.py --etl_config configs/satija_IFNB_raw/ETL/preprocess_and_UCE_embedding.yaml \
+ --datasplit_config configs/satija_IFNB_raw/splits/ho_IFNAR2.yaml \
+ --eval_config configs/satija_IFNB_raw/evals/ev_IFNAR2_A549.yaml \
+ --model_config configs/models/nearest-neighbor/nearest-neighbor_gene_dist_substitute.yaml -l DEBUG
 
 
 echo "Training Done - Generating Evaluations"
