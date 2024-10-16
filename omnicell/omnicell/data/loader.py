@@ -133,6 +133,7 @@ class DataLoader:
         If an pert embedding is specified then it is also returned
         """
 
+        #Getting the per embedding if it is specified
         pert_embedding = None 
         if self.pert_embedding_name is not None:
             if self.pert_embedding_name not in self.training_dataset_details.pert_embeddings:
@@ -157,11 +158,13 @@ class DataLoader:
             logger.debug(f"Loaded complete data, # of data points: {len(adata)}, # of genes: {len(adata.var)}, # of conditions: {len(adata.obs[PERT_KEY].unique())}")
 
 
+
+        # Doing the data split
         if self.config.get_mode() == "ood":
             logger.info("Doing OOD split")
 
             # Taking cells for training where neither the cell nor the perturbation is held out
-            holdout_mask = (adata.obs[PERT_KEY].isin(self.config.get_heldout_perts())) | (adata.obs[CELL_KEY].isin(self.config.get_heldout_cells()))
+            holdout_mask = (self.complete_training_adata.obs[PERT_KEY].isin(self.config.get_heldout_perts())) | (self.complete_training_adata.obs[CELL_KEY].isin(self.config.get_heldout_cells()))
             train_mask = ~holdout_mask
 
         # IID, we include unperturbed holdouts cells
@@ -170,10 +173,12 @@ class DataLoader:
             # Holding out only cells that have heldout perturbations AND cell. Thus:
             # A perturbation will be included on the non holdout cell type eg
             # Control of heldout cell type will be included
-            holdout_mask = (adata.obs[CELL_KEY].isin(self.config.get_heldout_cells())) & (adata.obs[PERT_KEY].isin(self.config.get_heldout_perts()))
+            holdout_mask = (self.complete_training_adata.obs[CELL_KEY].isin(self.config.get_heldout_cells())) & (self.complete_training_adata.obs[PERT_KEY].isin(self.config.get_heldout_perts()))
             train_mask = ~holdout_mask
 
-        adata_train = adata[train_mask]
+
+        #Subsetting complete dataset to entries for training
+        adata_train = self.complete_training_adata[train_mask]
 
         return adata_train, pert_embedding
 
@@ -193,6 +198,8 @@ class DataLoader:
     def get_eval_data(self):
         self.eval_dataset_details = self.data_catalogue.get_dataset_details(self.config.get_eval_dataset_name())
 
+
+        #To avoid loading the same data twice
         if self.eval_dataset_details.name == self.training_dataset_details.name:
             self.complete_eval_adata = self.get_complete_training_dataset()
 
@@ -211,6 +218,8 @@ class DataLoader:
             gt_data = self.complete_eval_adata[(adata.obs[PERT_KEY] == pert_id) & (self.complete_eval_adata.obs[CELL_KEY] == cell_id)]
             ctrl_data = self.complete_eval_adata[(adata.obs[CELL_KEY] == cell_id) & (self.complete_eval_adata.obs[PERT_KEY] == CONTROL_PERT)]
 
+
+            #TODO: We might want to handle this differently, e.g. warning logs or sth
             assert len(gt_data) > 0, f"No data found for {cell_id} and {pert_id} in {self.eval_dataset_details.name}"
             assert len(ctrl_data) > 0, f"No control data found for {cell_id} in {self.eval_dataset_details.name}"
             
