@@ -1,5 +1,5 @@
-path: /orcd/archive/abugoot/001/Projects/dlesman/datasets/satija_IFNB_raw/Seurat_IFNB.h5ad
-folder_path: /orcd/archive/abugoot/001/Projects/dlesman/datasets/satija_IFNB_raw/
+path: /om/group/abugoot/Projects/Omnicell_datasets/satija_IFNB_raw/Seurat_IFNB.h5ad
+folder_path: /om/group/abugoot/Projects/Omnicell_datasets/satija_IFNB_raw/
 cell_key: cell_type
 control: NT
 pert_key: gene
