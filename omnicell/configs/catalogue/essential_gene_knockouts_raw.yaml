@@ -1,5 +1,5 @@
-path: /orcd/archive/abugoot/001/Projects/dlesman/datasets/essential_gene_knockouts_raw/essential_gene_knockouts_raw.h5ad
-folder_path: /orcd/archive/abugoot/001/Projects/dlesman/datasets/essential_gene_knockouts_raw
+path: /om/group/abugoot/Projects/Omnicell_datasets/essential_gene_knockouts_raw/essential_gene_knockouts_raw.h5ad
+folder_path: /om/group/abugoot/Projects/Omnicell_datasets/essential_gene_knockouts_raw
 cell_key: cell_type
 control: non-targeting
 pert_key: gene

@@ -1,5 +1,5 @@
-path: /orcd/archive/abugoot/001/Projects/dlesman/datasets/kang/kang.h5ad
-folder_path: /orcd/archive/abugoot/001/Projects/dlesman/datasets/kang/
+path: /om/group/abugoot/Projects/Omnicell_datasets/kang/kang.h5ad
+folder_path: /om/group/abugoot/Projects/Omnicell_datasets/kang/
 cell_key: cell_type
 control: control
 pert_key: condition_key
