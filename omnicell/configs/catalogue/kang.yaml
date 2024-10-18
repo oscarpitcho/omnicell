@@ -1,13 +1,13 @@
-path: /om/group/abugoot/Projects/Omnicell_datasets/kang/kang.h5ad
-folder_path: /om/group/abugoot/Projects/Omnicell_datasets/kang/
+HVG: false
+cell_embeddings: []
 cell_key: cell_type
 control: control
-pert_key: condition_key
-var_names_key: null
-HVG: false
-log1p_transformed: false
 count_normalized: false
 description: Some description of the dataset
+folder_path: /om/group/abugoot/Projects/Omnicell_datasets/kang/
+log1p_transformed: false
+path: /om/group/abugoot/Projects/Omnicell_datasets/kang/kang.h5ad
 pert_embeddings:
-  - UCE_ESM2_Mean_Imputed
-cell_embeddings: []
+- UCE_ESM2_Mean_Imputed
+pert_key: condition_key
+var_names_key: null

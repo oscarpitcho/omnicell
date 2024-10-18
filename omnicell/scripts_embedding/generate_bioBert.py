@@ -33,14 +33,24 @@ def main():
 
     ds_details = catalogue.get_dataset_details(args.dataset_name)
     pert_key = ds_details.pert_key
-    control_pert = ds_details.control_pert
+    control_pert = ds_details.control
     
-    adata = sc.read(ds_details.path, backed='r')
 
+    # Dealing with https://github.com/h5py/h5py/issues/1679
+    print(f"Loading dataset from {ds_details.path}")
+    with open(ds_details.path, 'rb') as f:
+        adata = sc.read_h5ad(f)
+
+
+    
 
     perts = [x for x in adata.obs[pert_key].unique() if x != control_pert]
 
+    print(f"Loaded dataset with {len(perts)} non control perts")
 
+
+
+    print(f"Fetching model from huggingface")
     # Load tokenizer
     tokenizer = AutoTokenizer.from_pretrained("dmis-lab/biobert-v1.1")
 
@@ -48,6 +58,7 @@ def main():
     model = AutoModel.from_pretrained("dmis-lab/biobert-v1.1")
 
 
+    print(f"Generating embeddings for {len(perts)} perts")
     embeddings = {}
 
     for pert in perts:
@@ -58,13 +69,13 @@ def main():
         # Get the embeddings
         outputs = model(**inputs)
 
-        embeddings = torch.squeeze(outputs.pooler_output)
+        embedding = torch.squeeze(outputs.pooler_output)
 
-        embeddings[pert] = embeddings
+        embeddings[pert] = embedding
 
 
     #Overwrites any existing file with the same name
-    torch.save(embeddings, f"{ds_details.folder_path}/{args.embedding_name}.pt")
+    torch.save(embeddings, f"{ds_details.folder_path}/BioBERT.pt")
 
     print(f"Size of the embedding: {len(embeddings)}")
 
