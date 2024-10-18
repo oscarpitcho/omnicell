@@ -100,6 +100,8 @@ class NearestNeighborPredictor():
         logger.debug(f" Inp.var_name == target count {np.count_nonzero(inp.var_names==target)}")
         
         logger.info(f"Number of genes to compare to {len(unique_genes_noholdout)}")
+        
+        invalid_perts = []
         for ug in unique_genes_noholdout:
             cont = np.array(inp[inp.obs[PERT_KEY] == CONTROL_PERT].X)
             pert = np.array(inp[inp.obs[PERT_KEY] == ug].X)
@@ -114,7 +116,15 @@ class NearestNeighborPredictor():
             
             control.obs_names = control.obs_names+'-1'
             control.X[0,(control.X.var(axis=0)==0)] += np.amin(control.X[np.nonzero(control.X)])
-            true_pert.X[0,(true_pert.X.var(axis=0)==0)] += np.amin(true_pert.X[np.nonzero(true_pert.X)])
+
+            #Bug Fixing: When a pert is not present on a cell type we ignore it.
+            try:
+                true_pert.X[0,(true_pert.X.var(axis=0)==0)] += np.amin(true_pert.X[np.nonzero(true_pert.X)])
+            except e:
+                logger.warning(f"Error when computing DEG and GTO for {ug}")
+                invalid_perts.append(ug)
+
+
             
             temp_concat = sc.concat([control, true_pert], label = 'batch')
             sc.tl.rank_genes_groups(temp_concat, 'batch', method='wilcoxon', groups = ['1'], ref = '0')
@@ -138,6 +148,10 @@ class NearestNeighborPredictor():
         significant_reducers = []
         significant_reducers_pval = []
         for genno in unique_genes_noholdout:
+
+            #Bug Fixing: When a pert is not present on a cell type we ignore it. 
+            if genno in invalid_perts:
+                pass
             logger.debug(f'Finding nearest neighbor perturbation for {target} using {genno}')
             ug_index = unique_genes_noholdout.index(genno)
             logger.debug(f'ug_index {ug_index}')
