@@ -121,10 +121,8 @@ def main(*args):
 
     if hasattr(model, 'save') and hasattr(model, 'load'):
         # Path depends on hash of config
-        if os.path.exists(model_savepath):
-            logger.info(f"Model already trained, loading model from {model_savepath}")
-            model.load(model_savepath)
-            logger.info("Model loaded")
+        if model.load(model_savepath):
+            logger.info(f"Model already trained, loaded model from {model_savepath}")
         else:
             logger.info("Model not trained, training model")
             model.train(adata)
