@@ -38,8 +38,8 @@ class Config:
         eval_config_path = Path(eval_config_path).resolve() if eval_config_path is not None else None
 
         model_config = yaml.load(open(model_config_path), Loader=yaml.UnsafeLoader)
-        datasplit_config = yaml.load(open(datasplit_config_path), Loader=yaml.UnsafeLoader)
         etl_config = yaml.load(open(etl_config_path), Loader=yaml.UnsafeLoader)
+        datasplit_config = yaml.load(open(datasplit_config_path), Loader=yaml.UnsafeLoader)
         eval_config = yaml.load(open(eval_config_path), Loader=yaml.UnsafeLoader) if eval_config_path is not None else None
         return Config(model_config, etl_config, datasplit_config, eval_config)
     
