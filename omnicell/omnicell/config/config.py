@@ -125,6 +125,8 @@ class Config:
     @property
     def has_local_cell_embedding(self) -> bool:
         cell_emb_name = self.etl_config.get('cell_embedding', None)
+        if cell_emb_name is None:
+            return False
         return 'yaml' in cell_emb_name
     
     def get_local_cell_embedding_path(self) -> Optional[str]:
