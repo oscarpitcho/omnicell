@@ -34,7 +34,6 @@ def get_model(model_name, config_model, loader):
         pert_rep = np.array([pert_rep_map[k] for k in pert_keys])
         pert_map = {k: i for i, k in enumerate(pert_keys)}
 
-
     input_dim = adata.shape[1]
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     pert_ids = adata.obs[PERT_KEY].unique()
@@ -100,26 +99,9 @@ def main(*args):
     args = parser.parse_args()
 
     now = datetime.datetime.now()
-
     now = now.strftime("%Y-%m-%d_%H:%M:%S")
 
-
-
-
-    model_config_path = Path(args.model_config).resolve()
-    datasplit_config_path = Path(args.datasplit_config).resolve()
-    evaluation_config_path = Path(args.eval_config).resolve() if not args.eval_config == None else None
-
-    config_model = yaml.load(open(model_config_path), Loader=yaml.UnsafeLoader)
-    config_datasplit = yaml.load(open(datasplit_config_path), Loader=yaml.UnsafeLoader)
-    config_etl = yaml.load(open(args.etl_config), Loader=yaml.UnsafeLoader)
-    config_evals = yaml.load(open(evaluation_config_path), Loader=yaml.UnsafeLoader) if not evaluation_config_path == None else None
-
-    config = Config.empty()
-    config = config.add_model_config(config_model) #There will always be a model config
-    config = config.add_etl_config(config_etl) #There will always be an etl config
-    config = config.add_datasplit_config(config_datasplit) #There will always be a training config
-    config = config.add_eval_config(config_evals) if not config_evals == None else config #There might not be an eval config
+    config = Config.from_yamls(args.etl_config, args.datasplit_config, args.model_config)
 
     logging.basicConfig(
         filename=f'output_{args.slurm_id}_{config.get_model_name()}_{config.get_datasplit_config_name()}.log', 
@@ -128,43 +110,17 @@ def main(*args):
     
     logger.info("Application started")
 
-    model, model_name, datasplit_name = None, config.get_model_name(), config.get_datasplit_config_name()
-    
-    
-    #Hash dir to avoid conflicts when training the same model on same data but with different configs
-    hash_dir = hashlib.sha256(json.dumps(config.get_training_config().to_dict()).encode()).hexdigest()
-    hash_dir = hash_dir[:8]
-
-
-
-    #Building the path for where to save the model / results
-    pert_and_cell_emb_path = None
-    if(config.get_cell_embedding_name() is not None and config.get_pert_embedding_name() is not None):
-        pert_and_cell_emb_path = f"{config.get_cell_embedding_name()}_and_{config.get_pert_embedding_name}/"
-    elif(config.get_cell_embedding_name() is not None) and config.get_pert_embedding_name() is None:
-        pert_and_cell_emb_path = f"{config.get_cell_embedding_name()}/"
-    elif(config.get_cell_embedding_name() is None) and config.get_pert_embedding_name() is not None:
-        pert_and_cell_emb_path = f"{config.get_pert_embedding_name()}/"
-    else:
-        pert_and_cell_emb_path = ""
-
-    f"{config.get_cell_embedding_name()}_and_{config.get_pert_embedding_name()}"
-    
-
+    model_savepath = config.get_train_path()
 
     catalogue = Catalogue(DATA_CATALOGUE_PATH)
     loader = DataLoader(config, catalogue)
     
 
-    model, adata = get_model(model_name, config_model, loader)
+    model, adata = get_model(config.get_model_name(), config.model_config, loader)
 
 
     if hasattr(model, 'save') and hasattr(model, 'load'):
-
-        model_savepath = Path(f"./models/{datasplit_name}/{pert_and_cell_emb_path}{model_name}/{hash_dir}").resolve()
-
-
-        #Path depends on hash of config
+        # Path depends on hash of config
         if os.path.exists(model_savepath):
             logger.info(f"Model already trained, loading model from {model_savepath}")
             model.load(model_savepath)
@@ -175,7 +131,6 @@ def main(*args):
             logger.info("Training completed")
             logger.info(f"Saving model to {model_savepath}")
             os.makedirs(model_savepath, exist_ok=True)
-
 
             model.save(model_savepath)
             
@@ -198,9 +153,8 @@ def main(*args):
     #It is not none --> We are going to evaluate
     if args.eval_config is not None and hasattr(model, 'make_predict'):
         logger.info("Running evaluation")
-        eval_config_name = config.get_eval_config_name()
         
-        results_path = Path(f"./results/{datasplit_name}/{pert_and_cell_emb_path}{model_name}/{eval_config_name}{hash_dir}").resolve()
+        results_path = config.get_eval_path()
         logger.info(f"Will save results to {results_path}")
 
         #Saving run config
