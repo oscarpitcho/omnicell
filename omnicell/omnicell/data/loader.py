@@ -5,8 +5,10 @@ from omnicell.config.config import Config
 from omnicell.constants import PERT_KEY, CELL_KEY, CONTROL_PERT
 from omnicell.data.catalogue import DatasetDetails, Catalogue
 import torch
-
 import logging
+import numpy as np
+import os
+
 
 logger = logging.getLogger(__name__)
 
@@ -99,15 +101,15 @@ class DataLoader:
             raise ValueError("Cannot both apply cell embedding and normalization/log1p transformation")
         
         elif self.config.get_cell_embedding_name() is not None:
-
-            if self.config.get_cell_embedding_name() not in self.training_dataset_details.cell_embeddings:
+            if self.config.has_local_cell_embedding:
+                logger.info(f"Loading cell embedding from {self.config.get_cell_embedding_name()}")
+                adata.X = np.load(self.config.get_local_cell_embedding_path())
+            elif self.config.get_cell_embedding_name() in self.training_dataset_details.cell_embeddings:            
+                #We replace the data matrix with the cell embeddings
+                adata.X = adata.obsm[self.config.get_cell_embedding_name()]
+            else:
                 raise ValueError(f"Cell embedding {self.config.get_cell_embedding_name()} not found in embeddings available for dataset {self.training_dataset_details.name}")
-            
-            #We replace the data matrix with the cell embeddings
-            adata.X = adata.obsm[self.config.get_cell_embedding_name()]
-
         else:
-
             adata.X = adata.X.toarray().astype('float32')
             # Set gene names
             if self.training_dataset_details.var_names_key:
@@ -132,7 +134,6 @@ class DataLoader:
         Returns the training data according to the config.
         If an pert embedding is specified then it is also returned
         """
-
         #Getting the per embedding if it is specified
         pert_embedding = None 
         if self.pert_embedding_name is not None:
@@ -145,24 +146,19 @@ class DataLoader:
 
         # Checking if we have already a cached version of the training data
         if self.complete_training_adata is None:
-
             logger.info(f"Loading training data at path: {self.training_dataset_details.path}")
             adata = sc.read(self.training_dataset_details.path)
-
 
             logger.info("Preprocessing training data")
             adata = self.preprocess_data(adata, training=True)
 
             self.complete_training_adata = adata
-
             logger.debug(f"Loaded complete data, # of data points: {len(adata)}, # of genes: {len(adata.var)}, # of conditions: {len(adata.obs[PERT_KEY].unique())}")
-
 
 
         # Doing the data split
         if self.config.get_mode() == "ood":
             logger.info("Doing OOD split")
-
             # Taking cells for training where neither the cell nor the perturbation is held out
             holdout_mask = (self.complete_training_adata.obs[PERT_KEY].isin(self.config.get_heldout_perts())) | (self.complete_training_adata.obs[CELL_KEY].isin(self.config.get_heldout_cells()))
             train_mask = ~holdout_mask
@@ -175,7 +171,6 @@ class DataLoader:
             # Control of heldout cell type will be included
             holdout_mask = (self.complete_training_adata.obs[CELL_KEY].isin(self.config.get_heldout_cells())) & (self.complete_training_adata.obs[PERT_KEY].isin(self.config.get_heldout_perts()))
             train_mask = ~holdout_mask
-
 
         #Subsetting complete dataset to entries for training
         adata_train = self.complete_training_adata[train_mask]
@@ -197,7 +192,6 @@ class DataLoader:
 
     def get_eval_data(self):
         self.eval_dataset_details = self.data_catalogue.get_dataset_details(self.config.get_eval_dataset_name())
-
 
         #To avoid loading the same data twice
         if self.config.get_training_dataset_name() == self.config.get_eval_dataset_name():
