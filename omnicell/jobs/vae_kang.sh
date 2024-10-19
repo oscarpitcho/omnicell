@@ -18,7 +18,6 @@ python train.py --etl_config configs/kang/ETL/normalize_and_log1p.yaml \
  --eval_config configs/kang/evals/ev_CD4T.yaml \
  --model_config configs/models/vae.yaml -l DEBUG
 
-
-python generate_evaluations.py --root_dir ./ho_CD4T
+# python generate_evaluations.py --root_dir ./ho_CD4T
 
 echo "Job Finished"
