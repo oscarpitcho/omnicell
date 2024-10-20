@@ -79,7 +79,7 @@ class FlowPredictor():
         traj = compute_conditional_flow(
             self.model, 
             control_eval, 
-            np.repeat(pert_id, control_eval.shape[0]), 
+            np.repeat(self.pert_map[pert_id], control_eval.shape[0]), 
             self.pert_rep,
             n_batches = 5 
         )  
