@@ -52,6 +52,7 @@ class NearestNeighborPredictor():
     
     def make_predict(self, adata: sc.AnnData, pert_id: str, cell_type: str) -> np.ndarray:
         assert self.train_adata is not None, "Model has not been trained yet"
+        print(cell_type, self.seen_cell_types)
         if cell_type in self.seen_cell_types:
             if pert_id in self.seen_perts:
                 raise NotImplementedError(f"Both cell type: {cell_type} and perturbation: {pert_id} are in the training data, in distribution prediction not implemented yet")
