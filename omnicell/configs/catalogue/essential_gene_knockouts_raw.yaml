@@ -1,13 +1,15 @@
-path: /orcd/archive/abugoot/001/Projects/dlesman/datasets/essential_gene_knockouts_raw/essential_gene_knockouts_raw.h5ad
-folder_path: /orcd/archive/abugoot/001/Projects/dlesman/datasets/essential_gene_knockouts_raw
+HVG: false
+cell_embeddings: []
 cell_key: cell_type
 control: non-targeting
+count_normalized: false
+description: Essential genes across cells dataset with basic out-of-distribution setup,
+  no normalization applied
+folder_path: /om/group/abugoot/Projects/Omnicell_datasets/essential_gene_knockouts_raw
+log1p_transformed: false
+path: /om/group/abugoot/Projects/Omnicell_datasets/essential_gene_knockouts_raw/essential_gene_knockouts_raw.h5ad
+pert_embeddings:
+- UCE_ESM2_Mean_Imputed
+- BioBERT
 pert_key: gene
 var_names_key: null
-HVG: false
-log1p_transformed: false
-count_normalized: false
-description: Essential genes across cells dataset with basic out-of-distribution setup, no normalization applied
-pert_embeddings:
-  - UCE_ESM2_Mean_Imputed
-cell_embeddings: []
