@@ -27,10 +27,8 @@ class Config:
         if self.has_local_cell_embedding:
             cell_model_config_path = Path(self.etl_config["cell_embedding_model"]).resolve()
             cell_etl_config_path = Path(self.etl_config["cell_embedding_etl"]).resolve()
-
             cell_model_config = yaml.load(open(cell_model_config_path), Loader=yaml.UnsafeLoader)
             cell_etl_config = yaml.load(open(cell_etl_config_path), Loader=yaml.UnsafeLoader)
-
             self.local_cell_embedding_config = Config(cell_model_config, cell_etl_config, self.datasplit_config)
         else:
             self.local_cell_embedding_config = None
