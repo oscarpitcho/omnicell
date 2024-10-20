@@ -103,14 +103,14 @@ class DataLoader:
         elif self.config.get_cell_embedding_name() is not None:
             if self.config.has_local_cell_embedding:
                 logger.info(f"Loading cell embedding from {self.config.get_cell_embedding_name()}")
-                adata.X = np.load(self.config.get_local_cell_embedding_path())
+                adata.obsm["embedding"] = np.load(self.config.get_local_cell_embedding_path())
             elif self.config.get_cell_embedding_name() in self.training_dataset_details.cell_embeddings:            
                 #We replace the data matrix with the cell embeddings
-                adata.X = adata.obsm[self.config.get_cell_embedding_name()]
+                adata.obsm["embedding"] = adata.obsm[self.config.get_cell_embedding_name()]
             else:
                 raise ValueError(f"Cell embedding {self.config.get_cell_embedding_name()} not found in embeddings available for dataset {self.training_dataset_details.name}")
         else:
-            adata.X = adata.X.toarray().astype('float32')
+            adata.obsm["embedding"] = adata.X.toarray().astype('float32')
             # Set gene names
             if self.training_dataset_details.var_names_key:
                 adata.var_names = adata.var[self.training_dataset_details.var_names_key]
@@ -125,7 +125,6 @@ class DataLoader:
                 sc.pp.log1p(adata)
             elif not self.config.get_apply_log1p() & self.training_dataset_details.log1p_transformed:
                 raise ValueError("Specified dataset is log1p transformed, but log1p transformation is turned off in the config")
-
 
         return adata
 

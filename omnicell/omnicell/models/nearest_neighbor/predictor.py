@@ -46,7 +46,7 @@ class NearestNeighborPredictor():
         if self.cell_rep is None:
             cell_rep = []
             for cell_type in self.seen_cell_types:
-                cell_rep.append(self.train_adata[(self.train_adata.obs[CELL_KEY] == cell_type) & (self.train_adata.obs[PERT_KEY] == CONTROL_PERT)].X.mean(axis=0))
+                cell_rep.append(self.train_adata[(self.train_adata.obs[CELL_KEY] == cell_type) & (self.train_adata.obs[PERT_KEY] == CONTROL_PERT)].obsm['embedding'].mean(axis=0))
             cell_rep = np.squeeze(np.array(cell_rep))
         self.cell_rep = cell_rep
     
@@ -90,7 +90,7 @@ class NearestNeighborPredictor():
         assert heldout_cell_adata.obs[PERT_KEY].unique()[0] == CONTROL_PERT, "Heldout cell data must contain only control data"
 
         #Mean control state of the heldout cell
-        heldout_cell_rep = heldout_cell_adata.X.mean(axis=0)
+        heldout_cell_rep = heldout_cell_adata.obsm['embedding'].mean(axis=0)
     
         #Computing distances
         # diffs = train_cell_rep - heldout_cell_rep
@@ -106,20 +106,20 @@ class NearestNeighborPredictor():
         closest_cell_type = self.seen_cell_types[closest_cell_type_idx]
 
         if self.mean_shift:
-            perturbed_closest_cell_type = self.train_adata[(self.train_adata.obs[CELL_KEY] == closest_cell_type) & (self.train_adata.obs[PERT_KEY] == target_pert)].X.mean(axis=0)
+            perturbed_closest_cell_type = self.train_adata[(self.train_adata.obs[CELL_KEY] == closest_cell_type) & (self.train_adata.obs[PERT_KEY] == target_pert)].obsm['embedding'].mean(axis=0)
             pert_effect = perturbed_closest_cell_type - self.cell_rep[closest_cell_type_idx]
             pert_effect_norm = np.linalg.norm(pert_effect)
 
             logger.debug(f"Perturbation effect norm {pert_effect_norm}")
             #Apply the perturbation effect to the heldout cell data
-            predicted_perts = heldout_cell_adata.X + pert_effect
+            predicted_perts = heldout_cell_adata.obsm['embedding'] + pert_effect
             return predicted_perts
         else:
             adata_nbr = self.train_adata[(self.train_adata.obs[CELL_KEY] == closest_cell_type) & (self.train_adata.obs[PERT_KEY] == target_pert)]
             #TODO: FIX - It might cause issue with the predict method returns a different number of cells than the heldout cell data
             #res = sc.pp.subsample(adata_nbr, n_obs=len(heldout_cell_adata), copy=True)
             res = adata_nbr #sc.pp.subsample(adata_nbr, n_obs=len(adata), replace=True, copy=True)
-            return res.X
+            return res.obsm['embedding']
 
     #SO I want to predict across genes --> Two options either we provide the data or we don't provide the data on which the prediction is made
     def _predict_across_pert(self, adata: sc.AnnData, target_pert: str, cell_type: str) -> np.ndarray:
@@ -176,20 +176,20 @@ class NearestNeighborPredictor():
         #Mean control state of each cell type
         if self.mean_shift:
             logger.debug("Running shift method")
-            perturbed_closest_pert_type = self.train_adata[(self.train_adata.obs[CELL_KEY] == cell_type) & (self.train_adata.obs[PERT_KEY] == target_pert)].X.mean(axis=0)
+            perturbed_closest_pert_type = self.train_adata[(self.train_adata.obs[CELL_KEY] == cell_type) & (self.train_adata.obs[PERT_KEY] == target_pert)].obsm['embedding'].mean(axis=0)
             pert_effect = perturbed_closest_pert_type - self.cell_rep[cell_type_idx]
-            selected_cell_control_mean = self.train_adata[(self.train_adata.obs[CELL_KEY] == cell_type) & (self.train_adata.obs[PERT_KEY] == CONTROL_PERT)].X.mean(axis=0)
-            selected_cell_nbr_pert_mean = self.train_adata[(self.train_adata.obs[CELL_KEY] == cell_type) & (self.train_adata.obs[PERT_KEY] == closest_pert)].X.mean(axis=0)
+            selected_cell_control_mean = self.train_adata[(self.train_adata.obs[CELL_KEY] == cell_type) & (self.train_adata.obs[PERT_KEY] == CONTROL_PERT)].obsm['embedding'].mean(axis=0)
+            selected_cell_nbr_pert_mean = self.train_adata[(self.train_adata.obs[CELL_KEY] == cell_type) & (self.train_adata.obs[PERT_KEY] == closest_pert)].obsm['embedding'].mean(axis=0)
             pert_effect = selected_cell_nbr_pert_mean - selected_cell_control_mean
             predictions = adata.copy()
-            predictions.X = pert_effect + predictions.X
-            return predictions.X
+            predictions.obsm['embedding'] = pert_effect + predictions.obsm['embedding']
+            return predictions.obsm['embedding']
         else:
             logger.debug("Running substitution method")
             adata_nbr = self.train_adata[(self.train_adata.obs[CELL_KEY] == cell_type) & (self.train_adata.obs[PERT_KEY] == closest_pert)]
             logger.debug(f"Number of cells with cell_id {cell_type} and perturbation {closest_pert} in training data {len(adata_nbr)}")
             res = adata_nbr #sc.pp.subsample(adata_nbr, n_obs=len(adata), replace=True, copy=True)
-            return res.X
+            return res.obsm['embedding']
         
 
 

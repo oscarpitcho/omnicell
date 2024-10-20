@@ -41,9 +41,9 @@ class FlowPredictor():
 
         self.pert_ids = adata.obs[PERT_KEY].map(self.pert_map).values.astype(int)
 
-        # adata.X = adata.X.toarray()
-        # adata.X = adata.X / adata.X.sum(axis=1)[:, None]
-        # adata.obsm["standard"] = adata.X
+        # adata.obsm['embedding'] = adata.obsm['embedding'].toarray()
+        # adata.obsm['embedding'] = adata.obsm['embedding'] / adata.obsm['embedding'].sum(axis=1)[:, None]
+        # adata.obsm["standard"] = adata.obsm['embedding']
 
         dl = get_dataloader(adata, pert_ids=self.pert_ids, pert_reps=self.pert_rep, collate='cfm')
 
@@ -68,10 +68,10 @@ class FlowPredictor():
         # X = adata.obsm["standard"]
         # X = X.toarray()
         # X = X / X.sum(axis=1)[:, None]
-        X = adata.X
+        X = adata.obsm['embedding']
 
         cell_types = adata.obs[CELL_KEY].values
-        control_eval = adata.obsm[self.embedding][cell_types == cell_type].X
+        control_eval = adata.obsm[self.embedding][cell_types == cell_type].obsm['embedding']
         traj = compute_conditional_flow(
             self.model, 
             control_eval, 
