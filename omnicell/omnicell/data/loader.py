@@ -64,11 +64,10 @@ Bullet points are sorted by increasing difficulty
 #TODO: Want to include generic dataset caching, we might starting having many datasets involved in training, not just one
 
 def get_identity_features(adata):
-    perts = pd.get_dummies(adata[adata.obs[PERT_KEY] != CONTROL_PERT].obs[PERT_KEY]).values.astype(float)
-    pert_mat = perts.astype('float32')
-    pert_ids = perts.argmax(axis=1)
-    pert_map = {k: pert_mat[k] for k in pert_ids}
-    return pert_map
+    perts = adata[adata.obs[PERT_KEY] != CONTROL_PERT].obs[PERT_KEY].unique()
+    # one hot encode set perts
+    pert_rep = pd.get_dummies(perts).set_index(perts)
+    return {pert: pert_rep[pert].values for pert in perts}
 
 
 class DataLoader:
