@@ -2,4 +2,5 @@ dataset: kang
 cell_embedding: local
 cell_embedding_model: configs/models/vae.yaml
 cell_embedding_etl: configs/kang/ETL/normalize_and_log1p.yaml
-
+log1p: False 
+count_norm: False
