@@ -104,7 +104,7 @@ def main(*args):
     now = datetime.datetime.now()
     now = now.strftime("%Y-%m-%d_%H:%M:%S")
 
-    config = Config.from_yamls(args.model_config, args.etl_config, args.datasplit_config)
+    config = Config.from_yamls(args.model_config, args.etl_config, args.datasplit_config, args.eval_config)
 
     logging.basicConfig(
         filename=f'output_{args.slurm_id}_{config.get_model_name()}_{config.get_datasplit_config_name()}.log', 
