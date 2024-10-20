@@ -37,6 +37,7 @@ def get_identity_features(adata, cell_col='cell_type', pert_col='perturb', cell_
     cell_types = cell_types.argmax(axis=1)
     return pert_ids, pert_mat, cell_types
 
+
 def get_train_eval(
     X, pert_ids, cell_types, control_idx, pert_idx, eval_idx, eval_cell_idx, eval_pert_idx
 ):
