@@ -146,7 +146,9 @@ class DataLoader:
         # Checking if we have already a cached version of the training data
         if self.complete_training_adata is None:
             logger.info(f"Loading training data at path: {self.training_dataset_details.path}")
-            adata = sc.read(self.training_dataset_details.path)
+            # adata = sc.read(self.training_dataset_details.path)
+            with open(self.training_dataset_details.path, 'rb') as f:
+                adata= sc.read_h5ad(f)
 
             logger.info("Preprocessing training data")
             adata = self.preprocess_data(adata, training=True)
@@ -183,7 +185,8 @@ class DataLoader:
         Data is preprocessed according to config
         """
         if self.complete_training_adata is None:
-            adata = sc.read(self.training_dataset_details.path)
+            with open(self.training_dataset_details.path, 'rb') as f:
+                adata= sc.read_h5ad(f)
             logger.info("Preprocessing training data")
             self.complete_training_adata = self.preprocess_data(adata, training=True)
  
@@ -199,7 +202,8 @@ class DataLoader:
         else:
 
             logger.info(f"Loading evaluation data at path: {self.eval_dataset_details.path}")
-            adata = sc.read(self.eval_dataset_details.path)
+            with open(self.eval_dataset_details.path, 'rb') as f:
+                adata= sc.read_h5ad(f)
 
             logger.info("Preprocessing evaluation data")
             adata = self.preprocess_data(adata, training=False)
