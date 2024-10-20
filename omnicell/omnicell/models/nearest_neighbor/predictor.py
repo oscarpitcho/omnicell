@@ -40,7 +40,7 @@ class NearestNeighborPredictor():
             Tuple containing the perturbation embedding dictionary and the perturbation embedding matrix
         """
         self.train_adata = adata
-        self.seen_cell_types = adata.obs[CELL_KEY].unique()
+        self.seen_cell_types = adata.obs[CELL_KEY].values.unique()
         self.seen_perts = [pert for pert in adata.obs[PERT_KEY].unique() if pert != CONTROL_PERT]
 
         if self.cell_rep is None:
