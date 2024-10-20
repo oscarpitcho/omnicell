@@ -145,8 +145,10 @@ def main(*args):
     if hasattr(model, 'encode'):
         logger.info("Encoding full dataset")
         adata = loader.get_complete_training_dataset()
-        embedded_data = model.encode(adata)
+        embedded_data, additional_data = model.encode(adata)
         np.save(f"{model_savepath}/embedded_data.npy", embedded_data)
+        if additional_data is not None:
+            np.save(f"{model_savepath}/additional_data.npy", additional_data)
 
     #It is not none --> We are going to evaluate
     if args.eval_config is not None and hasattr(model, 'make_predict'):
