@@ -25,8 +25,13 @@ class Config:
         self.eval_config = eval_config
 
         if self.has_local_cell_embedding:
-            cell_model_config = Path(self.get_cell_embedding_name()).resolve()
-            self.local_cell_embedding_config = Config(cell_model_config, self.etl_config, self.datasplit_config)
+            cell_model_config_path = Path(self.config.etl_config["cell_embedding_model"]).resolve()
+            cell_etl_config_path = Path(self.config.etl_config["cell_embedding_etl"]).resolve()
+
+            cell_model_config = yaml.load(open(cell_model_config_path), Loader=yaml.UnsafeLoader)
+            cell_etl_config = yaml.load(open(cell_etl_config_path), Loader=yaml.UnsafeLoader)
+
+            self.local_cell_embedding_config = Config(cell_model_config, cell_etl_config, self.datasplit_config)
         else:
             self.local_cell_embedding_config = None
 
@@ -125,9 +130,7 @@ class Config:
     @property
     def has_local_cell_embedding(self) -> bool:
         cell_emb_name = self.etl_config.get('cell_embedding', None)
-        if cell_emb_name is None:
-            return False
-        return 'yaml' in cell_emb_name
+        return cell_emb_name == 'local'
     
     def get_local_cell_embedding_path(self) -> Optional[str]:
         if not self.has_local_cell_embedding:
