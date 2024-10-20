@@ -33,6 +33,9 @@ def get_model(model_name, config_model, loader):
         pert_keys = list(pert_rep_map.keys())
         pert_rep = np.array([pert_rep_map[k] for k in pert_keys])
         pert_map = {k: i for i, k in enumerate(pert_keys)}
+    else:
+        pert_rep = None
+        pert_map = None
 
     input_dim = adata.shape[1]
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
