@@ -61,14 +61,6 @@ class Config:
     
     #We completely control the serialization of the config object in this class 
     def to_dict(self):
-        # if self.model_config is not None:
-        #     config['model_config'] = self.model_config.copy()
-        # if self.eval_config is not None:
-        #     config['eval_config'] = self.eval_config.copy()
-        # if self.datasplit_config is not None:
-        #     config['datasplit_config'] = self.datasplit_config.copy()
-        # if self.etl_config is not None:
-        #     config['etl_config'] = self.etl_config.copy()
         serialized = deepcopy(vars(self))
         serialized['local_cell_embedding_config'] = serialized['local_cell_embedding_config'].to_dict() if serialized['local_cell_embedding_config'] is not None else None
         return serialized

@@ -1,6 +1,6 @@
 
 name: ho_CD4T
-mode: iid
+mode: ood
 #Annoying part is if we have random splits how will we define the tasks? -
 holdout_cells: [CD4T]
 holdout_perts: []
