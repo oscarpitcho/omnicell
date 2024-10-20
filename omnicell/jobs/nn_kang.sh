@@ -15,7 +15,7 @@ conda activate dsbm
 python train.py --etl_config configs/kang/ETL/vae.yaml \
  --datasplit_config configs/kang/splits/ho_CD4T.yaml \
  --eval_config configs/kang/evals/ev_CD4T.yaml \
- --model_config configs/models/nearest-neighbor_substitute.yaml -l DEBUG
+ --model_config configs/models/nearest_neighbor/nearest_neighbor_mean_shift.yaml -l DEBUG
 
 # python generate_evaluations.py --root_dir ./results/nn/kang_ho_CD4T
 
