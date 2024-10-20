@@ -12,7 +12,7 @@ hostname                     # Print the hostname of the compute node
 source ~/.bashrc
 conda activate dsbm
 
-python train.py --etl_config configs/kang/ETL/vae.yaml \
+python train.py --etl_config configs/etl/vae.yaml \
  --datasplit_config configs/kang/splits/ho_CD4T.yaml \
  --eval_config configs/kang/evals/ev_CD4T.yaml \
  --model_config configs/models/nearest_neighbor/nearest_neighbor_mean_shift.yaml -l DEBUG
