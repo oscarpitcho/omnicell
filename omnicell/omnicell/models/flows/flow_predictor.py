@@ -16,7 +16,7 @@ from omnicell.constants import CELL_KEY, CONTROL_PERT, PERT_KEY
 
 
 class FlowPredictor():
-    def __init__(self, config, input_size, pert_rep=None, pert_map=None):
+    def __init__(self, config, input_size, pert_rep, pert_map):
         self.model_config = config['model'] if config['model'] is not None else {}
         self.trainig_config = config['training'] if config['training'] is not None else {}
 

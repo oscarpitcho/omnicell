@@ -7,6 +7,8 @@ from omnicell.data.catalogue import DatasetDetails, Catalogue
 import torch
 import logging
 import numpy as np
+import pandas as pd
+
 import os
 
 
@@ -60,6 +62,14 @@ Bullet points are sorted by increasing difficulty
 
 
 #TODO: Want to include generic dataset caching, we might starting having many datasets involved in training, not just one
+
+def get_identity_features(adata):
+    perts = pd.get_dummies(adata[adata.obs[PERT_KEY] != CONTROL_PERT].obs[PERT_KEY]).values.astype(float)
+    pert_mat = perts.astype('float32')
+    pert_ids = perts.argmax(axis=1)
+    pert_map = {k: pert_mat[k] for k in pert_ids}
+    return pert_map
+
 
 class DataLoader:
     def __init__(self, config: Config, data_catalogue: Catalogue):
@@ -133,22 +143,13 @@ class DataLoader:
         Returns the training data according to the config.
         If an pert embedding is specified then it is also returned
         """
-        #Getting the per embedding if it is specified
-        pert_embedding = None 
-        if self.pert_embedding_name is not None:
-            if self.pert_embedding_name not in self.training_dataset_details.pert_embeddings:
-                print(self.training_dataset_details.pert_embeddings)
-                raise ValueError(f"Perturbation embedding {self.pert_embedding_name} not found in embeddings available for dataset {self.training_dataset_details.name}")
-            else:
-                logger.info(f"Loading perturbation embedding from {self.training_dataset_details.folder_path}/{self.pert_embedding_name}.pt")
-                pert_embedding = torch.load(f"{self.training_dataset_details.folder_path}/{self.pert_embedding_name}.pt")
 
         # Checking if we have already a cached version of the training data
         if self.complete_training_adata is None:
             logger.info(f"Loading training data at path: {self.training_dataset_details.path}")
             # adata = sc.read(self.training_dataset_details.path)
             with open(self.training_dataset_details.path, 'rb') as f:
-                adata= sc.read_h5ad(f)
+                adata = sc.read_h5ad(f)
 
             logger.info("Preprocessing training data")
             adata = self.preprocess_data(adata, training=True)
@@ -156,6 +157,16 @@ class DataLoader:
             self.complete_training_adata = adata
             logger.debug(f"Loaded complete data, # of data points: {len(adata)}, # of genes: {len(adata.var)}, # of conditions: {len(adata.obs[PERT_KEY].unique())}")
 
+        #Getting the per embedding if it is specified
+        if self.pert_embedding_name is not None:
+            if self.pert_embedding_name not in self.training_dataset_details.pert_embeddings:
+                print(self.training_dataset_details.pert_embeddings)
+                raise ValueError(f"Perturbation embedding {self.pert_embedding_name} not found in embeddings available for dataset {self.training_dataset_details.name}")
+            else:
+                logger.info(f"Loading perturbation embedding from {self.training_dataset_details.folder_path}/{self.pert_embedding_name}.pt")
+                pert_embedding = torch.load(f"{self.training_dataset_details.folder_path}/{self.pert_embedding_name}.pt")
+        else:
+            pert_embedding = get_identity_features(self.complete_training_adata)
 
         # Doing the data split
         if self.config.get_mode() == "ood":
