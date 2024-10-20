@@ -1,3 +1,4 @@
+import os 
 import scanpy as sc
 import torch
 
@@ -10,7 +11,6 @@ from omnicell.models.flows.flow_utils import compute_conditional_flow
 from pytorch_lightning.callbacks import TQDMProgressBar
 import pytorch_lightning as pl
 
-import scanpy as sc
 
 from omnicell.constants import CELL_KEY, CONTROL_PERT, PERT_KEY
 
@@ -59,6 +59,15 @@ class FlowPredictor():
         
         self.model = self.model.to(device)            
         trainer.fit(self.model, dl)
+
+    def save(self, path):
+        torch.save(self.model.state_dict(), f"{path}/model.pth")
+
+    def load(self, path):
+        if os.path.exists(path):
+            self.model.load_state_dict(torch.load(f"{path}/model.pth"))
+            return True
+        return False
     
 
     #I mean to we need to evaluate anything? 
