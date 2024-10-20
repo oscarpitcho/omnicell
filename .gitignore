@@ -3,7 +3,7 @@ __pycache__
 *.npz
 
 results
-models
+./models/
 
 # Ignore all log files
 output_*
