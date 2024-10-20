@@ -12,11 +12,11 @@ hostname                     # Print the hostname of the compute node
 source ~/.bashrc
 conda activate dsbm
 
-# Run the training script
-python train.py --data_config configs/splits/kang/kang_ho_CD4T.yaml --model_config configs/models/nearest-neighbor/nearest-neighbor_substitute.yaml \
- --eval_config configs/evals/kang/kang_ho_CD4T.yaml -l DEBUG
+python train.py --etl_config configs/kang/ETL/vae.yaml \
+ --datasplit_config configs/kang/splits/ho_CD4T.yaml \
+ --eval_config configs/kang/evals/ev_CD4T.yaml \
+ --model_config configs/models/nearest-neighbor_substitute.yaml -l DEBUG
 
-
-python generate_evaluations.py --root_dir ./results/nn/kang_ho_CD4T
+# python generate_evaluations.py --root_dir ./results/nn/kang_ho_CD4T
 
 echo "Job Finished"
