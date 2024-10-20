@@ -71,7 +71,9 @@ class Config:
         #     config['datasplit_config'] = self.datasplit_config.copy()
         # if self.etl_config is not None:
         #     config['etl_config'] = self.etl_config.copy()
-        return deepcopy(vars(self))
+        serialized = deepcopy(vars(self))
+        serialized['local_cell_embedding_config'] = serialized['local_cell_embedding_config'].to_dict() if serialized['local_cell_embedding_config'] is not None else None
+        return serialized
     
     def get_train_hash(self):
         train_hash = hashlib.sha256(json.dumps(self.get_training_config().to_dict()).encode()).hexdigest()
