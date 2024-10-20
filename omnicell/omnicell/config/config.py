@@ -81,7 +81,7 @@ class Config:
         return train_hash
     
     def get_eval_hash(self):
-        eval_hash = hashlib.sha256(json.dumps(self.get_eval_config().to_dict()).encode()).hexdigest()
+        eval_hash = hashlib.sha256(json.dumps(self.eval_config).encode()).hexdigest()
         eval_hash = eval_hash[:8]
         return eval_hash
     
