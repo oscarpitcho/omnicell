@@ -125,7 +125,7 @@ def get_dataloader(
         if pert_reps is None:
             pert_ids, pert_reps, cell_types = get_identity_features(adata)
 
-        X = adata.X # obsm[embedding]
+        X = adata.obsm['embedding'] 
 
         control_train = X[control_idx]
         pert_train = X[pert_idx]
