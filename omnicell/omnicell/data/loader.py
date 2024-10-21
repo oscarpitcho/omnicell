@@ -226,9 +226,16 @@ class DataLoader:
             ctrl_data = self.complete_eval_adata[(self.complete_eval_adata.obs[CELL_KEY] == cell_id) & (self.complete_eval_adata.obs[PERT_KEY] == CONTROL_PERT)]
 
 
-            #TODO: We might want to handle this differently, e.g. warning logs or sth
-            assert len(gt_data) > 0, f"No data found for {cell_id} and {pert_id} in {self.eval_dataset_details.name}"
-            assert len(ctrl_data) > 0, f"No control data found for {cell_id} in {self.eval_dataset_details.name}"
+
+            #If no data is found we skip the evaluation
+            if len(gt_data) == 0:
+                logger.warning(f"No data found for cell: {cell_id}, pert: {pert_id} in {self.eval_dataset_details.name}, will skip evaluation")
+                continue
+            
+            if len(ctrl_data) == 0:
+                logger.critical(f"No control data found for cell: {cell_id} in {self.eval_dataset_details.name}, will skip evaluation")
+                continue
+           
             
             yield cell_id, pert_id, ctrl_data, gt_data
 

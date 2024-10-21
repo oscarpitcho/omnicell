@@ -13,7 +13,7 @@ source ~/.bashrc
 conda activate dsbm
 
 # Run the training script
-python train.py --etl_config configs/etl/normalize_and_log1p.yaml \
+python train.py --etl_config configs/kang/etl/normalize_and_log1p.yaml \
  --datasplit_config configs/kang/splits/ho_CD4T.yaml \
  --eval_config configs/kang/evals/ev_CD4T.yaml \
  --model_config configs/models/vae.yaml -l DEBUG
