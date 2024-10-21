@@ -239,8 +239,8 @@ class VAE():
         train = adata[indices[:np.int32(datalen*0.9)]]  # 90% training data
         valid = adata[indices[np.int32(datalen*0.9):]]   
 
-        train = to_dense(train.X)
-        valid = to_dense(valid.X)
+        train = to_dense(train.obsm['embedding'])
+        valid = to_dense(valid.obsm['embedding'])
 
         self.model, self.train_params = Train_VAE(
             self.model, train, valid, epochs=epochs, batsize=batsize, 
@@ -253,19 +253,22 @@ class VAE():
         if self.train_params is None:
             raise ValueError("Model has not been trained yet")
 
-
         torch.save(self.model.state_dict(), f'{savepath}/state_dict.pt')
         with open(f'{savepath}/train_params.pkl', 'wb') as fp:
             pickle.dump(self.train_params, fp)
 
+
     def load(self, savepath):
+        if not os.path.exists(f'{savepath}/trained_model'):
+            return False
         with open(f'{savepath}/train_params.pkl', 'rb') as fp:
             self.train_params = pickle.load(fp)
         self.model.load_state_dict(torch.load(f'{savepath}/trained_model'))
         self.model.to(self.device)
+        return True
 
     def encode(self, adata): 
-        X = to_dense(adata.X)
+        X = to_dense(adata.obsm['embedding'])
         if self.train_params is None:
             raise ValueError("Model has not been trained yet")
         return Encode(self.model, self.train_params, X)

@@ -1,3 +1,4 @@
+import os 
 import scanpy as sc
 import torch
 
@@ -10,13 +11,12 @@ from omnicell.models.flows.flow_utils import compute_conditional_flow
 from pytorch_lightning.callbacks import TQDMProgressBar
 import pytorch_lightning as pl
 
-import scanpy as sc
 
 from omnicell.constants import CELL_KEY, CONTROL_PERT, PERT_KEY
 
 
 class FlowPredictor():
-    def __init__(self, config, input_size, pert_rep=None, pert_map=None):
+    def __init__(self, config, input_size, pert_rep, pert_map):
         self.model_config = config['model'] if config['model'] is not None else {}
         self.trainig_config = config['training'] if config['training'] is not None else {}
 
@@ -40,10 +40,10 @@ class FlowPredictor():
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
         self.pert_ids = adata.obs[PERT_KEY].map(self.pert_map).values.astype(int)
-
-        # adata.X = adata.X.toarray()
-        # adata.X = adata.X / adata.X.sum(axis=1)[:, None]
-        # adata.obsm["standard"] = adata.X
+        print(self.pert_ids)
+        # adata.obsm['embedding'] = adata.obsm['embedding'].toarray()
+        # adata.obsm['embedding'] = adata.obsm['embedding'] / adata.obsm['embedding'].sum(axis=1)[:, None]
+        # adata.obsm["standard"] = adata.obsm['embedding']
 
         dl = get_dataloader(adata, pert_ids=self.pert_ids, pert_reps=self.pert_rep, collate='cfm')
 
@@ -59,23 +59,27 @@ class FlowPredictor():
         
         self.model = self.model.to(device)            
         trainer.fit(self.model, dl)
+
+    def save(self, path):
+        torch.save(self.model.state_dict(), f"{path}/model.pth")
+
+    def load(self, path):
+        if os.path.exists(path):
+            self.model.load_state_dict(torch.load(f"{path}/model.pth"))
+            return True
+        return False
     
 
     #I mean to we need to evaluate anything? 
     def make_predict(self, adata: sc.AnnData, pert_id: str, cell_type: str) -> np.ndarray:
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-        # X = adata.obsm["standard"]
-        # X = X.toarray()
-        # X = X / X.sum(axis=1)[:, None]
-        X = adata.X
-
         cell_types = adata.obs[CELL_KEY].values
-        control_eval = adata.obsm[self.embedding][cell_types == cell_type].X
+        control_eval = adata[cell_types == cell_type].obsm['embedding']
         traj = compute_conditional_flow(
             self.model, 
             control_eval, 
-            np.repeat(pert_id, control_eval.shape[0]), 
+            np.repeat(self.pert_map[pert_id], control_eval.shape[0]), 
             self.pert_rep,
             n_batches = 5 
         )  
