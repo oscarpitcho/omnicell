@@ -2,7 +2,7 @@
 #SBATCH -t 8:00:00          # walltime = 48 hours
 #SBATCH --ntasks-per-node=4  # 4 CPU cores
 #SBATCH --gres=gpu:1 --constraint=high-capacity  # 1 non-A100 GPU 
-#SBATCH --mem=128G           # memory per node
+#SBATCH --mem=512GB        # memory per node
 hostname                     # Print the hostname of the compute node
 
 # Define arrays for holdouts and targets
@@ -10,9 +10,9 @@ hostname                     # Print the hostname of the compute node
 
 
 source ~/.bashrc
-conda activate dsbm
+conda activate sandbox
 
-python train.py --etl_config configs/etl/vae.yaml \
+python train.py --etl_config configs/kang/etl/vae.yaml \
  --datasplit_config configs/kang/splits/ho_CD4T.yaml \
  --eval_config configs/kang/evals/ev_CD4T.yaml \
  --model_config configs/models/flow.yaml -l DEBUG

@@ -10,7 +10,7 @@ hostname                     # Print the hostname of the compute node
 
 
 source ~/.bashrc
-conda activate dsbm
+conda activate sandbox
 
 # Run the training script
 python train.py --data_config configs/splits/satija_raw/satija_across_genes_hvg.yaml --model_config configs/models/flow.yaml \
