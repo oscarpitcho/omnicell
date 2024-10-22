@@ -8,6 +8,5 @@ folder_path: /om/group/abugoot/Projects/Omnicell_datasets/kang/
 log1p_transformed: false
 path: /om/group/abugoot/Projects/Omnicell_datasets/kang/kang.h5ad
 pert_embeddings:
-- UCE_ESM2_Mean_Imputed
 pert_key: condition_key
 var_names_key: null

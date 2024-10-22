@@ -36,7 +36,7 @@ def generate_evaluation(dir, args):
     with open(f'{dir}/eval_config.yaml', 'w+') as f:
         yaml.dump(args.__dict__, f, indent=2)
 
-    config = Config(config)
+    config = Config.from_dict(config)
 
 
 

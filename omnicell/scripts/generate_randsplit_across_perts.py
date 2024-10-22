@@ -33,6 +33,7 @@ def main():
     parser.add_argument('--split_mode', type=str, help='Mode of the split config')
     parser.add_argument('--split_size', type=int, help='Size of the split, # of perts for evaluation')
     parser.add_argument('--number_splits', type=int, help='Number of splits')
+    parser.add_argument('--target_cell', type=str, default='MAX', help='Target cell for the split, if MAX then the cell with the most observations is selected')
 
 
     args = parser.parse_args()
@@ -67,6 +68,18 @@ def main():
 
 
     if args.across_perts:
+
+        target_cell = args.target_cell
+
+        #Select the cell type with the most observations
+        if target_cell == "MAX":
+            target_cell = adata.obs[ds_details.cell_key].value_counts().idxmax()
+
+        else:
+            target_cell = str(target_cell)
+
+        print(f"Selected cell {target_cell}")
+
         for i in range(args.number_splits):
 
             #Select a random subset of perturbations
@@ -76,11 +89,14 @@ def main():
 
 
 
+
             #Create the split config
 
             split_config = template_split_config(f"split_{i}", args.split_mode, [], perts)
 
-            #Create the eval config(
+
+
+
             eval_config = template_eval_config(f"eval_{i}", args.dataset, [[str(cell), str(pert)] for cell in cells for pert in perts])
 
             path_split = f"{path}/split_{i}"
