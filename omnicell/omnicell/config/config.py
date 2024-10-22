@@ -45,16 +45,21 @@ class Config:
         datasplit_config = yaml.load(open(datasplit_config_path), Loader=yaml.UnsafeLoader)
         eval_config = yaml.load(open(eval_config_path), Loader=yaml.UnsafeLoader) if eval_config_path is not None else None
         return Config(model_config, etl_config, datasplit_config, eval_config)
+
+    def from_dict(config_dict: dict) -> 'Config':
+        return Config(config_dict['model_config'], config_dict['etl_config'], config_dict['datasplit_config'], config_dict['eval_config'])
     
+
+    #TODO: Introduce DATASET NAME in Config PATH
     def get_train_path(self):
         cell_emb = self.get_cell_embedding_name()
         cell_emb_path = f"{cell_emb}/" if cell_emb is not None else ""
-        return Path(f"./models/{self.get_datasplit_config_name()}/{cell_emb_path}{self.get_model_name()}/{self.get_train_hash()}").resolve()
+        return Path(f"./models/{self.get_training_dataset_name()}/{self.get_datasplit_config_name()}/{cell_emb_path}{self.get_model_name()}/{self.get_train_hash()}").resolve()
     
     def get_eval_path(self):
         cell_emb = self.get_cell_embedding_name()
         cell_emb_path = f"{cell_emb}/" if cell_emb is not None else ""
-        return Path(f"./results/{self.get_datasplit_config_name()}/{cell_emb_path}{self.get_model_name()}/{self.get_train_hash()}/{self.get_eval_hash()}").resolve()
+        return Path(f"./results/{self.get_training_dataset_name()}/{self.get_datasplit_config_name()}/{cell_emb_path}{self.get_model_name()}/{self.get_train_hash()}/{self.get_eval_hash()}").resolve()
 
     def __eq__(self, other):
         return self.to_dict() == other.to_dict()
@@ -90,7 +95,7 @@ class Config:
 
     # GETTERS FOR TRAINING
     def get_training_dataset_name(self)-> str:
-        return self.etl_config['dataset']
+        return self.datasplit_config['dataset']
     
     def get_datasplit_config_name(self)-> str:
         return self.datasplit_config['name']
