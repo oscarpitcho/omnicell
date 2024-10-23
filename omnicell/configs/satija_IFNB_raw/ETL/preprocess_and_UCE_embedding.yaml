@@ -1,4 +1,0 @@
-dataset: satija_IFNB_raw
-log1p: True 
-count_norm: True
-pert_embedding: BioBERT

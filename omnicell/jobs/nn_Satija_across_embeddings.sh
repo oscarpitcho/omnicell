@@ -12,7 +12,7 @@ conda activate sandbox
 
 # Define the base directory for configs
 CONFIG_BASE_DIR="configs"
-SPLIT_BASE_DIR="${CONFIG_BASE_DIR}/satija_IFNB_raw/random_splits/across_perts_ood_10:5"
+SPLIT_BASE_DIR="${CONFIG_BASE_DIR}/satija_IFNB_raw/random_splits/acrossP_ood_ss:ns-10:5:5"
 
 # Use the SLURM_ARRAY_TASK_ID to select the split
 SPLIT_DIR="split_${SLURM_ARRAY_TASK_ID}"
@@ -39,6 +39,7 @@ run_job() {
      --eval_config ${SPLIT_BASE_DIR}/${SPLIT_DIR}/eval_config.yaml \
      --model_config ${MODEL_CONFIG} -l DEBUG
 
+
     echo "Finished job for split ${SLURM_ARRAY_TASK_ID} with embedding: ${EMBEDDING} and model: ${MODEL}"
 }
 
@@ -46,6 +47,9 @@ run_job() {
 for MODEL in "${!MODEL_EMBEDDING_COMBOS[@]}"; do
     for EMBEDDING in ${MODEL_EMBEDDING_COMBOS[$MODEL]}; do
         run_job "$MODEL" "$EMBEDDING"
+        
+        python generate_evaluations.py --root_dir ./results/satija_IFNB_raw
+
     done
 done
 

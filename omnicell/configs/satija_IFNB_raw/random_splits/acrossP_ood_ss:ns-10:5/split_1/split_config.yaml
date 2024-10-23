@@ -1,0 +1,15 @@
+dataset_name: satija_IFNB_raw
+holdout_cells: []
+holdout_perts:
+- USP18
+- CRKL
+- BRD9
+- IFNAR2
+- SMARCA5
+- HERC5
+- DTX3L
+- STAT4
+- TYK2
+- SP100
+mode: ood
+name: split_1_ss:ns-10:5
