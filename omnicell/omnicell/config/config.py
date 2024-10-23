@@ -8,8 +8,6 @@ import hashlib
 
 from copy import deepcopy
 
-#TODO: - Configs just for trainings, configs for evaluations, 
-
 #TODO: Introduce config validation
 
 logger = logging.getLogger(__name__)
