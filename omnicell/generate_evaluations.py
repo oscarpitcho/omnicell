@@ -47,82 +47,88 @@ def generate_evaluation(dir, args):
     eval_targets = config.get_eval_targets()
     
     for (cell, pert) in eval_targets:
+
+        try:
         
-        logger.info(f"Starting evaluation for {pert} and {cell}")
+            logger.info(f"Starting evaluation for {pert} and {cell}")
 
 
-        pred_fn = f"{prediction_filename(pert, cell)}-preds.npz"
-        true_fn = f"{prediction_filename(pert, cell)}-ground_truth.npz"
-        control_fn = f"{prediction_filename(pert, cell)}-control.npz"
+            pred_fn = f"{prediction_filename(pert, cell)}-preds.npz"
+            true_fn = f"{prediction_filename(pert, cell)}-ground_truth.npz"
+            control_fn = f"{prediction_filename(pert, cell)}-control.npz"
 
-        r2_and_mse_fn = r2_mse_filename(pert, cell)
-        c_r_fn= c_r_filename(pert, cell)
-        DEGs_overlap_fn = DEGs_overlap_filename(pert, cell)
+            r2_and_mse_fn = r2_mse_filename(pert, cell)
+            c_r_fn= c_r_filename(pert, cell)
+            DEGs_overlap_fn = DEGs_overlap_filename(pert, cell)
+            
+            results_exist = ((r2_and_mse_fn in listdir(dir)) & (c_r_fn in listdir(dir)) & (DEGs_overlap_fn in listdir(dir)))
+
+            preds_exist = pred_fn in listdir(dir) and true_fn in listdir(dir) and control_fn in listdir(dir)
+
+            if not preds_exist:
+                logger.warning(f"Predictions for {pert} and {cell} do not exist in {dir}")
+
+                raise FileNotFoundError(f"Predictions for {pert} and {cell} do not exist in {dir}")
+
+            if (not results_exist | args.overwrite):
+
+                logger.info(f"Generating evaluations for {pert} and {cell}")
+
+                pred_pert = sparse.load_npz(f'{dir}/{pred_fn}')
+                true_pert = sparse.load_npz(f'{dir}/{true_fn}')
+                control = sparse.load_npz(f'{dir}/{control_fn}')
+                
+                
+                #We need to convert the sparse matrices to dense matrices
+                pred_pert = to_dense(pred_pert)
+                true_pert = to_dense(true_pert)
+                control = to_dense(control)
+
+                logger.debug(f"Data shapes: pred_pert {pred_pert.shape}, true_pert {true_pert.shape}, control {control.shape}")
+
+
+                pred_pert = sc.AnnData(X=pred_pert.clip(min=0))
+
+                if args.round:
+                    pred_pert.X[pred_pert.X <= 0.5] = 0
+                #pred_pert.var_names = raw_data.var_names
+                
+                true_pert = sc.AnnData(X=true_pert)
+                #true_pert.var_names = raw_data.var_names
+            
+                control = sc.AnnData(X=control)
+                #control.var_names = raw_data.var_names"""
+
+
+                logger.debug(f"Getting ground Truth DEGs for {pert} and {cell}")
+                true_DEGs_df = get_DEGs(control, true_pert)
+
+                logger.debug(f"Getting predicted DEGs for {pert} and {cell}")
+                pred_DEGs_df = get_DEGs(control, pred_pert)
+
         
-        results_exist = ((r2_and_mse_fn in listdir(dir)) & (c_r_fn in listdir(dir)) & (DEGs_overlap_fn in listdir(dir)))
+                logger.debug(f"Getting evaluation metrics for {pert} and {cell}")
+                r2_and_mse = get_eval(control, true_pert, pred_pert, true_DEGs_df, [100,50,20], args.pval_threshold, args.log_fold_change_threshold)
+                
+                logger.debug(f"Getting DEG coverage and recall for {pert} and {cell}")
+                c_r_results = {p: get_DEG_Coverage_Recall(true_DEGs_df, pred_DEGs_df, p) for p in [x/args.pval_iters for x in range(1,int(args.pval_iters*args.max_p_val))]}
+                
+                
+                logger.debug(f"Getting DEG overlaps for {pert} and {cell}")
+                DEGs_overlaps = get_DEGs_overlaps(true_DEGs_df, pred_DEGs_df, [100,50,20], args.pval_threshold, args.log_fold_change_threshold)
 
-        preds_exist = pred_fn in listdir(dir) and true_fn in listdir(dir) and control_fn in listdir(dir)
+                with open(f'{dir}/{r2_and_mse_fn}', 'w+') as f:
+                    json.dump(r2_and_mse, f, indent=2, cls=NumpyTypeEncoder)
 
-        if not preds_exist:
-            logger.warning(f"Predictions for {pert} and {cell} do not exist in {dir}")
-
-            raise FileNotFoundError(f"Predictions for {pert} and {cell} do not exist in {dir}")
-
-        if (not results_exist | args.overwrite):
-
-            logger.info(f"Generating evaluations for {pert} and {cell}")
-
-            pred_pert = sparse.load_npz(f'{dir}/{pred_fn}')
-            true_pert = sparse.load_npz(f'{dir}/{true_fn}')
-            control = sparse.load_npz(f'{dir}/{control_fn}')
-            
-            
-            #We need to convert the sparse matrices to dense matrices
-            pred_pert = to_dense(pred_pert)
-            true_pert = to_dense(true_pert)
-            control = to_dense(control)
-
-            logger.debug(f"Data shapes: pred_pert {pred_pert.shape}, true_pert {true_pert.shape}, control {control.shape}")
-
-
-            pred_pert = sc.AnnData(X=pred_pert.clip(min=0))
-
-            if args.round:
-                pred_pert.X[pred_pert.X <= 0.5] = 0
-            #pred_pert.var_names = raw_data.var_names
-            
-            true_pert = sc.AnnData(X=true_pert)
-            #true_pert.var_names = raw_data.var_names
-        
-            control = sc.AnnData(X=control)
-            #control.var_names = raw_data.var_names"""
-
-
-            logger.debug(f"Getting ground Truth DEGs for {pert} and {cell}")
-            true_DEGs_df = get_DEGs(control, true_pert)
-
-            logger.debug(f"Getting predicted DEGs for {pert} and {cell}")
-            pred_DEGs_df = get_DEGs(control, pred_pert)
-
+                with open(f'{dir}/{c_r_fn}', 'w+') as f:
+                    json.dump(c_r_results, f, indent=2, cls=NumpyTypeEncoder)
+                
+                with open(f'{dir}/{DEGs_overlap_fn}', 'w+') as f:
+                    json.dump(DEGs_overlaps, f, indent=2, cls=NumpyTypeEncoder)
     
-            logger.debug(f"Getting evaluation metrics for {pert} and {cell}")
-            r2_and_mse = get_eval(control, true_pert, pred_pert, true_DEGs_df, [100,50,20], args.pval_threshold, args.log_fold_change_threshold)
-            
-            logger.debug(f"Getting DEG coverage and recall for {pert} and {cell}")
-            c_r_results = {p: get_DEG_Coverage_Recall(true_DEGs_df, pred_DEGs_df, p) for p in [x/args.pval_iters for x in range(1,int(args.pval_iters*args.max_p_val))]}
-            
-            
-            logger.debug(f"Getting DEG overlaps for {pert} and {cell}")
-            DEGs_overlaps = get_DEGs_overlaps(true_DEGs_df, pred_DEGs_df, [100,50,20], args.pval_threshold, args.log_fold_change_threshold)
+        except Exception as e:
+            logger.error(f"Error processing {pert} and {cell} for dir: {dir} - Error is - {e}")
 
-            with open(f'{dir}/{r2_and_mse_fn}', 'w+') as f:
-                json.dump(r2_and_mse, f, indent=2, cls=NumpyTypeEncoder)
-
-            with open(f'{dir}/{c_r_fn}', 'w+') as f:
-                json.dump(c_r_results, f, indent=2, cls=NumpyTypeEncoder)
-            
-            with open(f'{dir}/{DEGs_overlap_fn}', 'w+') as f:
-                json.dump(DEGs_overlaps, f, indent=2, cls=NumpyTypeEncoder)
 
 
 
@@ -170,6 +176,9 @@ def average_keys(dict_list, occurence_threshold):
 
 
 def average_fold(fold_dir, min_occurences):
+
+    logger.info(f"Averaging evaluations for {fold_dir}")
+
     with open(f'{fold_dir}/config.yaml') as f:
         config = yaml.load(f, yaml.SafeLoader)
     
@@ -182,18 +191,23 @@ def average_fold(fold_dir, min_occurences):
     c_r_dicts = []
 
     for (cell, pert) in eval_targets:
-        with open(f'{fold_dir}/{DEGs_overlap_filename(pert, cell)}', 'rb') as f:
-            DEGs_overlaps = json.load(f)
-            degs_dicts.append(DEGs_overlaps)
-        
-        with open(f'{fold_dir}/{r2_mse_filename(pert, cell)}', 'rb') as f:
-            r2_mse = json.load(f)
-            r2_mse_dicts.append(r2_mse)
-        
-        """        with open(f'{fold_dir}/{c_r_filename(pert, cell)}', 'rb') as f:
-            c_r = pickle.load(f)"""
 
-
+        try :
+            with open(f'{fold_dir}/{DEGs_overlap_filename(pert, cell)}', 'rb') as f:
+                DEGs_overlaps = json.load(f)
+                degs_dicts.append(DEGs_overlaps)
+            
+            with open(f'{fold_dir}/{r2_mse_filename(pert, cell)}', 'rb') as f:
+                r2_mse = json.load(f)
+                r2_mse_dicts.append(r2_mse)
+            
+            """with open(f'{fold_dir}/{c_r_filename(pert, cell)}', 'rb') as f:
+                c_r = pickle.load(f)
+                c_r_dicts.append(c_r)"""
+            
+        except Exception as e:
+            logger.info(f"Could not load evaluations for {pert} and {cell} in {fold_dir}, will not be included in average stats - {e}")
+ 
 
     avg_DEGs_overlaps = average_keys(degs_dicts, min_occurences)
     avg_r2_mse = average_keys(r2_mse_dicts, min_occurences)

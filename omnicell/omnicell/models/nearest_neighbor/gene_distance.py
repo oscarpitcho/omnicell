@@ -123,6 +123,7 @@ class NearestNeighborPredictor():
             except Exception as e:
                 logger.warning(f"Error when computing DEG and GTO for {ug}")
                 invalid_perts.append(ug)
+                continue
 
 
             
