@@ -36,6 +36,8 @@ def generate_evaluation(dir, args):
     with open(f'{dir}/eval_config.yaml', 'w+') as f:
         yaml.dump(args.__dict__, f, indent=2)
 
+    logger.info(f"Loading config from {dir}")
+    logger.info(f"Config: {config}")
     config = Config.from_dict(config)
 
 

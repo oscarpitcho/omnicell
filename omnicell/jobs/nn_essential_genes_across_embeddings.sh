@@ -3,7 +3,7 @@
 #SBATCH --ntasks-per-node=4  # 4 CPU cores
 #SBATCH --gres=gpu:1 --constraint=high-capacity  # 1 non-A100 GPU 
 #SBATCH --mem=512GB          # memory per node
-#SBATCH --array=0-4          # Job array with indices 0 to 4 (for 5 splits)
+#SBATCH --array=0-9          # Job array with indices 0 to 4 (for 5 splits)
 
 hostname                     # Print the hostname of the compute node
 
