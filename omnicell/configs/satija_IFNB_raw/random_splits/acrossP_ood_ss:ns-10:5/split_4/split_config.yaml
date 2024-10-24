@@ -1,15 +1,15 @@
-dataset_name: satija_IFNB_raw
+dataset: satija_IFNB_raw
 holdout_cells: []
 holdout_perts:
-- STAT4
-- SMARCA5
-- IFNAR2
-- BRD9
+- MAPK8
+- ID3
+- JAK1
+- HES4
+- CEBPB
+- IRF9
+- HERC6
+- SOCS1
 - USP18
-- TYK2
-- CRKL
-- DTX3L
-- SP100
-- HERC5
+- ID2
 mode: ood
 name: split_4_ss:ns-10:5

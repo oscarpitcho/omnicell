@@ -245,7 +245,7 @@ def main(*args):
 
     parser.add_argument('--max_p_val', type=float, default=0.05, help='Maximum p value to use for p value calculation')
 
-    MAX_DEPTH = 4
+    MAX_DEPTH = 15
     args = parser.parse_args()
 
     root_dir = Path(args.root_dir).resolve()

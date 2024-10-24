@@ -102,8 +102,9 @@ class DataLoader:
         control = self.training_dataset_details.control if training else self.eval_dataset_details.control
 
         #TODO: If we could rename the columns it would be better
-        adata.obs[PERT_KEY] = adata.obs[condition_key]
-        adata.obs[CELL_KEY] = adata.obs[cell_key]
+
+        adata.obs.rename(columns={condition_key: PERT_KEY, cell_key: CELL_KEY}, inplace=True)
+
         adata.obs[PERT_KEY] = adata.obs[PERT_KEY].cat.rename_categories({control: CONTROL_PERT})
 
         if (self.config.get_cell_embedding_name() is not None) & (self.config.get_apply_normalization() | self.config.get_apply_log1p()):

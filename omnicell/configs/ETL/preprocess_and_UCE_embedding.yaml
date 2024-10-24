@@ -1,3 +1,3 @@
 log1p: True 
 count_norm: True
-pert_embedding: BioBERT
+pert_embedding: UCE_ESM2_Mean_Imputed

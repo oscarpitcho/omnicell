@@ -1,23 +1,23 @@
 dataset: satija_IFNB_raw
 evaluation_targets:
 - - A549
-  - STAT4
+  - MAPK8
 - - A549
-  - SMARCA5
+  - ID3
 - - A549
-  - IFNAR2
+  - JAK1
 - - A549
-  - BRD9
+  - HES4
+- - A549
+  - CEBPB
+- - A549
+  - IRF9
+- - A549
+  - HERC6
+- - A549
+  - SOCS1
 - - A549
   - USP18
 - - A549
-  - TYK2
-- - A549
-  - CRKL
-- - A549
-  - DTX3L
-- - A549
-  - SP100
-- - A549
-  - HERC5
+  - ID2
 name: eval_4_ss:ns-10:5
