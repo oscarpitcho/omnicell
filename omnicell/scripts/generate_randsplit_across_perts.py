@@ -10,7 +10,7 @@ def template_split_config(name, mode, dataset_name, holdout_cells, holdout_perts
    return {
         "name": name,
         "mode": mode,
-        "dataset_name": dataset_name,
+        "dataset": dataset_name,
         "holdout_cells": holdout_cells,
         "holdout_perts": holdout_perts,
         }
@@ -85,10 +85,10 @@ def main():
 
         #Create the split config
 
-        split_config = template_split_config(f"split_{i}_ss:ns-{args.split_size}:{args.number_splits}", args.split_mode, args.dataset, [], perts)
+        split_config = template_split_config(f"split_{i}_{args.split_mode}_ss:ns-{args.split_size}:{args.number_splits}", args.split_mode, args.dataset, [], perts)
 
 
-        eval_config = template_eval_config(f"eval_{i}_ss:ns-{args.split_size}:{args.number_splits}", args.dataset, [[str(target_cell), str(pert)] for pert in perts])
+        eval_config = template_eval_config(f"eval_{i}_{args.split_mode}_ss:ns-{args.split_size}:{args.number_splits}", args.dataset, [[str(target_cell), str(pert)] for pert in perts])
 
         path_split = f"{path}/split_{i}"
 

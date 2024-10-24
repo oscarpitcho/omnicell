@@ -12,7 +12,7 @@ conda activate sandbox
 
 # Define the base directory for configs
 CONFIG_BASE_DIR="configs"
-SPLIT_BASE_DIR="${CONFIG_BASE_DIR}/satija_IFNB_raw/random_splits/acrossP_ood_ss:ns-10:5"
+SPLIT_BASE_DIR="${CONFIG_BASE_DIR}/essential_genes_knockouts_raw/random_splits/acrossP_ood_ss:ns-20:10"
 
 # Use the SLURM_ARRAY_TASK_ID to select the split
 SPLIT_DIR="split_${SLURM_ARRAY_TASK_ID}"
@@ -47,7 +47,7 @@ run_job() {
 for MODEL in "${!MODEL_EMBEDDING_COMBOS[@]}"; do
     for EMBEDDING in ${MODEL_EMBEDDING_COMBOS[$MODEL]}; do
         run_job "$MODEL" "$EMBEDDING"
-        python generate_evaluations.py --root_dir ./results/satija_IFNB_raw
+        python generate_evaluations.py --root_dir ./results/essential_genes_knockouts_raw/
     done
 done
 
