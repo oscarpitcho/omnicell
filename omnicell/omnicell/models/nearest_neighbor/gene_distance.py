@@ -116,14 +116,15 @@ class NearestNeighborPredictor():
             
             control.obs_names = control.obs_names+'-1'
 
-            control.obsm['embedding'][0,(control.obsm['embedding'].var(axis=0)==0)] += np.amin(control.obsm['embedding'][np.nonzero(control.obsm['embedding'])])
 
             #Bug Fixing: When a pert is not present on a cell type we ignore it.
             try:
                 true_pert.obsm['embedding'][0,(true_pert.obsm['embedding'].var(axis=0)==0)] += np.amin(true_pert.obsm['embedding'][np.nonzero(true_pert.obsm['embedding'])])
-            except:
+            except Exception as e:
                 logger.warning(f"Error when computing DEG and GTO for {ug}")
                 invalid_perts.append(ug)
+                continue
+
 
             
             temp_concat = sc.concat([control, true_pert], label = 'batch')
@@ -151,7 +152,7 @@ class NearestNeighborPredictor():
 
             #Bug Fixing: When a pert is not present on a cell type we ignore it. 
             if genno in invalid_perts:
-                pass
+                continue
             logger.debug(f'Finding nearest neighbor perturbation for {target} using {genno}')
             ug_index = unique_genes_noholdout.index(genno)
             logger.debug(f'ug_index {ug_index}')

@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -t 8:00:00          # walltime = 8 hours
+#SBATCH -t 48:00:00          # walltime = 8 hours
 #SBATCH --ntasks-per-node=4  # 4 CPU cores
 #SBATCH --mem=512GB          # memory per node
 #SBATCH --array=0-9          # Job array with indices 0 to 4 (for 5 splits)
@@ -38,6 +38,8 @@ run_job() {
      --model_config ${MODEL_CONFIG} -l DEBUG
 
 
+
+
     echo "Finished job for split ${SLURM_ARRAY_TASK_ID} with embedding: ${EMBEDDING} and model: ${MODEL}"
 }
 
@@ -45,7 +47,7 @@ run_job() {
 for MODEL in "${!MODEL_EMBEDDING_COMBOS[@]}"; do
     for EMBEDDING in ${MODEL_EMBEDDING_COMBOS[$MODEL]}; do
         run_job "$MODEL" "$EMBEDDING"
-        python generate_evaluations.py --root_dir ./results/essential_gene_knockouts_raw/
+        python generate_evaluations.py --root_dir ./results/essential_gene_knockouts_raw/nearest-neighbor_gene_dist_substitute/ --min_avg_depth 1
     done
 done
 
