@@ -1,0 +1,14 @@
+holdout_cells: []
+holdout_perts:
+- HERC5
+- MYC
+- DRAP1
+- ETS1
+- CRKL
+- NFE2L3
+- STAT2
+- SP110
+- STAT1
+- IFNAR2
+mode: ood
+name: split_2
