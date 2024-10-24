@@ -61,7 +61,7 @@ class Config:
         cell_emb_path = f"{cell_emb}/" if cell_emb is not None else ""
         pert_emb = self.get_pert_embedding_name()
         pert_emb_path = f"{pert_emb}/" if pert_emb is not None else ""
-        return Path(f"./models/{self.get_training_dataset_name()}/{cell_emb_path}{pert_emb_path}{self.get_model_name()}/{self.get_datasplit_config_name()}/{self.get_train_hash()}/{self.get_eval_hash()}").resolve()
+        return Path(f"./results/{self.get_training_dataset_name()}/{cell_emb_path}{pert_emb_path}{self.get_model_name()}/{self.get_datasplit_config_name()}/{self.get_train_hash()}/{self.get_eval_hash()}").resolve()
 
     def __eq__(self, other):
         return self.to_dict() == other.to_dict()
