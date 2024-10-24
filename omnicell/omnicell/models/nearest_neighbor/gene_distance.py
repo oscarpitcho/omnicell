@@ -151,7 +151,7 @@ class NearestNeighborPredictor():
 
             #Bug Fixing: When a pert is not present on a cell type we ignore it. 
             if genno in invalid_perts:
-                pass
+                continue
             logger.debug(f'Finding nearest neighbor perturbation for {target} using {genno}')
             ug_index = unique_genes_noholdout.index(genno)
             logger.debug(f'ug_index {ug_index}')
