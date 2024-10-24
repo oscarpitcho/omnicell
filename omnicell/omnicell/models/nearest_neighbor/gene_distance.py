@@ -120,7 +120,7 @@ class NearestNeighborPredictor():
             #Bug Fixing: When a pert is not present on a cell type we ignore it.
             try:
                 true_pert.X[0,(true_pert.X.var(axis=0)==0)] += np.amin(true_pert.X[np.nonzero(true_pert.X)])
-            except e:
+            except Exception as e:
                 logger.warning(f"Error when computing DEG and GTO for {ug}")
                 invalid_perts.append(ug)
 
