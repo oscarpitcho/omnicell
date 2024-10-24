@@ -232,11 +232,11 @@ class DataLoader:
 
             #If no data is found we skip the evaluation
             if len(gt_data) == 0:
-                logger.warning(f"No data found for cell: {cell_id}, pert: {pert_id} in {self.eval_dataset_details.name}, will skip evaluation")
+                logger.warning(f"No data found for cell: {cell_id}, pert: {pert_id} in {self.config.get_eval_dataset_name()}, will skip evaluation")
                 continue
             
             if len(ctrl_data) == 0:
-                logger.critical(f"No control data found for cell: {cell_id} in {self.eval_dataset_details.name}, will skip evaluation")
+                logger.critical(f"No control data found for cell: {cell_id} in {self.config.get_eval_dataset_name()}, will skip evaluation")
                 continue
            
             
