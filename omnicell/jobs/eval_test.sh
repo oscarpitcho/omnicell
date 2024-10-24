@@ -12,7 +12,7 @@ hostname                     # Print the hostname of the compute node
 source ~/.bashrc
 conda activate sandbox
 
-python generate_evaluations.py --root_dir ./results/satija_IFNB_raw/split_0_ss:ns-10:5/BioBERT
+python generate_evaluations.py --root_dir ./results/satija_IFNB_raw/
 
 # python generate_evaluations.py --root_dir ./results/nn/kang_ho_CD4T
 
