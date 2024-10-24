@@ -36,6 +36,7 @@ def get_model(model_name, config_model, loader):
     else:
         pert_rep = None
         pert_map = None
+        
     input_dim = adata.obsm['embedding'].shape[1]
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     pert_ids = adata.obs[PERT_KEY].unique()

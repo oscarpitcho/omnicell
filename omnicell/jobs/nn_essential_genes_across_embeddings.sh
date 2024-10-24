@@ -47,7 +47,7 @@ run_job() {
 for MODEL in "${!MODEL_EMBEDDING_COMBOS[@]}"; do
     for EMBEDDING in ${MODEL_EMBEDDING_COMBOS[$MODEL]}; do
         run_job "$MODEL" "$EMBEDDING"
-        python generate_evaluations.py --root_dir ./results/essential_genes_knockouts_raw/
+        python generate_evaluations.py --root_dir ./results/essential_gene_knockouts_raw/
     done
 done
 
