@@ -222,12 +222,39 @@ def average_fold(fold_dir, min_occurences):
     """with open(f'{fold_dir}/avg_c_r.pkl', 'wb') as f:
         pickle.dump(avg_c_r, f)"""
 
+"""
+Averages all averages contained in subdirectories of the given directory. Assuming average have already been computed in the subdirectories.
+"""
+def average_directory(dir, min_occurences):
+    subdirs = [d for d in dir.iterdir() if d.is_dir()]
+
+    results_DEGs = []
+    results_r2_mse = []
+    for subdir in subdirs:
+        with open(f'{subdir}/avg_DEGs_overlaps.json', 'rb') as f:
+            results_DEGs.append(json.load(f))
+        
+        with open(f'{subdir}/avg_r2_mse.json', 'rb') as f:
+            results_r2_mse.append(json.load(f))
+   
+    avg_DEGs = average_keys(results_DEGs, min_occurences)
+    avg_r2_mse = average_keys(results_r2_mse, min_occurences)
+
+    with open(f'{dir}/avg_DEGs_overlaps.json', 'w+') as f:
+        json.dump(avg_DEGs, f, indent=2)
+    
+    with open(f'{dir}/avg_r2_mse.json', 'w+') as f:
+        json.dump(avg_r2_mse, f, indent=2)
+
+
+
+
 
 def is_leaf_dir(path):
     """Check if the given path is a leaf directory."""
     return path.is_dir() and not any(p.is_dir() for p in path.iterdir())
 
-def process_directory(dir_path, args, depth, max_depth):
+def process_directory(dir_path, args, depth, max_depth, min_compute_average_depth):
     """Process a single directory, either by generating evaluations or recursing further."""
     if is_leaf_dir(dir_path):
         try:
@@ -243,6 +270,11 @@ def process_directory(dir_path, args, depth, max_depth):
         for subdir in dir_path.iterdir():
             if subdir.is_dir():
                 process_directory(subdir, args, depth + 1, max_depth)
+
+        # Once all subdirectories have been processed, average the results
+        if depth >= min_compute_average_depth:
+            average_directory(dir_path, args.min_occurence)
+
 
 
 def main(*args):
@@ -261,7 +293,7 @@ def main(*args):
     parser.add_argument('--replicates', type=int, default=10, help='Number of replicates to use for p value calculation')
     parser.add_argument('--pval_iters', type=int, default=10000, help='Number of iterations to use for p value calculation')
     parser.add_argument('-l', '--log', dest='loglevel', choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'], help="Set the logging level (default: %(default)s)", default='INFO')
-
+    parser.add_argument('--min_avg_depth', type=int, default=-1, help='Compute average stats till this depth from root. -1 means no averages beyond leaf directories')
     parser.add_argument('--max_p_val', type=float, default=0.05, help='Maximum p value to use for p value calculation')
 
     MAX_DEPTH = 15
@@ -272,7 +304,7 @@ def main(*args):
     logging.basicConfig(filename=f'output_evals_recursive_{root_dir.name}.log', filemode='w', level=args.loglevel, format='%(asctime)s - %(levelname)s - %(message)s')
     logger.info(f"Starting recursive evaluation from root directory: {root_dir}")
 
-    process_directory(root_dir, args, 0, MAX_DEPTH)
+    process_directory(root_dir, args, 0, MAX_DEPTH, args.min_avg_depth)
 
     logger.info("Recursive evaluation completed.")
     

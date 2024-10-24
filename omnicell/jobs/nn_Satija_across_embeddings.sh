@@ -2,7 +2,7 @@
 #SBATCH -t 8:00:00          # walltime = 8 hours
 #SBATCH --ntasks-per-node=4  # 4 CPU cores
 #SBATCH --gres=gpu:1 --constraint=high-capacity  # 1 non-A100 GPU 
-#SBATCH --mem=512GB          # memory per node
+#SBATCH --mem=100GB          # memory per node
 #SBATCH --array=0-4          # Job array with indices 0 to 4 (for 5 splits)
 
 hostname                     # Print the hostname of the compute node
@@ -39,6 +39,7 @@ run_job() {
      --eval_config ${SPLIT_BASE_DIR}/${SPLIT_DIR}/eval_config.yaml \
      --model_config ${MODEL_CONFIG} -l DEBUG
 
+    
 
     echo "Finished job for split ${SLURM_ARRAY_TASK_ID} with embedding: ${EMBEDDING} and model: ${MODEL}"
 }

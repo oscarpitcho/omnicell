@@ -45,6 +45,8 @@ def are_identical(vals):
     return all(i == vals[0] for i in vals)
 
 def df_to_heatmap(df, title, path):
+
+    print(f"DF in heatmap function is {df}")
     # Calculate figure size based on dataframe dimensions
     row_count, col_count = df.shape
     base_size = 4  # Base size for a small dataframe
@@ -175,7 +177,6 @@ def main(*args):
 
         column_name = column_names[i]
     
-        save_path = Path(args.save_path)
 
         with open(result_file, 'rb') as f:
             result_dict = json.load(f)
@@ -183,11 +184,13 @@ def main(*args):
         results[column_name] = result_dict
 
 
-
+    print(f"Results: {results}")
     #Find the intersection of the keys in all the results files
 
     keys = [set(x.keys()) for x in results.values()]
     common_keys = set.intersection(*keys)
+
+    print(f"Common keys: {common_keys}")
 
     assert len(common_keys) > 0, 'No common keys found in the results files'
 
@@ -199,6 +202,8 @@ def main(*args):
         #Create a dataframe with the results
 
         results_df = pd.DataFrame.from_dict(results[result_name], orient='index')
+
+        print(f"Results df blah: {results_df}")
         results_df.columns = [result_name]
 
         results[result_name] = results_df
@@ -207,6 +212,8 @@ def main(*args):
     #Concatenate the dataframes
 
     results_df = pd.concat(results.values(), axis=1)
+
+    print(f"Results df before calling heatmap: {results_df}")
 
     
    
