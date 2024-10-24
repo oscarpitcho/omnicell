@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -t 2:00:00          # walltime = 2 hours
+#SBATCH -t 12:00:00          # walltime = 2 hours
 #SBATCH --ntasks-per-node=4  # 4 CPU cores
 #SBATCH --mem=128GB          # memory per node
 #SBATCH --array=0-2         # 3 jobs: one for each model type
