@@ -269,7 +269,7 @@ def process_directory(dir_path, args, depth, max_depth, min_compute_average_dept
     else:
         for subdir in dir_path.iterdir():
             if subdir.is_dir():
-                process_directory(subdir, args, depth + 1, max_depth)
+                process_directory(subdir, args, depth + 1, max_depth, min_compute_average_depth)
 
         # Once all subdirectories have been processed, average the results
         if depth >= min_compute_average_depth:

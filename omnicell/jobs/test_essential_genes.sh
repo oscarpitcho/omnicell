@@ -39,7 +39,7 @@ run_job() {
      --model_config ${MODEL_CONFIG} -l DEBUG
      
 
-    python generate_evaluations.py --root_dir ./results/essential_gene_knockouts_raw/test/${SPLIT_DIR}_ood_ss:ns-20:10
+    python generate_evaluations.py --root_dir ./results/essential_gene_knockouts_raw/test/ --min_avg_depth 1
 
 
     echo "Finished job for split ${SLURM_ARRAY_TASK_ID} with embedding: ${EMBEDDING} and model: ${MODEL}"

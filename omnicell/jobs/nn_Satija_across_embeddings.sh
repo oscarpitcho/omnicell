@@ -2,7 +2,7 @@
 #SBATCH -t 8:00:00          # walltime = 8 hours
 #SBATCH --ntasks-per-node=4  # 4 CPU cores
 #SBATCH --gres=gpu:1 --constraint=high-capacity  # 1 non-A100 GPU 
-#SBATCH --mem=100GB          # memory per node
+#SBATCH --mem=200GB          # memory per node
 #SBATCH --array=0-4          # Job array with indices 0 to 4 (for 5 splits)
 
 hostname                     # Print the hostname of the compute node
@@ -48,7 +48,7 @@ run_job() {
 for MODEL in "${!MODEL_EMBEDDING_COMBOS[@]}"; do
     for EMBEDDING in ${MODEL_EMBEDDING_COMBOS[$MODEL]}; do
         run_job "$MODEL" "$EMBEDDING"
-        python generate_evaluations.py --root_dir ./results/satija_IFNB_raw
+        python generate_evaluations.py --root_dir ./results/satija_IFNB_raw --min_avg_depth 2
     done
 done
 
