@@ -170,7 +170,10 @@ def average_keys(dict_list, occurence_threshold):
 
 
 def average_fold(fold_dir, min_occurences):
-    config = Config(yaml.load(open(f'{fold_dir}/config.yaml'), Loader=yaml.SafeLoader))
+    with open(f'{fold_dir}/config.yaml') as f:
+        config = yaml.load(f, yaml.SafeLoader)
+    
+    config = Config.from_dict(config)
 
     eval_targets = config.get_eval_targets()
 
