@@ -221,6 +221,8 @@ class DataLoader:
             self.complete_eval_adata = adata
 
 
+
+        #TODO: Double check that this is evaluated lazily
         logger.debug(f"Eval targets are {self.config.get_eval_targets()}")
         for cell_id, pert_id in self.config.get_eval_targets():
             gt_data = self.complete_eval_adata[(self.complete_eval_adata.obs[PERT_KEY] == pert_id) & (self.complete_eval_adata.obs[CELL_KEY] == cell_id)]

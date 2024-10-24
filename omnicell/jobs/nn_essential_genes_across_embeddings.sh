@@ -12,7 +12,7 @@ conda activate sandbox
 
 # Define the base directory for configs
 CONFIG_BASE_DIR="configs"
-SPLIT_BASE_DIR="${CONFIG_BASE_DIR}/essential_genes_knockouts_raw/random_splits/acrossP_ood_ss:ns-20:10"
+SPLIT_BASE_DIR="${CONFIG_BASE_DIR}/essential_gene_knockouts_raw/random_splits/acrossP_ood_ss:ns-20:10"
 
 # Use the SLURM_ARRAY_TASK_ID to select the split
 SPLIT_DIR="split_${SLURM_ARRAY_TASK_ID}"
