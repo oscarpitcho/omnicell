@@ -70,10 +70,13 @@ def generate_evaluation(dir, args):
 
                 raise FileNotFoundError(f"Predictions for {pert} and {cell} do not exist in {dir}")
 
-            if (not results_exist | args.overwrite):
+            if ((not results_exist) | args.overwrite):
 
                 logger.info(f"Generating evaluations for {pert} and {cell}")
 
+                logger.debug(f"Loading prediction from: {dir}/{pred_fn}")
+                logger.debug(f"Loading ground truth from: {dir}/{true_fn}")
+                               
                 pred_pert = sparse.load_npz(f'{dir}/{pred_fn}')
                 true_pert = sparse.load_npz(f'{dir}/{true_fn}')
                 control = sparse.load_npz(f'{dir}/{control_fn}')
@@ -102,6 +105,9 @@ def generate_evaluation(dir, args):
 
                 logger.debug(f"Getting ground Truth DEGs for {pert} and {cell}")
                 true_DEGs_df = get_DEGs(control, true_pert)
+                signif_true_DEG = true_DEGs_df[true_DEGs_df['pvals_adj'] < args.pval_threshold]
+
+                logger.debug(f"Number of significant DEGS from ground truth: {signif_true_DEG.shape[0]}")
 
                 logger.debug(f"Getting predicted DEGs for {pert} and {cell}")
                 pred_DEGs_df = get_DEGs(control, pred_pert)
@@ -110,8 +116,8 @@ def generate_evaluation(dir, args):
                 logger.debug(f"Getting evaluation metrics for {pert} and {cell}")
                 r2_and_mse = get_eval(control, true_pert, pred_pert, true_DEGs_df, [100,50,20], args.pval_threshold, args.log_fold_change_threshold)
                 
-                logger.debug(f"Getting DEG coverage and recall for {pert} and {cell}")
-                c_r_results = {p: get_DEG_Coverage_Recall(true_DEGs_df, pred_DEGs_df, p) for p in [x/args.pval_iters for x in range(1,int(args.pval_iters*args.max_p_val))]}
+                """ logger.debug(f"Getting DEG coverage and recall for {pert} and {cell}")
+                c_r_results = {p: get_DEG_Coverage_Recall(true_DEGs_df, pred_DEGs_df, p) for p in [x/args.pval_iters for x in range(1,int(args.pval_iters*args.max_p_val))]}"""
                 
                 
                 logger.debug(f"Getting DEG overlaps for {pert} and {cell}")
@@ -120,11 +126,14 @@ def generate_evaluation(dir, args):
                 with open(f'{dir}/{r2_and_mse_fn}', 'w+') as f:
                     json.dump(r2_and_mse, f, indent=2, cls=NumpyTypeEncoder)
 
-                with open(f'{dir}/{c_r_fn}', 'w+') as f:
-                    json.dump(c_r_results, f, indent=2, cls=NumpyTypeEncoder)
+                """with open(f'{dir}/{c_r_fn}', 'w+') as f:
+                    json.dump(c_r_results, f, indent=2, cls=NumpyTypeEncoder)"""
                 
                 with open(f'{dir}/{DEGs_overlap_fn}', 'w+') as f:
                     json.dump(DEGs_overlaps, f, indent=2, cls=NumpyTypeEncoder)
+
+            else:
+                logger.info(f"Evaluations for {pert} and {cell} already exist in {dir}, skipping")
     
         except Exception as e:
             logger.error(f"Error processing {pert} and {cell} for dir: {dir} - Error is - {e}")

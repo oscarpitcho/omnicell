@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -t 8:00:00          # walltime = 8 hours
+#SBATCH -t 48:00:00         # walltime = 8 hours
 #SBATCH --ntasks-per-node=4  # 4 CPU cores
 #SBATCH --gres=gpu:1 --constraint=high-capacity  # 1 non-A100 GPU 
 #SBATCH --mem=200GB          # memory per node
@@ -33,6 +33,12 @@ run_job() {
     MODEL_CONFIG="${CONFIG_BASE_DIR}/models/${MODEL}.yaml"
     
     echo "Running job for split ${SLURM_ARRAY_TASK_ID} with embedding: ${EMBEDDING} and model: ${MODEL}"
+
+
+    echo "python train.py --etl_config ${ETL_CONFIG} \
+     --datasplit_config ${SPLIT_BASE_DIR}/${SPLIT_DIR}/split_config.yaml \
+     --eval_config ${SPLIT_BASE_DIR}/${SPLIT_DIR}/eval_config.yaml \
+     --model_config ${MODEL_CONFIG} -l DEBUG"
 
     python train.py --etl_config ${ETL_CONFIG} \
      --datasplit_config ${SPLIT_BASE_DIR}/${SPLIT_DIR}/split_config.yaml \

@@ -246,6 +246,7 @@ def get_DEGs_overlaps(true_DEGs, pred_DEGs, DEG_vals, pval_threshold, lfc_thresh
     true_DEGs_for_comparison = [get_DEG_with_direction(gene,score) for gene, score in zip(significant_true_DEGs.index, significant_true_DEGs['scores'])]   
     pred_DEGs_for_comparison = [get_DEG_with_direction(gene,score) for gene, score in zip(significant_pred_DEGs.index, significant_pred_DEGs['scores'])]
     
+    logger.debug(f"Computing DEG overlaps, # of significant DEGs in true data: {len(true_DEGs_for_comparison)}, # of significant DEGs in pred data: {len(pred_DEGs_for_comparison)}")
     num_DEGs = len(significant_true_DEGs)
     DEG_vals.insert(0, num_DEGs)
     
