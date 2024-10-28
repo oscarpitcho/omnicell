@@ -39,8 +39,8 @@ class FlowPredictor():
 
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-        self.pert_ids = adata.obs[PERT_KEY].map(self.pert_map).values.astype(int)
-        print(self.pert_ids)
+        self.pert_ids = adata.obs[PERT_KEY].map(self.pert_map | {'NT': -1}).values.astype(int) 
+        adata.obsm['embedding'] = torch.Tensor(adata['embedding']).type(torch.float32)
         # adata.obsm['embedding'] = adata.obsm['embedding'].toarray()
         # adata.obsm['embedding'] = adata.obsm['embedding'] / adata.obsm['embedding'].sum(axis=1)[:, None]
         # adata.obsm["standard"] = adata.obsm['embedding']
