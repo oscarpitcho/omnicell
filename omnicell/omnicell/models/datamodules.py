@@ -58,6 +58,8 @@ class SCFMDataset(torch.utils.data.Dataset):
         source, target = np.array(source), np.array(target)
         pert_ids, pert_mat = np.array(pert_ids), np.array(pert_mat)
         
+        print(target.shape)
+        
         assert target.shape[0] == pert_ids.shape[0]
         assert source.shape[0] == source_strata.shape[0]
         assert target.shape[0] == target_strata.shape[0]
@@ -67,6 +69,7 @@ class SCFMDataset(torch.utils.data.Dataset):
         self.target_strata = target_strata
         self.strata = np.unique(source_strata)
         self.num_strata = len(self.strata)
+        print(source_strata, self.strata, self.num_strata)
         
         self.pert_ids = np.unique(pert_ids)
         
@@ -118,6 +121,7 @@ def get_identity_features(adata, cell_type_features=True):
 def get_dataloader(
         adata, batch_size=512, verbose=0, pert_reps=None, pert_ids=None, collate='ot'
 ):
+        CONTROL_PERT = 'NT'
         control_idx = adata.obs[PERT_KEY] == CONTROL_PERT
         pert_idx = adata.obs[PERT_KEY] != CONTROL_PERT
         cell_types = adata.obs[CELL_KEY].values
@@ -132,6 +136,7 @@ def get_dataloader(
         pert_ids_train =  pert_ids[pert_idx]
         control_cell_types = cell_types[control_idx]
         pert_cell_types = cell_types[pert_idx]
+        
 
         if collate == 'ot':
              collate_fn = ot_collate
