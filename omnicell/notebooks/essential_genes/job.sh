@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -t 48:00:00          # walltime = 2 hours
+#SBATCH -t 48:00:01          # walltime = 2 hours
 #SBATCH --ntasks-per-node=4  # 4 CPU cores
 #SBATCH --mem=128GB          # memory per node
 hostname
