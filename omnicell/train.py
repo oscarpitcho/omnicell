@@ -36,7 +36,7 @@ def get_model(model_name, config_model, loader):
     else:
         pert_rep = None
         pert_map = None
-    print(pert_rep_map)
+        
     input_dim = adata.obsm['embedding'].shape[1]
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     pert_ids = adata.obs[PERT_KEY].unique()
@@ -46,12 +46,12 @@ def get_model(model_name, config_model, loader):
 
     logger.debug(f"Training data loaded, perts are: {adata.obs[PERT_KEY].unique()}")
 
-    if 'nearest_neighbor_mean_shift' in model_name:
+    if "nearest-neighbor_pert_emb" in model_name:
         from omnicell.models.nearest_neighbor.predictor import NearestNeighborPredictor
         logger.info("Nearest Neighbor model selected")
         model = NearestNeighborPredictor(config_model, pert_rep=pert_rep, pert_map=pert_map)
 
-    elif 'nearest_neighbor_gene_dist' in model_name:
+    elif 'nearest-neighbor_gene_dist' in model_name:
         from omnicell.models.nearest_neighbor.gene_distance import NearestNeighborPredictor
         logger.info("Nearest Neighbor Gene Distance model selected")
         model = NearestNeighborPredictor(config_model)
@@ -83,7 +83,7 @@ def get_model(model_name, config_model, loader):
         model = TestPredictor(adata_cheat)
         
     else:
-        raise ValueError('Unknown model name')
+        raise ValueError(f'Unknown model name {model_name}')
     
     return model, adata
 
