@@ -1,0 +1,23 @@
+dataset: satija_IFNB_raw
+evaluation_targets:
+- - A549
+  - MAPK8
+- - A549
+  - SOCS1
+- - A549
+  - CEBPB
+- - A549
+  - JAK1
+- - A549
+  - ID2
+- - A549
+  - ID3
+- - A549
+  - HERC6
+- - A549
+  - USP18
+- - A549
+  - HES4
+- - A549
+  - IRF9
+name: eval_2_ss:ns-10:5

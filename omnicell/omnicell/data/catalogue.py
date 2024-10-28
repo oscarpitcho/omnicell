@@ -66,6 +66,8 @@ class Catalogue:
         raise NotImplementedError("Not implemented yet")
 
 
+
+    #TODO: Misleading error, if we modify disk and call this after, disk is modified but still throws error
     def register_new_pert_embedding(self, dataset_name, embedding_name):
         if dataset_name in self._catalogue:
             if embedding_name not in self._catalogue[dataset_name].pert_embeddings:

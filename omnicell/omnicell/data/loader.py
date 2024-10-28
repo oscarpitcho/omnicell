@@ -102,8 +102,9 @@ class DataLoader:
         control = self.training_dataset_details.control if training else self.eval_dataset_details.control
 
         #TODO: If we could rename the columns it would be better
-        adata.obs[PERT_KEY] = adata.obs[condition_key]
-        adata.obs[CELL_KEY] = adata.obs[cell_key]
+
+        adata.obs.rename(columns={condition_key: PERT_KEY, cell_key: CELL_KEY}, inplace=True)
+
         adata.obs[PERT_KEY] = adata.obs[PERT_KEY].cat.rename_categories({control: CONTROL_PERT})
 
         if (self.config.get_cell_embedding_name() is not None) & (self.config.get_apply_normalization() | self.config.get_apply_log1p()):
@@ -220,6 +221,8 @@ class DataLoader:
             self.complete_eval_adata = adata
 
 
+
+        #TODO: Double check that this is evaluated lazily
         logger.debug(f"Eval targets are {self.config.get_eval_targets()}")
         for cell_id, pert_id in self.config.get_eval_targets():
             gt_data = self.complete_eval_adata[(self.complete_eval_adata.obs[PERT_KEY] == pert_id) & (self.complete_eval_adata.obs[CELL_KEY] == cell_id)]
@@ -229,11 +232,11 @@ class DataLoader:
 
             #If no data is found we skip the evaluation
             if len(gt_data) == 0:
-                logger.warning(f"No data found for cell: {cell_id}, pert: {pert_id} in {self.eval_dataset_details.name}, will skip evaluation")
+                logger.warning(f"No data found for cell: {cell_id}, pert: {pert_id} in {self.config.get_eval_dataset_name()}, will skip evaluation")
                 continue
             
             if len(ctrl_data) == 0:
-                logger.critical(f"No control data found for cell: {cell_id} in {self.eval_dataset_details.name}, will skip evaluation")
+                logger.critical(f"No control data found for cell: {cell_id} in {self.config.get_eval_dataset_name()}, will skip evaluation")
                 continue
            
             

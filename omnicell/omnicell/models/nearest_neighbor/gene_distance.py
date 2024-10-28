@@ -103,44 +103,50 @@ class NearestNeighborPredictor():
         
         invalid_perts = []
         for ug in unique_genes_noholdout:
-            cont = np.array(inp[inp.obs[PERT_KEY] == CONTROL_PERT].obsm['embedding'])
-            pert = np.array(inp[inp.obs[PERT_KEY] == ug].obsm['embedding'])
+            try: 
+                cont = np.array(inp[inp.obs[PERT_KEY] == CONTROL_PERT].obsm['embedding'])
+                pert = np.array(inp[inp.obs[PERT_KEY] == ug].obsm['embedding'])
+                
+                logger.debug(f'Finding nearest neighbor perturbation for {target} using {ug}')
+                logger.debug(f'Control shape {cont.shape}, pert shape {pert.shape}')
+                
+                control = sc.AnnData(X=cont)
+                            
+                true_pert = sc.AnnData(X=pert)
             
-            logger.debug(f'Finding nearest neighbor perturbation for {target} using {ug}')
-            logger.debug(f'Control shape {cont.shape}, pert shape {pert.shape}')
-            
-            control = sc.AnnData(X=cont)
-                        
-            true_pert = sc.AnnData(X=pert)
-        
-            
-            control.obs_names = control.obs_names+'-1'
+                
+                control.obs_names = control.obs_names+'-1'
 
-            control.obsm['embedding'][0,(control.obsm['embedding'].var(axis=0)==0)] += np.amin(control.obsm['embedding'][np.nonzero(control.obsm['embedding'])])
+                control.obsm['embedding'][0,(control.obsm['embedding'].var(axis=0)==0)] += np.amin(control.obsm['embedding'][np.nonzero(control.obsm['embedding'])])
 
-            #Bug Fixing: When a pert is not present on a cell type we ignore it.
-            try:
+                #Bug Fixing: When a pert is not present on a cell type we ignore it.
                 true_pert.obsm['embedding'][0,(true_pert.obsm['embedding'].var(axis=0)==0)] += np.amin(true_pert.obsm['embedding'][np.nonzero(true_pert.obsm['embedding'])])
-            except:
                 logger.warning(f"Error when computing DEG and GTO for {ug}")
                 invalid_perts.append(ug)
+                    
 
-            
-            temp_concat = sc.concat([control, true_pert], label = 'batch')
-            sc.tl.rank_genes_groups(temp_concat, 'batch', method='wilcoxon', groups = ['1'], ref = '0')
-            
-            rankings = temp_concat.uns['rank_genes_groups']
-            result_df = pd.DataFrame({'pva': rankings['pvals_adj']['1'], 'pvals_adj': rankings['scores']['1']}, index = rankings['names']['1'])
-            result_df.index = result_df.index.astype(np.int32)
-            result_df = result_df.sort_index()
-            
-            GTO = torch.from_numpy(np.array(result_df['pvals_adj']).astype(np.float32))
-            
-            DEGs = torch.argsort(torch.abs(GTO))
-            
-            logger.debug(f'GTO shape {GTO.shape}, DEGs shape {DEGs.shape}')
-            DEGSlist.append(DEGs)
-            GTOlist.append(GTO)
+
+                
+                temp_concat = sc.concat([control, true_pert], label = 'batch')
+                sc.tl.rank_genes_groups(temp_concat, 'batch', method='wilcoxon', groups = ['1'], ref = '0')
+                
+                rankings = temp_concat.uns['rank_genes_groups']
+                result_df = pd.DataFrame({'pva': rankings['pvals_adj']['1'], 'pvals_adj': rankings['scores']['1']}, index = rankings['names']['1'])
+                result_df.index = result_df.index.astype(np.int32)
+                result_df = result_df.sort_index()
+                
+                GTO = torch.from_numpy(np.array(result_df['pvals_adj']).astype(np.float32))
+                
+                DEGs = torch.argsort(torch.abs(GTO))
+                
+                logger.debug(f'GTO shape {GTO.shape}, DEGs shape {DEGs.shape}')
+                DEGSlist.append(DEGs)
+                GTOlist.append(GTO)
+
+            except Exception as e:
+                logger.warning(f"Error when computing DEG and GTO for {ug}")
+                logger.warning(e)
+                invalid_perts.append(ug)
                     
 
         logger.debug(f"DEGSlist shape {len(DEGSlist)}")
@@ -151,7 +157,7 @@ class NearestNeighborPredictor():
 
             #Bug Fixing: When a pert is not present on a cell type we ignore it. 
             if genno in invalid_perts:
-                pass
+                continue
             logger.debug(f'Finding nearest neighbor perturbation for {target} using {genno}')
             ug_index = unique_genes_noholdout.index(genno)
             logger.debug(f'ug_index {ug_index}')

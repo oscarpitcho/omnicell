@@ -71,6 +71,9 @@ def main():
 
         embedding = torch.squeeze(outputs.pooler_output)
 
+        embedding = embedding.detach().cpu()
+        embedding.requires_grad = False
+
         embeddings[pert] = embedding
 
 
