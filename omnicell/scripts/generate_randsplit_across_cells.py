@@ -25,15 +25,12 @@ def template_eval_config(name, dataset, evaluation_targets) -> str:
 
 
 
-#Do we handle the across
 
 def main():
     parser = argparse.ArgumentParser(description='Analysis settings.')
     parser.add_argument('--dataset', type=str, help='Name of the dataset')
     parser.add_argument('--split_mode', type=str, default='ood', help='Mode of the split config')
     parser.add_argument('--split_size', type=int, help='Size of the split, # of perts for evaluation')
-    parser.add_argument('--number_splits', type=int, help='Number of splits')
-    parser.add_argument('--target_cell', type=str, default='MAX', help='Target cell for the split, if MAX then the cell with the most observations is selected')
 
 
     args = parser.parse_args()
@@ -62,33 +59,31 @@ def main():
 
 
 
-    path = f"configs/{args.dataset}/random_splits/rs-across-perts-{args.split_mode}-split-ss:ns-{args.split_size}:{args.number_splits}"
+    path = f"configs/{args.dataset}/random_splits/acrossC_{args.split_mode}_ss:{args.split_size}"
 
 
 
-    target_cell = args.target_cell
+    #Getting cell types
+    cell_types = adata.obs[ds_details.cell_key].unique()
 
-    #Select the cell type with the most observations
-    if target_cell == "MAX":
-        target_cell = adata.obs[ds_details.cell_key].value_counts().idxmax()
+    selected_pert = [str(x) for x in np.random.choice(perts, args.split_size, replace=False)]
 
-    else:
-        target_cell = str(target_cell)
 
-    print(f"Selected cell {target_cell}")
 
-    for i in range(args.number_splits):
+    #Each fold we hold one cell type out
+    for cell in cell_types:
+
+
 
         #Select a random subset of perturbations
-        perts = [str(x) for x in np.random.choice(perts, args.split_size, replace=False)]
 
         #Create the split config
 
         #Name with hyphen ensures the splits will be grouped together (and only together) in the results directory
-        split_config = template_split_config(f"rs-across-perts-{args.split_mode}-split-ss:ns-{args.split_size}:{args.number_splits}_split_{i}", args.split_mode, args.dataset, [], perts)
+        split_config = template_split_config(f"rs-across-perts-{args.split_mode}-split-ss:{args.split_size}_split_{cell}", args.split_mode, args.dataset, [cell], [])
 
 
-        eval_config = template_eval_config(f"rs-across-perts-{args.split_mode}-split-ss:ns-{args.split_size}:{args.number_splits}_eval_{i}", args.dataset, [[str(target_cell), str(pert)] for pert in perts])
+        eval_config = template_eval_config(f"rs-across-perts-{args.split_mode}-split-ss:{args.split_size}_eval_{cell}", args.dataset, [[str(cell), str(pert)] for pert in selected_pert])
 
         path_split = f"{path}/split_{i}"
 
