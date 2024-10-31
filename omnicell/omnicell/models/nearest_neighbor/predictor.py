@@ -21,6 +21,8 @@ class NearestNeighborPredictor():
         self.seen_perts = None
         self.mean_shift = config['mean_shift']
 
+
+        #TODO: Metrics in specific space
         self.pert_dist_fn = distance_metrics[config['pert_dist_metric']]
         self.cell_dist_fn = distance_metrics[config['cell_dist_metric']]
 
