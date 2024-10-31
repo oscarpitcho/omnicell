@@ -50,6 +50,7 @@ class NearestNeighborPredictor():
 
 
         if self.metric_space == 'PCA':
+            logger.info("Training PCA model")
 
             self.pca_model = PCA(n_components=self.config['n_pca_components'])
 
