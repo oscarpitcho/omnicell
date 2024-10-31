@@ -7,26 +7,29 @@ from omnicell.constants import PERT_KEY, CELL_KEY, CONTROL_PERT
 import logging
 from typing import Optional, Tuple, Dict
 import pickle
-
+from omnicell.processing.PCA.pca_main import PCA
 from omnicell.models.metric_fns import distance_metrics
 
 
 logger = logging.getLogger(__name__)
 
 class NearestNeighborPredictor():
-    def __init__(self, config, pert_rep=None, pert_map=None, cell_rep=None):
+    def __init__(self, config, pert_rep=None, pert_map=None):
         self.config = config
         self.train_adata = None
         self.seen_cell_types = None
         self.seen_perts = None
         self.mean_shift = config['mean_shift']
 
+        self.metric_space = config['metric_space']
+
 
         #TODO: Metrics in specific space
         self.pert_dist_fn = distance_metrics[config['pert_dist_metric']]
         self.cell_dist_fn = distance_metrics[config['cell_dist_metric']]
 
-        self.cell_rep = cell_rep
+        self.cell_reps = None
+        self.metric_space = config['cell_metric_space']
         self.pert_rep = pert_rep
         self.pert_map = pert_map
 
@@ -45,12 +48,28 @@ class NearestNeighborPredictor():
         self.seen_cell_types = adata.obs[CELL_KEY].values.unique()
         self.seen_perts = [pert for pert in adata.obs[PERT_KEY].unique() if pert != CONTROL_PERT]
 
-        if self.cell_rep is None:
-            cell_rep = []
-            for cell_type in self.seen_cell_types:
-                cell_rep.append(self.train_adata[(self.train_adata.obs[CELL_KEY] == cell_type) & (self.train_adata.obs[PERT_KEY] == CONTROL_PERT)].obsm['embedding'].mean(axis=0))
-            cell_rep = np.squeeze(np.array(cell_rep))
-        self.cell_rep = cell_rep
+
+        if self.metric_space == 'PCA':
+
+            self.pca_model = PCA(n_components=self.config['n_pca_components'])
+
+            transformed = self.pca_model.fit_transform(adata.obsm['embedding'])
+            adata.obsm['metric_space'] = transformed
+        elif self.metric_space == 'UMAP':
+            raise NotImplementedError("UMAP not implemented yet")
+        elif self.metric_space == 'raw':
+            pass
+        else:
+            raise NotImplementedError(f"Invalid metric space {self.metric_space}")
+
+
+        cell_reps = []
+        for cell_type in self.seen_cell_types:
+            mask = (self.train_adata.obs[CELL_KEY] == cell_type) & (self.train_adata.obs[PERT_KEY] == CONTROL_PERT)
+            cell_rep = self.train_adata[mask].obsm['embedding'].mean(axis=0) if self.metric_space == 'raw' else self.train_adata[mask].obsm['metric_space'].mean(axis=0)
+            cell_reps.append(cell_rep)
+            cell_reps = np.squeeze(np.array(cell_reps))
+        self.cell_reps = cell_reps
     
     def make_predict(self, adata: sc.AnnData, pert_id: str, cell_type: str) -> np.ndarray:
         assert self.train_adata is not None, "Model has not been trained yet"
@@ -93,14 +112,18 @@ class NearestNeighborPredictor():
         assert heldout_cell_adata.obs[PERT_KEY].unique()[0] == CONTROL_PERT, "Heldout cell data must contain only control data"
 
         #Mean control state of the heldout cell
-        heldout_cell_rep = heldout_cell_adata.obsm['embedding'].mean(axis=0)
+        heldout_cell_rep = None
+        if self.metric_space == 'raw':
+            heldout_cell_rep = heldout_cell_adata.obsm['embedding'].mean(axis=0)
+        elif self.metric_space == 'PCA':
+            heldout_cell_rep = self.pca_model.transform(heldout_cell_adata.obsm['embedding']).mean(axis=0)
+        elif self.metric_space == 'UMAP':
+            raise NotImplementedError("UMAP not implemented yet")
+        
+        else:
+            raise ValueError(f"Invalid metric space {self.metric_space}")
     
-        #Computing distances
-        # diffs = train_cell_rep - heldout_cell_rep
-        #Applying L2 distance, could be changed to L1
-        # squared_diffs = np.square(diffs)
-
-        # distances_to_heldout = np.sum(squared_diffs, axis=1)
+        
 
         distances_to_heldout = self.cell_dist_fn(self.cell_rep, heldout_cell_rep)
         closest_cell_type_idx = np.argmin(distances_to_heldout)
