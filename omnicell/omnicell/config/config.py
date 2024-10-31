@@ -48,20 +48,32 @@ class Config:
         return Config(config_dict['model_config'], config_dict['etl_config'], config_dict['datasplit_config'], config_dict['eval_config'])
     
 
-    #TODO: Introduce DATASET NAME in Config PATH
+    
     def get_train_path(self):
         cell_emb = self.get_cell_embedding_name()
         cell_emb_path = f"{cell_emb}/" if cell_emb is not None else ""
         pert_emb = self.get_pert_embedding_name()
         pert_emb_path = f"{pert_emb}/" if pert_emb is not None else ""
-        return Path(f"./models/{self.get_training_dataset_name()}/{cell_emb_path}{pert_emb_path}{self.get_model_name()}/{self.get_datasplit_config_name()}/{self.get_train_hash()}").resolve()
+
+        datasplit_prefix = self.get_data_split_config_name().split('-')
+        if len(datasplit_prefix) > 1:
+            datasplit_prefix = datasplit_prefix[0]
+        
+        datasplit_prefix_path = f"{datasplit_prefix}/" if datasplit_prefix is not None else ""
+        return Path(f"./models/{self.get_training_dataset_name()}/{cell_emb_path}{pert_emb_path}{self.get_model_name()}/{datasplit_prefix_path}{self.get_datasplit_config_name()}/{self.get_train_hash()}").resolve()
     
     def get_eval_path(self):
         cell_emb = self.get_cell_embedding_name()
         cell_emb_path = f"{cell_emb}/" if cell_emb is not None else ""
         pert_emb = self.get_pert_embedding_name()
         pert_emb_path = f"{pert_emb}/" if pert_emb is not None else ""
-        return Path(f"./results/{self.get_training_dataset_name()}/{cell_emb_path}{pert_emb_path}{self.get_model_name()}/{self.get_datasplit_config_name()}/{self.get_train_hash()}/{self.get_eval_hash()}").resolve()
+
+        datasplit_prefix = self.get_data_split_config_name().split('-')
+        if len(datasplit_prefix) > 1:
+            datasplit_prefix = datasplit_prefix[0]
+        
+        datasplit_prefix_path = f"{datasplit_prefix}/" if datasplit_prefix is not None else ""
+        return Path(f"./results/{self.get_training_dataset_name()}/{cell_emb_path}{pert_emb_path}{self.get_model_name()}/{datasplit_prefix_path}{self.get_datasplit_config_name()}/{self.get_train_hash()}/{self.get_eval_hash()}").resolve()
 
     def __eq__(self, other):
         return self.to_dict() == other.to_dict()
