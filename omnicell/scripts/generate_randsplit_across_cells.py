@@ -85,7 +85,7 @@ def main():
 
         eval_config = template_eval_config(f"rs-across-perts-{args.split_mode}-split-ss:{args.split_size}_eval_{cell}", args.dataset, [[str(cell), str(pert)] for pert in selected_pert])
 
-        path_split = f"{path}/split_{i}"
+        path_split = f"{path}/split_{cell}"
 
         #make the directory
         os.makedirs(path_split, exist_ok=True)
