@@ -1,0 +1,23 @@
+dataset: satija_IFNB_raw
+evaluation_targets:
+- - K562
+  - HERC5
+- - K562
+  - IFNAR1
+- - K562
+  - CEBPB
+- - K562
+  - SP100
+- - K562
+  - DTX3L
+- - K562
+  - ADAR
+- - K562
+  - ID1
+- - K562
+  - NFKB1
+- - K562
+  - CRKL
+- - K562
+  - MYC
+name: rs-across-perts-ood-split-ss:10_eval_K562

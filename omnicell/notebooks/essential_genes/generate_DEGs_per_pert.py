@@ -36,12 +36,16 @@ for cell_type in cell_types:
 
     for pert in perts:
         adata_pert = adata[(adata.obs[dd.cell_key] == cell_type) & (adata.obs[dd.pert_key] == pert)]
-        DEGs = get_DEGs(adata_control, adata_pert)
 
-        if args.signifcant:
-            DEGs = DEGs[DEGs['pvals_adj'] < 0.05]
+        if adata_pert.shape[0] < 2:
+            results[cell_type][pert] = []
+        else:
+            DEGs = get_DEGs(adata_control, adata_pert)
 
-        results[cell_type][pert] = list(DEGs.index)
+            if args.signifcant:
+                DEGs = DEGs[DEGs['pvals_adj'] < 0.05]
+
+            results[cell_type][pert] = list(DEGs.index)
 
 
 
