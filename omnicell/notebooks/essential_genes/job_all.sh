@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH -t 168:00:00          # walltime = 2 hours
 #SBATCH --ntasks-per-node=4  # 4 CPU cores
-#SBATCH --mem=256GB          # memory per node
+#SBATCH --mem=500GB          # memory per node
 hostname
 
 source ~/.bashrc
