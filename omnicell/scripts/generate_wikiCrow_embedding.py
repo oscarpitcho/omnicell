@@ -9,24 +9,10 @@ import numpy as np
 from tqdm import tqdm
 from omnicell.data.catalogue import Catalogue
 
-
-def embed_texts(texts, batch_size=512):
-    embeddings = []
-    for i in tqdm(range(0, len(texts), batch_size), desc="Embedding texts"):
-        batch_texts = texts[i:i+batch_size]
-        # Use the OpenAI client to create embeddings
-        batch_results = client.embeddings.create(
-            model="text-embedding-3-small",
-            input=batch_texts,
-            encoding_format="float",
-            dimensions=32
-        )
-        # Extract embeddings from the response
-        batch_embeddings = [data.embedding for data in batch_results.data]
-        embeddings.extend(batch_embeddings)
-    return embeddings
-
+WIKICROW_PATH = "/om/group/abugoot/Projects/Omnicell_datasets/wikicrow2"
 def main():
+
+    
     # Parse command line arguments
     parser = argparse.ArgumentParser(description='Process files in GCS bucket.')
     parser.add_argument('--dataset', required=True, help='Name of the dataset.')

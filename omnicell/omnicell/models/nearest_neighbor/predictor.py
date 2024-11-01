@@ -123,7 +123,7 @@ class NearestNeighborPredictor():
         if self.metric_space == 'raw':
             heldout_cell_rep = heldout_cell_adata.obsm['embedding'].mean(axis=0)
         elif self.metric_space == 'PCA':
-            heldout_cell_rep = torch.matmul(torch.from_numpy(heldout_cell_adata.obsm['embedding']), self.V[:, :self.config['n_pca_components']]).mean(axis=0).cpu()
+            heldout_cell_rep = torch.matmul(torch.from_numpy(heldout_cell_adata.obsm['embedding']), self.V[:, :self.config['n_pca_components']]).mean(axis=0).cpu().numpy()
         elif self.metric_space == 'UMAP':
             raise NotImplementedError("UMAP not implemented yet")
         
