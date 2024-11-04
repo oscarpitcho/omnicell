@@ -37,7 +37,7 @@ for cell_type in cell_types:
         adata_pert = adata[(adata.obs[dd.cell_key] == cell_type) & (adata.obs[dd.pert_key] == pert)]
 
      
-        if (adata_pert.shape[0] < 2): 
+        if (adata_pert.shape[0] >= 2): 
             DEGs = get_DEGs(adata_control, adata_pert)
 
             as_dict = DEGs.to_dict(orient='index')
