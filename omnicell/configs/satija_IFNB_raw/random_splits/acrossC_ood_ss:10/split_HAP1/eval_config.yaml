@@ -1,0 +1,23 @@
+dataset: satija_IFNB_raw
+evaluation_targets:
+- - HAP1
+  - HERC5
+- - HAP1
+  - IFNAR1
+- - HAP1
+  - CEBPB
+- - HAP1
+  - SP100
+- - HAP1
+  - DTX3L
+- - HAP1
+  - ADAR
+- - HAP1
+  - ID1
+- - HAP1
+  - NFKB1
+- - HAP1
+  - CRKL
+- - HAP1
+  - MYC
+name: rs-across-perts-ood-split-ss:10_eval_HAP1
