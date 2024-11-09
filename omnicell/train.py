@@ -70,6 +70,11 @@ def get_model(model_name, config_model, loader):
         from omnicell.models.VAE.vae import VAE
         logger.info("VAE model selected")
         model = VAE(config_model, input_dim, device, pert_ids)
+    
+    elif 'cell_emb' in model_name:
+        from omnicell.models.cell_emb.cell_emb_predictor import CellEmbPredictor
+        logger.info("Cell Emb model selected")
+        model = CellEmbPredictor(config_model, input_dim, device, pert_ids)
 
     elif 'scVIDR' in model_name:
         from omnicell.models.VAE.scVIDR_predictor import ScVIDRPredictor
