@@ -11,9 +11,11 @@ from omnicell.models.flows.flow_utils import compute_conditional_flow
 from pytorch_lightning.callbacks import TQDMProgressBar
 import pytorch_lightning as pl
 
+import logging
 
 from omnicell.constants import CELL_KEY, CONTROL_PERT, PERT_KEY
 
+logger = logging.getLogger(__name__)
 
 class FlowPredictor():
     def __init__(self, config, input_size, pert_rep, pert_map):
@@ -39,6 +41,10 @@ class FlowPredictor():
 
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
+        logger.debug(f"Adata obsm keys: {adata.obsm}")
+
+
+        #TODO: Will this copy the data again? - We are already getting oom errors
         self.pert_ids = adata.obs[PERT_KEY].map(self.pert_map | {'NT': -1}).values.astype(int) 
         adata.obsm['embedding'] = torch.Tensor(adata['embedding']).type(torch.float32)
         # adata.obsm['embedding'] = adata.obsm['embedding'].toarray()
@@ -47,7 +53,6 @@ class FlowPredictor():
 
         dl = get_dataloader(adata, pert_ids=self.pert_ids, pert_reps=self.pert_rep, collate='cfm')
 
-        print("Training model")
         # Train the model
         trainer = pl.Trainer(
             accelerator='gpu', devices=1,  # Specify the number of GPUs to use
