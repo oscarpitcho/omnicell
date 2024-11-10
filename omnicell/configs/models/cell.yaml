@@ -1,6 +1,6 @@
 #version: This can be any text_field
 
-name: cell
+name: cell_emb
 
 model:
   

@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH -t 48:00:00          # walltime = 48 hours
 #SBATCH --ntasks-per-node=4  # 4 CPU cores
-#SBATCH --gres=gpu:1 --constraint=high-capacity  # 1 non-A100 GPU 
-#SBATCH --mem=128G           # memory per node
+#SBATCH --gres=gpu:a100 #--constraint=high-capacity  # 1 non-A100 GPU 
+#SBATCH --mem=528G           # memory per node
 hostname                     # Print the hostname of the compute node
 
 # Define arrays for holdouts and targets
@@ -10,8 +10,7 @@ hostname                     # Print the hostname of the compute node
 
 
 source ~/.bashrc
-conda activate sandbox
-
+conda activate dsbm
 
 python train.py \
  --etl_config configs/ETL/preprocess_no_embedding.yaml \

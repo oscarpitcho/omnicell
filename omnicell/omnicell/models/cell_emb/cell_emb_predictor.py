@@ -36,7 +36,7 @@ import math
 import torch
 import numpy as np
 from torchdyn.core import NeuralODE
-from datamodules import torch_wrapper
+from omnicell.models.flows.flow_utils import torch_wrapper
 
 def compute_conditional_flow(
     model, control, pert_ids, pert_mat, batch_size=100, num_steps=400, n_batches=1e8, true_bin=None
@@ -73,12 +73,12 @@ def compute_conditional_flow(
             
     return preds
 
-class ():
+class CellEmbPredictor():
     def __init__(self, config, input_size, pert_rep, pert_map):
-        self.model_config = config['model'] if config['model'] is not None else {}
-        self.trainig_config = config['training'] if config['training'] is not None else {}
+        # self.model_config = config['model'] if config['model'] is not None else {}
+        # self.trainig_config = config['training'] if config['training'] is not None else {}
 
-        self.max_epochs = self.trainig_config['max_epochs']
+        # self.max_epochs = self.trainig_config['max_epochs']
 
         self.model = MAE(
             input_size, 
@@ -96,17 +96,20 @@ class ():
         logger.debug(f"Adata obsm keys: {adata.obsm}")
 
         gene_map = {k: i for i, k in enumerate(adata.var['gene'])}
-        gene_map = gene_map | {'NT': max(gene_map.values()) + 1}
+        gene_map = gene_map | {CONTROL_PERT: max(gene_map.values()) + 1}
+        # print(gene_map)
         self.gene_map = gene_map
         gene_unmap = {gene_map[k]: k for k in gene_map}
-        perts = adata.obs.gene.unique().map(gene_map)
-        adata.obs['pert_type'] = adata.obs.gene.map(gene_map)
+        perts = adata.obs[PERT_KEY].unique().map(gene_map)
+        adata.obs['pert_type'] = adata.obs[PERT_KEY].map(gene_map)
         self.pert_ids = np.array(adata.obs['pert_type'])
+        # print(self.pert_ids)
+        # print(adata.obs[PERT_KEY])
         self.pert_mat = np.arange(self.pert_ids.max() + 1)[:, None]
 
 
         #TODO: Will this copy the data again? - We are already getting oom errors
-        adata.obsm['embedding'] = torch.Tensor(adata['embedding']).type(torch.float32)
+        # adata.obsm['embedding'] = torch.Tensor(adata.obsm['embedding']).type(torch.float32)
         # adata.obsm['embedding'] = adata.obsm['embedding'].toarray()
         # adata.obsm['embedding'] = adata.obsm['embedding'] / adata.obsm['embedding'].sum(axis=1)[:, None]
         # adata.obsm["standard"] = adata.obsm['embedding']
@@ -114,7 +117,7 @@ class ():
         # Create an instance of the dataset
         dataset = TensorDataset(adata.obsm['embedding'])
         # ae_dl = DataLoader(dataset, batch_size=128, shuffle=True)
-        paired_dl = get_dataloader(adata, pert_ids=self.pert_ids, pert_reps=self.pert_rep, collate='ot')
+        paired_dl = get_dataloader(adata, pert_ids=self.pert_ids, pert_reps=self.pert_mat, collate='ot')
 
         base_learning_rate = 2e-4
         total_epoch = 1000
@@ -127,7 +130,7 @@ class ():
         self.model = self.model.to(device)
 
         lr_step = 32
-        minibatch_size = 128
+        minibatch_size = 64
 
         step_count = 0
         optim.zero_grad()
@@ -207,7 +210,8 @@ class ():
                     pbar.set_description(
                         f"loss: {np.array(losses['loss'])[-lr_step:].mean():.3f}, tv: {np.array(losses['control'])[-lr_step:].mean():.3f}, ptv: {np.array(losses['pert'])[-lr_step:].mean():.3f}, flow: {np.array(losses['flow'])[-lr_step:].mean():.3f}"
                     )
-            
+            if step_count % 2_000 == 0:
+                break
             avg_loss = sum(losses['control']) / len(losses['control'])
             # torch.save(model, f"{save_dir}{e}")
             # writer.add_scalar('mae_loss', avg_loss, global_step=e)
