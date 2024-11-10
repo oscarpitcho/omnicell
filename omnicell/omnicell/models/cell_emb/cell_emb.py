@@ -4,7 +4,11 @@ import torch.nn.functional as F
 import numpy as np
 import pytorch_lightning as pl
 
-from omnicell.omnicell.models.flows.flow_utils import ExactOptimalTransportConditionalFlowMatcher
+# from omnicell.models.flows.flow_utils import ExactOptimalTransportConditionalFlowMatcher
+
+from torchcfm.conditional_flow_matching import (
+    ExactOptimalTransportConditionalFlowMatcher,OTPlanSampler
+)
 
 class GeneEmbedding(torch.nn.Module):
     def __init__(self, input_dim, emb_dim=128):
@@ -142,7 +146,7 @@ class ExprPred(torch.nn.Module):
     def forward(self, cell_embedding, pred_idx):
         embed_and_cell_embed = torch.cat(
             (
-            torch.tile(cell_embedding.unsqueeze(1), (1, idx.shape[0], 1)),
+            torch.tile(cell_embedding.unsqueeze(1), (1, pred_idx.shape[0], 1)),
             torch.tile(self.gene_embedding.pos[:, pred_idx], (cell_embedding.shape[0], 1, 1))
             ), dim=-1
         )
