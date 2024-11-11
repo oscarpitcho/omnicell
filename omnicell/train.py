@@ -49,7 +49,7 @@ def get_model(model_name, config_model, loader):
     if "nearest-neighbor_pert_emb" in model_name:
         from omnicell.models.nearest_neighbor.predictor import NearestNeighborPredictor
         logger.info("Nearest Neighbor model selected")
-        model = NearestNeighborPredictor(config_model, pert_rep=pert_rep, pert_map=pert_map)
+        model = NearestNeighborPredictor(config_model, device, pert_rep=pert_rep, pert_map=pert_map)
 
     elif 'nearest-neighbor_gene_dist' in model_name:
         from omnicell.models.nearest_neighbor.gene_distance import NearestNeighborPredictor
@@ -70,6 +70,11 @@ def get_model(model_name, config_model, loader):
         from omnicell.models.VAE.vae import VAE
         logger.info("VAE model selected")
         model = VAE(config_model, input_dim, device, pert_ids)
+    
+    elif 'cell_emb' in model_name:
+        from omnicell.models.cell_emb.cell_emb_predictor import CellEmbPredictor
+        logger.info("Cell Emb model selected")
+        model = CellEmbPredictor(config_model, input_dim, device, pert_ids)
 
     elif 'scVIDR' in model_name:
         from omnicell.models.VAE.scVIDR_predictor import ScVIDRPredictor

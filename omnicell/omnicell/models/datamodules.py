@@ -121,7 +121,7 @@ def get_identity_features(adata, cell_type_features=True):
 def get_dataloader(
         adata, batch_size=512, verbose=0, pert_reps=None, pert_ids=None, collate='ot'
 ):
-        CONTROL_PERT = 'NT'
+        # CONTROL_PERT = 'NT'
         control_idx = adata.obs[PERT_KEY] == CONTROL_PERT
         pert_idx = adata.obs[PERT_KEY] != CONTROL_PERT
         cell_types = adata.obs[CELL_KEY].values
@@ -136,7 +136,13 @@ def get_dataloader(
         pert_ids_train =  pert_ids[pert_idx]
         control_cell_types = cell_types[control_idx]
         pert_cell_types = cell_types[pert_idx]
-        
+
+        print("pert_ids", pert_ids, pert_ids.shape)
+        print("pert_ids_train", pert_ids_train, pert_ids_train.shape)
+
+        print("cell_types", cell_types, cell_types.shape)
+        print("control_cell_types", control_cell_types, control_cell_types.shape)
+        print("pert_cell_types", pert_cell_types, pert_cell_types.shape)        
 
         if collate == 'ot':
              collate_fn = ot_collate

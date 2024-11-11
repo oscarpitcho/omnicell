@@ -147,7 +147,7 @@ def Encode(net, train_params, inp):
     
     # Prepare input data
     inplen = inp.shape[0]
-    inp = torch.from_numpy(inp.astype(np.float32)).to(device)
+    inp = torch.from_numpy(inp.astype(np.float32))
     
     # Output tensors for storing encoded means and log variances
     out = torch.zeros((inplen, latent_dim), device=device)
@@ -157,7 +157,7 @@ def Encode(net, train_params, inp):
     for lower in range(0, inplen, batsize):
         upper = min(lower + batsize, inplen)
         lower = min(inplen - batsize, lower)
-        batch = inp[lower:upper, :]
+        batch = inp[lower:upper, :].to(device)
         mu, logvar = net.encode(batch)
         out[lower:upper, :] = mu
         outvar[lower:upper, :] = logvar
