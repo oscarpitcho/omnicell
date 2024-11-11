@@ -8,8 +8,8 @@ hostname                     # Print the hostname of the compute node
 
 # ===== CONFIGURATION =====
 # Set your config paths here
-PREPROCESSING_CONFIG="configs/ETL/preprocess_no_embedding.yaml"
-MODEL_CONFIG="configs/models/cell.yaml"
+PREPROCESSING_CONFIG="configs/ETL/<PRE_PROCESSING_FILE>.yaml"
+MODEL_CONFIG="configs/models/<MODEL_CONFIG>.yaml"
 # =======================
 
 source ~/.bashrc
