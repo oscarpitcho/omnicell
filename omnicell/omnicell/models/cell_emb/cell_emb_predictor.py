@@ -3,6 +3,7 @@ import scanpy as sc
 import torch
 
 import numpy as np
+import pickle 
 
 from omnicell.models.datamodules import get_dataloader
 
@@ -39,12 +40,13 @@ from torchdyn.core import NeuralODE
 from omnicell.models.flows.flow_utils import torch_wrapper
 
 def compute_conditional_flow(
-    model, control, pert_ids, pert_mat, batch_size=100, num_steps=400, n_batches=1e8, true_bin=None
+    model, control, pert_ids, pert_mat, batch_size=32, num_steps=400, n_batches=1e8, true_bin=None
 ):
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     node = NeuralODE(
         torch_wrapper(model.flow).to(device), solver="dopri5", sensitivity="adjoint"
     )
+    model = model.to(device)
     n_samples = min(control.shape[0], pert_ids.shape[0])
     n_batches = min(math.ceil(n_samples / batch_size), n_batches)
     preds = np.zeros((min(n_batches * batch_size, n_samples), control.shape[1]))
@@ -107,7 +109,6 @@ class CellEmbPredictor():
         # print(adata.obs[PERT_KEY])
         self.pert_mat = np.arange(self.pert_ids.max() + 1)[:, None]
 
-
         #TODO: Will this copy the data again? - We are already getting oom errors
         # adata.obsm['embedding'] = torch.Tensor(adata.obsm['embedding']).type(torch.float32)
         # adata.obsm['embedding'] = adata.obsm['embedding'].toarray()
@@ -138,7 +139,7 @@ class CellEmbPredictor():
         # Create a DataLoader
         ae_dl = DataLoader(dataset, batch_size=minibatch_size, shuffle=True)
 
-        for e in range(100):
+        for e in range(10):
             self.model.train()
             losses = {'loss': [], 'control': [], 'pert': [], 'flow': []}
             for batch in (pbar := tqdm(iter(ae_dl))):
@@ -165,10 +166,11 @@ class CellEmbPredictor():
             # writer.add_scalar('mae_loss', avg_loss, global_step=e)
             print(f'In epoch {e}, average traning loss is {avg_loss}.')
 
-        step_count = 0
+        # step_count = 0
         optim.zero_grad()
         minibatch_size = 32
-        for e in range(20):
+        for e in range(5):
+            step_count = 0
             losses = {'loss': [], 'control': [], 'pert': [], 'flow': []}
             for (bcontrol, bpert, bpert_index) in (pbar := tqdm(iter(paired_dl))):
                 bcontrol, bpert, bpert_index = bcontrol.squeeze(), bpert.squeeze(), bpert_index.reshape(-1, 1)# , # bpert_expr.squeeze()
@@ -210,8 +212,8 @@ class CellEmbPredictor():
                     pbar.set_description(
                         f"loss: {np.array(losses['loss'])[-lr_step:].mean():.3f}, tv: {np.array(losses['control'])[-lr_step:].mean():.3f}, ptv: {np.array(losses['pert'])[-lr_step:].mean():.3f}, flow: {np.array(losses['flow'])[-lr_step:].mean():.3f}"
                     )
-            if step_count % 2_000 == 0:
-                break
+                if step_count > 2_000:
+                    break
             avg_loss = sum(losses['control']) / len(losses['control'])
             # torch.save(model, f"{save_dir}{e}")
             # writer.add_scalar('mae_loss', avg_loss, global_step=e)
@@ -219,21 +221,26 @@ class CellEmbPredictor():
 
     def save(self, path):
         torch.save(self.model.state_dict(), f"{path}/model.pth")
+        with open(f'{path}/gene_map.pkl', 'wb') as handle:
+            pickle.dump(self.gene_map, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
     def load(self, path):
         if os.path.exists(path):
             self.model.load_state_dict(torch.load(f"{path}/model.pth"))
+            with open(f'{path}/gene_map.pkl', 'rb') as handle:
+                self.gene_map = pickle.load(handle)
             return True
         return False
     
     def make_predict(self, adata: sc.AnnData, pert_id: str, cell_type: str) -> np.ndarray:
+        # self.model = self.model.to(device)
         cell_types = adata.obs[CELL_KEY].values
         pert_types = adata.obs[PERT_KEY]
-        control_eval = torch.tensor(adata[(cell_types == cell_type) & (pert_types == 'NT')].obsm['embedding'])# .float().to(device)
+        control_eval = torch.tensor(adata[(cell_types == cell_type) & (pert_types == CONTROL_PERT)].obsm['embedding'])# .float().to(device)
         pred = compute_conditional_flow(
             self.model,
             control_eval, 
-            torch.tensor(np.repeat(pert_id, control_eval.shape[0])), 
+            torch.tensor(np.repeat(self.gene_map[pert_id], control_eval.shape[0])), 
             self.model.gene_embedding.pos[0]
         )  
         return pred
