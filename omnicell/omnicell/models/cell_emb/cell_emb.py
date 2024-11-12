@@ -206,8 +206,7 @@ class MAE(torch.nn.Module):
 
     def forward(self, expr):
         cell_embedding = self.encoder(expr)
-        # cell_embedding = features.mean(axis=1)
-        return cell_embedding #, pred_expr.squeeze(), pred_bin.squeeze()
+        return cell_embedding 
     
     def sparsify(self, pred_expr, pred_bin):
         sparsity = self.sparse_sampler(pred_bin)
