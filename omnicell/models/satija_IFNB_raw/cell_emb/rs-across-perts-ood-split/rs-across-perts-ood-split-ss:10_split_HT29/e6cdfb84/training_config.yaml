@@ -1,0 +1,15 @@
+datasplit_config:
+  dataset: satija_IFNB_raw
+  holdout_cells:
+  - HT29
+  holdout_perts: []
+  mode: ood
+  name: rs-across-perts-ood-split-ss:10_split_HT29
+etl_config:
+  count_norm: true
+  log1p: true
+eval_config: null
+local_cell_embedding_config: null
+model_config:
+  model: null
+  name: cell_emb

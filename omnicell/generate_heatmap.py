@@ -184,13 +184,11 @@ def main(*args):
         results[column_name] = result_dict
 
 
-    print(f"Results: {results}")
     #Find the intersection of the keys in all the results files
 
     keys = [set(x.keys()) for x in results.values()]
     common_keys = set.intersection(*keys)
 
-    print(f"Common keys: {common_keys}")
 
     assert len(common_keys) > 0, 'No common keys found in the results files'
 
@@ -203,7 +201,6 @@ def main(*args):
 
         results_df = pd.DataFrame.from_dict(results[result_name], orient='index')
 
-        print(f"Results df blah: {results_df}")
         results_df.columns = [result_name]
 
         results[result_name] = results_df

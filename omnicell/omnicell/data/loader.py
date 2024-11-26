@@ -96,10 +96,11 @@ class DataLoader:
     # Mutates the adata object
     def preprocess_data(self, adata: sc.AnnData, training: bool) -> sc.AnnData:
 
+        dataset_details = self.training_dataset_details if training else self.eval_dataset_details
         # Standardize column names and key values
-        condition_key = self.training_dataset_details.pert_key if training else self.eval_dataset_details.pert_key
-        cell_key = self.training_dataset_details.cell_key if training else self.eval_dataset_details.cell_key
-        control = self.training_dataset_details.control if training else self.eval_dataset_details.control
+        condition_key = dataset_details.pert_key
+        cell_key = dataset_details.cell_key if training else self.eval_dataset_details.cell_key
+        control = dataset_details.control if training else self.eval_dataset_details.control
 
         #TODO: If we could rename the columns it would be better
 
@@ -113,28 +114,37 @@ class DataLoader:
         elif self.config.get_cell_embedding_name() is not None:
             if self.config.has_local_cell_embedding:
                 logger.info(f"Loading cell embedding from {self.config.get_cell_embedding_name()}")
+
+                #TODO: This is something I will need to change
                 adata.obsm["embedding"] = np.load(self.config.get_local_cell_embedding_path())
-            elif self.config.get_cell_embedding_name() in self.training_dataset_details.cell_embeddings:            
+            elif self.config.get_cell_embedding_name() in dataset_details.cell_embeddings:            
                 #We replace the data matrix with the cell embeddings
                 adata.obsm["embedding"] = adata.obsm[self.config.get_cell_embedding_name()]
             else:
-                raise ValueError(f"Cell embedding {self.config.get_cell_embedding_name()} not found in embeddings available for dataset {self.training_dataset_details.name}")
+                raise ValueError(f"Cell embedding {self.config.get_cell_embedding_name()} not found in embeddings available for dataset {dataset_details.name}")
         else:
             adata.obsm["embedding"] = adata.X.toarray().astype('float32')
             # Set gene names
-            if self.training_dataset_details.var_names_key:
-                adata.var_names = adata.var[self.training_dataset_details.var_names_key]
+            if dataset_details.var_names_key:
+                adata.var_names = adata.var[dataset_details.var_names_key]
 
             # Apply normalization and log1p if needed
-            if self.config.get_apply_normalization() & (not self.training_dataset_details.count_normalized):
+            if self.config.get_apply_normalization() & (not dataset_details.count_normalized):
                 sc.pp.normalize_total(adata, target_sum=10_000)
-            elif not self.config.get_apply_normalization() & self.training_dataset_details.count_normalized:
+            elif not self.config.get_apply_normalization() & dataset_details.count_normalized:
                 raise ValueError("Specified dataset is count normalized, but normalization is turned off in the config")
             
-            if self.config.get_apply_log1p() & (not self.training_dataset_details.log1p_transformed):
+            if self.config.get_apply_log1p() & (not dataset_details.log1p_transformed):
                 sc.pp.log1p(adata)
-            elif not self.config.get_apply_log1p() & self.training_dataset_details.log1p_transformed:
+            elif not self.config.get_apply_log1p() & dataset_details.log1p_transformed:
                 raise ValueError("Specified dataset is log1p transformed, but log1p transformation is turned off in the config")
+
+
+        if self.config.get_metric_space() is not None:
+            if self.config.get_metric_space() in dataset_details.metric_spaces:
+                adata.obsm["metric_space"] = adata.obsm[self.config.get_metric_space()]
+            else:
+                raise ValueError(f"Metric space {self.config.get_metric_space()} not found in metric spaces available for dataset {dataset_details.name}")
 
         return adata
 

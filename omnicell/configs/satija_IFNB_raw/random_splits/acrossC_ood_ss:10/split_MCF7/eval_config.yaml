@@ -20,4 +20,4 @@ evaluation_targets:
   - CRKL
 - - MCF7
   - MYC
-name: rs-across-perts-ood-split-ss:10_eval_MCF7
+name: rs-across-cells-ood-split-ss:10_eval_MCF7
