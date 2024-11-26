@@ -127,10 +127,14 @@ def main(*args):
     model = get_model(config.get_model_name(), config.model_config, loader, pert_rep, pert_map, input_dim, device, pert_ids)
 
 
+    
     if config.has_local_cell_embedding:
 
         local_embedding_config = config.get_local_cell_embedding_config()
-        embedding_model_savepath = f"{config.get_train_path()}/training"
+
+        #Saving the embedding model and prediction models in different places to make sure they don't overwrite each other
+        embedding_model_savepath = f"{config.get_train_path()}/embedding"
+
 
         embedding_model = get_model(local_embedding_config['name'], local_embedding_config, loader, pert_rep, pert_map, input_dim, device, pert_ids)
 
@@ -146,10 +150,16 @@ def main(*args):
 
                 embedding_model.save(embedding_model_savepath)
 
-            embedding = embedding_model.encode(adata)
 
-            #TODO: What effect does this have on the original adata in the dataloader?
-            adata.obsm['embedding'] = embedding
+        else:
+            logger.info("Local cell embedding model does not support saving/loading, training from scratch")
+            embedding_model.train(adata)
+            logger.info("Training completed")
+
+        embedding = embedding_model.encode(adata)
+
+        #TODO: What effect does this have on the original adata in the dataloader?
+        adata.obsm['embedding'] = embedding
 
     model_savepath = f"{config.get_train_path()}/training"
 
