@@ -26,25 +26,8 @@ logger = logging.getLogger(__name__)
 
 random.seed(42)
 
-def get_model(model_name, config_model, loader):
-    adata, pert_rep_map = loader.get_training_data()
-
-    if pert_rep_map is not None:
-        pert_keys = list(pert_rep_map.keys())
-        pert_rep = np.array([pert_rep_map[k] for k in pert_keys])
-        pert_map = {k: i for i, k in enumerate(pert_keys)}
-    else:
-        pert_rep = None
-        pert_map = None
-        
-    input_dim = adata.obsm['embedding'].shape[1]
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    pert_ids = adata.obs[PERT_KEY].unique()
-
-    logger.info(f"Data loaded, # of cells: {adata.shape[0]}, # of features: {input_dim} # of perts: {len(pert_ids)}")
-    logger.info(f"Running experiment on {device}")
-
-    logger.debug(f"Training data loaded, perts are: {adata.obs[PERT_KEY].unique()}")
+def get_model(model_name, config_model, loader, pert_rep, pert_map, input_dim, device, pert_ids):
+    
 
     if "nearest-neighbor_pert_emb" in model_name:
         from omnicell.models.nearest_neighbor.predictor import NearestNeighborPredictor
@@ -90,7 +73,7 @@ def get_model(model_name, config_model, loader):
     else:
         raise ValueError(f'Unknown model name {model_name}')
     
-    return model, adata
+    return model
 
 def main(*args):
     print("Running main")
@@ -118,19 +101,73 @@ def main(*args):
     
     logger.info("Application started")
 
-    model_savepath = config.get_train_path()
 
     catalogue = Catalogue(DATA_CATALOGUE_PATH)
     loader = DataLoader(config, catalogue)
     
+    adata, pert_rep_map = loader.get_training_data()
 
-    model, adata = get_model(config.get_model_name(), config.model_config, loader)
+    if pert_rep_map is not None:
+        pert_keys = list(pert_rep_map.keys())
+        pert_rep = np.array([pert_rep_map[k] for k in pert_keys])
+        pert_map = {k: i for i, k in enumerate(pert_keys)}
+    else:
+        pert_rep = None
+        pert_map = None
+        
+    input_dim = adata.obsm['embedding'].shape[1]
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    pert_ids = adata.obs[PERT_KEY].unique()
 
+    logger.info(f"Data loaded, # of cells: {adata.shape[0]}, # of features: {input_dim} # of perts: {len(pert_ids)}")
+    logger.info(f"Running experiment on {device}")
+
+    logger.debug(f"Training data loaded, perts are: {adata.obs[PERT_KEY].unique()}")
+
+    model = get_model(config.get_model_name(), config.model_config, loader, pert_rep, pert_map, input_dim, device, pert_ids)
+
+
+    
+    if config.has_local_cell_embedding:
+
+        local_embedding_config = config.get_local_cell_embedding_config()
+
+        #Saving the embedding model and prediction models in different places to make sure they don't overwrite each other
+        embedding_model_savepath = f"{config.get_train_path()}/embedding"
+
+
+        embedding_model = get_model(local_embedding_config['name'], local_embedding_config, loader, pert_rep, pert_map, input_dim, device, pert_ids)
+
+        if hasattr(embedding_model, 'save') and hasattr(embedding_model, 'load'):
+            if embedding_model.load(embedding_model_savepath):
+                logger.info(f"Local cell embedding model already trained, loaded model from {embedding_model_savepath}")
+            else:
+                logger.info("Local cell embedding model not trained, training model")
+                embedding_model.train(adata)
+                logger.info("Training completed")
+                logger.info(f"Saving model to {embedding_model_savepath}")
+                os.makedirs(embedding_model_savepath, exist_ok=True)
+
+                embedding_model.save(embedding_model_savepath)
+
+
+        else:
+            logger.info("Local cell embedding model does not support saving/loading, training from scratch")
+            embedding_model.train(adata)
+            logger.info("Training completed")
+
+        embedding = embedding_model.encode(adata)
+
+        #TODO: What effect does this have on the original adata in the dataloader?
+        adata.obsm['embedding'] = embedding
+
+    model_savepath = f"{config.get_train_path()}/training"
 
     if hasattr(model, 'save') and hasattr(model, 'load'):
         # Path depends on hash of config
         if model.load(model_savepath):
             logger.info(f"Model already trained, loaded model from {model_savepath}")
+        
         else:
             logger.info("Model not trained, training model")
             model.train(adata)
@@ -148,6 +185,8 @@ def main(*args):
         logger.info("Model does not support saving/loading, training from scratch")
         model.train(adata)
         logger.info("Training completed")    
+
+
 
     # if model has encode function then encode the full adata and save in the model dir
     if hasattr(model, 'encode'):
@@ -174,7 +213,16 @@ def main(*args):
 
         for cell_id, pert_id, ctrl_data, gt_data in loader.get_eval_data():
             logger.debug(f"Making predictions for cell: {cell_id}, pert: {pert_id}")
-            preds = model.make_predict(ctrl_data, pert_id, cell_id)
+
+            if config.has_local_cell_embedding:
+                ctrl_data_emb = embedding_model.encode(ctrl_data)
+                preds_emb = model.make_predict(ctrl_data_emb, pert_id, cell_id)
+                preds = embedding_model.decode(preds_emb)
+
+            else:
+                preds = model.make_predict(ctrl_data, pert_id, cell_id)
+         
+
             preds = to_coo(preds)
             control  = to_coo(ctrl_data.X)
             ground_truth = to_coo(gt_data.X)

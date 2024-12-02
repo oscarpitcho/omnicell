@@ -3,4 +3,4 @@ holdout_cells:
 - K562
 holdout_perts: []
 mode: ood
-name: rs-across-perts-ood-split-ss:10_split_K562
+name: rs-across-cells-ood-split-ss:10_split_K562

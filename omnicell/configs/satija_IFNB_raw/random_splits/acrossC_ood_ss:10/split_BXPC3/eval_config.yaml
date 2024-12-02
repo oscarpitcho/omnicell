@@ -20,4 +20,4 @@ evaluation_targets:
   - CRKL
 - - BXPC3
   - MYC
-name: rs-across-perts-ood-split-ss:10_eval_BXPC3
+name: rs-across-cells-ood-split-ss:10_eval_BXPC3

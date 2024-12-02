@@ -80,10 +80,10 @@ def main():
         #Create the split config
 
         #Name with hyphen ensures the splits will be grouped together (and only together) in the results directory
-        split_config = template_split_config(f"rs-across-perts-{args.split_mode}-split-ss:{args.split_size}_split_{cell}", args.split_mode, args.dataset, [cell], [])
+        split_config = template_split_config(f"rs-across-cells-{args.split_mode}-split-ss:{args.split_size}_split_{cell}", args.split_mode, args.dataset, [cell], [])
 
 
-        eval_config = template_eval_config(f"rs-across-perts-{args.split_mode}-split-ss:{args.split_size}_eval_{cell}", args.dataset, [[str(cell), str(pert)] for pert in selected_pert])
+        eval_config = template_eval_config(f"rs-across-cells-{args.split_mode}-split-ss:{args.split_size}_eval_{cell}", args.dataset, [[str(cell), str(pert)] for pert in selected_pert])
 
         path_split = f"{path}/split_{cell}"
 

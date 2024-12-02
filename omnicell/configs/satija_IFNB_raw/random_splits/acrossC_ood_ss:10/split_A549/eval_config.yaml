@@ -20,4 +20,4 @@ evaluation_targets:
   - CRKL
 - - A549
   - MYC
-name: rs-across-perts-ood-split-ss:10_eval_A549
+name: rs-across-cells-ood-split-ss:10_eval_A549
