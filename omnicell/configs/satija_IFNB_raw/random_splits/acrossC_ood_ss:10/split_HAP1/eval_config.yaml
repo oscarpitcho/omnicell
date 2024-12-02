@@ -20,4 +20,4 @@ evaluation_targets:
   - CRKL
 - - HAP1
   - MYC
-name: rs-across-perts-ood-split-ss:10_eval_HAP1
+name: rs-across-cells-ood-split-ss:10_eval_HAP1

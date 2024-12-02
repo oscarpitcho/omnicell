@@ -20,4 +20,4 @@ evaluation_targets:
   - CRKL
 - - K562
   - MYC
-name: rs-across-perts-ood-split-ss:10_eval_K562
+name: rs-across-cells-ood-split-ss:10_eval_K562

@@ -111,6 +111,8 @@ class Config:
         return deepcopy(self.model_config)
 
     # GETTERS FOR TRAINING
+    
+    ## Getters for datasplit
     def get_training_dataset_name(self)-> str:
         return self.datasplit_config['dataset']
     
@@ -129,6 +131,8 @@ class Config:
         """Returns the heldout perturbations for the training data, returns an empty list if no perturbations are held out"""
         return self.datasplit_config.get('holdout_perts', [])
     
+
+    ## Getters for ETL
     def get_apply_normalization(self) -> bool:
         return self.etl_config['count_norm']
     
@@ -140,21 +144,36 @@ class Config:
         if self.has_local_cell_embedding:
             cell_emb_name = self.local_cell_embedding_config.get_train_hash()
         return cell_emb_name
+
+    def get_metric_space(self) -> Optional[str]:
+        return self.etl_config.get('metric_space', None)
+
+
+    def get_cell_embedding_type(self) -> Optional[str]:
+        if 'cell_embedding' not in self.etl_config:
+            return None
+        else:
+            return self.etl_config['cell_embedding'].get('type', None)
+
+    def get_local_cell_embedding_config(self)-> Optional[dict]:
+        if not self.has_local_cell_embedding:
+            return None
+        else:
+            return self.etl_config['cell_embedding']["embedding_config"]
+
     
     @property
     def has_local_cell_embedding(self) -> bool:
-        cell_emb_name = self.etl_config.get('cell_embedding', None)
-        return cell_emb_name == 'local'
+        return self.get_cell_embedding_type() == 'local'
     
-    def get_local_cell_embedding_path(self) -> Optional[str]:
-        if not self.has_local_cell_embedding:
-            return None
-        
-        return Path(f"{self.local_cell_embedding_config.get_train_path()}/embedded_data.npy").resolve()
+
     
     def get_pert_embedding_name(self) -> Optional[str]:
         return self.etl_config.get('pert_embedding', None) 
     
+
+
+
     # GETTERS FOR EVAL
     def get_eval_config_name(self)-> str:
         return self.eval_config['name']

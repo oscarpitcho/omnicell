@@ -49,7 +49,6 @@ def compute_conditional_flow(model, control, pert_ids, pert_mat, batch_size=100,
     return traj
 
 def compute_supervised_preds(model, control, pert_ids, pert_mat, batch_size=1_000, num_steps=400, n_batches=1e8):
-    device = "cuda:0"
     n_samples = min(control.shape[0], pert_ids.shape[0])
     n_batches = min(math.ceil(n_samples / batch_size), n_batches)
     preds = np.zeros((min(n_batches * batch_size, n_samples), control.shape[1]))
