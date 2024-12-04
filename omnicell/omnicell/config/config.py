@@ -160,6 +160,12 @@ class Config:
             return None
         else:
             return self.etl_config['cell_embedding']["embedding_config"]
+    
+    def get_local_cell_embedding_model_name(self)-> Optional[str]:
+        if not self.has_local_cell_embedding:
+            return None
+        else:
+            return Config({'model_config': self.get_local_cell_embedding_config()}).get_model_name()
 
     
     @property
