@@ -1,5 +1,5 @@
 import math
-from tqdm import tqdm  # For progress bar visualization
+from tqdm import tqdm
 import torch
 import numpy as np
 import os
@@ -7,7 +7,6 @@ from torch import nn
 import torch.nn.functional as F
 import scanpy as sc  # For single-cell data analysis
 
-import scanpy as sc  # Duplicate import, can be removed
 from datamodules import SCFMDataset, cfm_collate, StratifiedBatchSampler, ot_collate  # Custom data modules
 from torch.utils.data import RandomSampler
 from sc_etl_utils import *  # Custom utility functions
@@ -20,10 +19,8 @@ import numpy as np
 import pytorch_lightning as pl
 import os
 import scipy
-import scanpy as sc  # Duplicate import, can be removed
 from scipy.sparse import issparse
 from torchcfm.conditional_flow_matching import *  # Import for conditional flow matching
-import scanpy as sc  # Duplicate import
 import hashlib
 from llm import MAE  # Importing MAE model from llm module
 import time
