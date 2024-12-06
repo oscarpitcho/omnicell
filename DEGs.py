@@ -11,7 +11,7 @@ control.obs['condition_key'] = 'control'
 
 with torch.no_grad():
     model.eval()
-    batch = torch.from_numpy(pert_eval).double()
+    batch = torch.from_numpy(pert_eval).float()
     batch = batch.to(device)
     idx = torch.arange(batch.shape[1]).to(device)
     batch_emb = model(batch)
