@@ -4,9 +4,9 @@ cell_key: cell_type
 control: control
 count_normalized: false
 description: Some description of the dataset
-folder_path: /om/group/abugoot/Projects/Omnicell_datasets/kang/
+folder_path: /orcd/data/omarabu/001/Omnicell_datasets/kang/
 log1p_transformed: false
-path: /om/group/abugoot/Projects/Omnicell_datasets/kang/kang.h5ad
+path: /orcd/data/omarabu/001/Omnicell_datasets/kang/kang.h5ad
 pert_embeddings:
 pert_key: condition_key
 var_names_key: null
