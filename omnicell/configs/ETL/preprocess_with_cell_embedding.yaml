@@ -4,10 +4,10 @@ metric_space: XXXX #Should be one of the precomputed cell embeddings for the dat
 
 cell_embedding:
   type: local # Can be local or precomputed
-  name: vae  #If Local this should be a valid model name from the models section of the config, if precomputed this should be the name of the precomputed cell embedding
+  #name: UCE  #If Local this shouldn't be present, if precomputed this should be the name of the precomputed cell embedding
   
   embedding_config:
-    name: vae
+    name: vae  #Should be the same as the name of the model in the models section of the config
     model:
       latent_dim: 100
       hidden_dim: 800

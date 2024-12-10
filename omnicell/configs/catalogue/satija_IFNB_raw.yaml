@@ -4,9 +4,9 @@ cell_key: cell_type
 control: NT
 count_normalized: false
 description: Some description of the dataset
-folder_path: /om/group/abugoot/Projects/Omnicell_datasets/satija_IFNB_raw/
+folder_path: /orcd/data/omarabu/001/Omnicell_datasets/satija_IFNB_raw/
 log1p_transformed: false
-path: /om/group/abugoot/Projects/Omnicell_datasets/satija_IFNB_raw/Seurat_IFNB.h5ad
+path: /orcd/data/omarabu/001/Omnicell_datasets/satija_IFNB_raw/Seurat_IFNB.h5ad
 pert_embeddings:
 - UCE_ESM2_Mean_Imputed
 - BioBERT
