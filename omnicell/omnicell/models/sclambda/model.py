@@ -13,9 +13,12 @@ import torch.optim as optim
 from torch.optim import Adam
 from torch.optim.lr_scheduler import StepLR
 import copy
+import logging
 
-from sclambda.networks import *
-from sclambda.utils import *
+from omnicell.models.sclambda.networks import *
+from omnicell.models.sclambda.sclambda.utils import *
+
+logger = logging.getLogger(__name__)
 
 class Model(object):
     def __init__(self, 
@@ -57,7 +60,7 @@ class Model(object):
         self.multi_gene = multi_gene
 
         # compute perturbation embeddings
-        print("Computing %s-dimentisonal perturbation embeddings for %s cells..." % (self.p_dim, adata.shape[0]))
+        logger.info(f"Computing {self.p_dim}-dimensional perturbation embeddings for {adata.shape[0]} cells...")
         self.pert_emb_cells = np.zeros((adata.shape[0], self.p_dim))
         self.pert_emb = {}
         for i in tqdm(np.unique(adata.obs['condition'].values)):
@@ -77,7 +80,7 @@ class Model(object):
         self.adata.X = self.adata.X - self.ctrl_mean.reshape(1, -1)
 
         # split datasets
-        print("Spliting data...")
+        logger.info("Splitting data...")
         self.adata_train = self.adata[self.adata.obs[split_name].values == 'train']
         self.adata_val = self.adata[self.adata.obs[split_name].values == 'val']
         self.pert_val = np.unique(self.adata_val.obs['condition'].values)
@@ -148,7 +151,7 @@ class Model(object):
             scheduler.step()
             scheduler_MINE.step()
             if (epoch+1) % 10 == 0:
-                print("\tEpoch", (epoch+1), "complete!", "\t Loss: ", loss.item())
+                logger.info("\tEpoch", (epoch+1), "complete!", "\t Loss: ", loss.item())
                 if len(self.pert_val) > 0: # If validating
                     self.Net.eval()
                     corr_ls = []
@@ -166,7 +169,7 @@ class Model(object):
                         corr_ls.append(corr)
 
                     corr_val = np.mean(corr_ls)
-                    print("Validation correlation delta %.5f" % corr_val)
+                    logger.info("Validation correlation delta %.5f" % corr_val)
                     if corr_val > corr_val_best:
                         corr_val_best = corr_val
                         self.model_best = copy.deepcopy(self.Net)
@@ -174,7 +177,7 @@ class Model(object):
                 else:
                     if epoch == (self.training_epochs-1):
                         self.model_best = copy.deepcopy(self.Net)
-        print("Finish training.")
+        logger.info("Finish training.")
         self.Net = self.model_best
         if not os.path.exists(self.model_path):
             os.makedirs(self.model_path)

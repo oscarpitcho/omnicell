@@ -74,6 +74,8 @@ def get_model(model_name, config_model, loader, pert_rep, pert_map, input_dim, d
         logger.info("NN Oracle model selected")
         adata_cheat = loader.get_complete_training_dataset()
         model = OracleNNPredictor(adata_cheat)
+
+    elif "sclambda" in model_name:
         
     else:
         raise ValueError(f'Unknown model name {model_name}')
