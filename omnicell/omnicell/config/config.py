@@ -132,6 +132,7 @@ class Config:
         return self.datasplit_config.get('holdout_perts', [])
     
 
+
     ## Getters for ETL
     def get_apply_normalization(self) -> bool:
         return self.etl_config['count_norm']
@@ -166,6 +167,13 @@ class Config:
             return None
         else:
             return Config({'model_config': self.get_local_cell_embedding_config()}).get_model_name()
+        
+    def get_gene_embedding_name(self) -> Optional[str]:
+        return self.etl_config.get('gene_embedding', None)
+
+
+    def get_pert_embedding_name(self) -> Optional[str]:
+        return self.etl_config.get('pert_embedding', None) 
 
     
     @property
@@ -174,8 +182,7 @@ class Config:
     
 
     
-    def get_pert_embedding_name(self) -> Optional[str]:
-        return self.etl_config.get('pert_embedding', None) 
+
     
 
 

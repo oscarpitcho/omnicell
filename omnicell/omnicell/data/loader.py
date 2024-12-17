@@ -81,6 +81,8 @@ class DataLoader:
         self.pert_embedding_name: Optional[str] = config.get_pert_embedding_name()
 
         self.cell_embedding_name: Optional[str] = config.get_cell_embedding_name()
+
+        self.gene_embedding_name: Optional[str] = config.get_gene_embedding_name()
         
         #TODO: Handle
         self.pert_embedding_details: Optional[dict] = None
@@ -146,6 +148,13 @@ class DataLoader:
             else:
                 raise ValueError(f"Metric space {self.config.get_metric_space()} not found in metric spaces available for dataset {dataset_details.name}")
 
+        if self.gene_embedding_name is not None:
+            if self.gene_embedding_name not in self.dataset_details.gene_embedding:
+                raise ValueError(f"Gene Embedding {self.gene_embedding_name} is not found in gene embeddings available for dataset {dataset_details.name}")
+            else:
+                embedding = torch.load(f"{dataset_details.folder_path}/{self.gene_embedding_name}")
+                adata.varm["gene_embedding"] = embedding.numpy()
+
         return adata
 
     def get_training_data(self) -> Tuple[sc.AnnData, Optional[dict]]:
@@ -170,7 +179,6 @@ class DataLoader:
         #Getting the per embedding if it is specified
         if self.pert_embedding_name is not None:
             if self.pert_embedding_name not in self.training_dataset_details.pert_embeddings:
-                print(self.training_dataset_details.pert_embeddings)
                 raise ValueError(f"Perturbation embedding {self.pert_embedding_name} not found in embeddings available for dataset {self.training_dataset_details.name}")
             else:
                 logger.info(f"Loading perturbation embedding from {self.training_dataset_details.folder_path}/{self.pert_embedding_name}.pt")

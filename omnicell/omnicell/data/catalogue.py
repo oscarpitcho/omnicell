@@ -25,6 +25,7 @@ class DatasetDetails:
     description: Optional[str] = None
     pert_embeddings: List[str] = field(default_factory=list)
     cell_embeddings: List[str] = field(default_factory=list)
+    gene_embeddings: List[str] = field(default_factory=list)
 
 
     def to_dict(self):
@@ -75,12 +76,12 @@ class Catalogue:
                 self._catalogue[dataset_name].pert_embeddings.append(embedding_name)
                 self._save()
             else: 
-                raise ValueError(f"Embedding {embedding_name} already exists for dataset {dataset_name}")
+                raise ValueError(f"Pert Embedding {embedding_name} already exists for dataset {dataset_name}")
         else:
             raise ValueError(f"Dataset {dataset_name} not found in catalogue")
         
 
-    """Registers a new embedding for a dataset, will modify the corresponding catalogue entry"""
+    """Registers a new embedding for a dataset, will modify the corresponding catalogue entry, does save the data"""
     def register_new_cell_embedding(self, dataset_name, embedding_name):
         if dataset_name in self._catalogue:
             if embedding_name not in self._catalogue[dataset_name].cell_embeddings:
@@ -91,8 +92,18 @@ class Catalogue:
                 raise ValueError(f"Embedding {embedding_name} already exists for dataset {dataset_name}")
         else:
             raise ValueError(f"Dataset {dataset_name} not found in catalogue")
+        
+    
+    def register_new_gene_embedding(self, dataset_name, embedding_name):
+        if dataset_name in self._catalogue:
+            if embedding_name not in self._catalogue[dataset_name].gene_embeddings:
 
-
+                self._catalogue[dataset_name].gene_embeddings.append(embedding_name)
+                self._save()
+            else: 
+                raise ValueError(f"Gene Embedding {embedding_name} already exists for dataset {dataset_name}")
+        else:
+            raise ValueError(f"Dataset {dataset_name} not found in catalogue")
 
 
     """Flushes the content of the catalogue to disk, pushing any changes that have been made"""
