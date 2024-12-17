@@ -1,5 +1,7 @@
 
+from turtle import distance
 import scanpy as sc
+import pandas as pd
 import numpy as np
 
 from omnicell.constants import *
@@ -12,14 +14,22 @@ It takes the entire dataset at construction and then uses the ground truth to ma
 """
 class OracleNNPredictor():
 
-    def __init__(self, adata: sc.AnnData):
+    def __init__(self, adata: sc.AnnData, number_top_DEGs_overlap: int, p_threshold: float):
 
         assert "DEGs" in adata.uns.keys(), "DEGs not found in adata.uns"
 
         self.model = None
         self.total_adata = adata
 
-        
+        self.DEGs = adata.uns["DEGs"].copy()
+        self.number_top_DEGs_overlap = number_top_DEGs_overlap
+
+        for cell in self.DEGs:
+            for pert in self.DEGs[cell]:
+                df = pd.DataFrame.from_dict(self.DEGs[cell][pert], orient='index')
+                df = df[df['pvals_adj'] < p_threshold]
+                self.DEGs[cell][pert] = df
+
 
     
 
@@ -31,10 +41,25 @@ class OracleNNPredictor():
 
     def make_predict(self, adata: sc.AnnData, pert_id: str, cell_type: str) -> np.ndarray:
 
-        ground_truth = self.total_adata[(self.total_adata.obs[PERT_KEY] == pert_id) & (self.total_adata.obs[CELL_KEY] == cell_type)]
+        DEGs_cell_type = self.DEGs[cell_type]
+
+        non_target_perts_in_cell = [p for p in DEGs_cell_type.keys() if p != pert_id]
+
+        DEG_overlaps = {}
+        DEG_target = DEGs_cell_type[pert_id]
+
+        for p in non_target_perts_in_cell:
+            DEG_p = DEGs_cell_type[p]
+            DEG_overlaps[p] = len(DEG_target.index[:self.number_top_DEGs_overlap].intersection(DEG_p.index[:self.number_top_DEGs_overlap]))
+
+        closest_pert = max(DEG_overlaps, key=DEG_overlaps.get)
+
+        
+        
+
+        nn_population = self.total_adata[(self.total_adata.obs[PERT_KEY] == closest_pert) & (self.total_adata.obs[CELL_KEY] == cell_type)]
 
         #sampled_gt = sc.pp.subsample(ground_truth, n_obs=number_preds, replace=True, copy=True)
 
-
-        return ground_truth.X
+        return nn_population.X
     
