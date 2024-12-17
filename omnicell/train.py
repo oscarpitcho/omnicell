@@ -65,10 +65,15 @@ def get_model(model_name, config_model, loader, pert_rep, pert_map, input_dim, d
         model = ScVIDRPredictor(config_model, input_dim, device, pert_ids)
 
     elif "test" in model_name:
-        from omnicell.models.dummy_predictor.predictor import TestPredictor
+        from omnicell.models.dummy_predictors.perfect_predictor import PerfectPredictor
         logger.info("Test model selected")
         adata_cheat = loader.get_complete_training_dataset()
-        model = TestPredictor(adata_cheat)
+        model = PerfectPredictor(adata_cheat)
+    elif "nn_oracle" in model_name:
+        from omnicell.models.dummy_predictors.oracle_nearest_neighbor import OracleNNPredictor
+        logger.info("NN Oracle model selected")
+        adata_cheat = loader.get_complete_training_dataset()
+        model = OracleNNPredictor(adata_cheat)
         
     else:
         raise ValueError(f'Unknown model name {model_name}')

@@ -7,6 +7,7 @@ from omnicell.data.catalogue import DatasetDetails, Catalogue
 import torch
 import logging
 import numpy as np
+import json
 import pandas as pd
 
 import os
@@ -154,6 +155,11 @@ class DataLoader:
             else:
                 embedding = torch.load(f"{dataset_details.folder_path}/{self.gene_embedding_name}")
                 adata.varm["gene_embedding"] = embedding.numpy()
+
+
+        if dataset_details.precomputed_DEGs:
+            DEGs = json.load(open(f"{dataset_details.folder_path}/DEGs.json"))
+            adata.uns["DEGs"] = DEGs
 
         return adata
 
