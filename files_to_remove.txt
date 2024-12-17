@@ -1,0 +1,10 @@
+omnicell/models/ho_CD4T/vae/250b52a2/embedded_data.npy
+omnicell/kang.h5ad
+omnicell/models/ho_CD4T/vae/250b52a2/state_dict.pt
+omnicell/models/satija_IFNB_raw/cell_emb/rs-across-perts-ood-split/rs-across-perts-ood-split-ss:10_split_MCF7/13f9c953/model.pth
+omnicell/models/satija_IFNB_raw/cell_emb/rs-across-perts-ood-split/rs-across-perts-ood-split-ss:10_split_BXPC3/ed3029a9/model.pth
+omnicell/models/satija_IFNB_raw/cell_emb/rs-across-perts-ood-split/rs-across-perts-ood-split-ss:10_split_A549/fff9a71f/model.pth
+omnicell/models/satija_IFNB_raw/cell_emb/rs-across-perts-ood-split/rs-across-perts-ood-split-ss:10_split_HAP1/bb7eee78/model.pth
+omnicell/models/satija_IFNB_raw/cell_emb/rs-across-perts-ood-split/rs-across-perts-ood-split-ss:10_split_HT29/e6cdfb84/model.pth
+omnicell/models/satija_IFNB_raw/cell_emb/rs-across-perts-ood-split/rs-across-perts-ood-split-ss:10_split_K562/45fd1792/model.pth
+omnicell/notebooks/gene_embeddings/all_tokens.torch
