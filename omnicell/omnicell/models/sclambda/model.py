@@ -16,15 +16,14 @@ import copy
 import logging
 
 from omnicell.models.sclambda.networks import *
-from omnicell.models.sclambda.sclambda.utils import *
+from omnicell.models.sclambda.utils import *
+from omnicell.constants import PERT_KEY, CELL_KEY, CONTROL_PERT, GENE_VAR_KEY, DATA_CATALOGUE_PATH, GENE_EMBEDDING_KEY
 
 logger = logging.getLogger(__name__)
 
-class Model(object):
+class ModelPredictor(object):
     def __init__(self, 
-                 adata, # anndata object already splitted
                  gene_emb, # dictionary for gene embeddings
-                 split_name = 'split',
                  latent_dim = 30, hidden_dim = 512,
                  training_epochs = 200,
                  batch_size = 500,
@@ -32,7 +31,6 @@ class Model(object):
                  eps = 0.001,
                  seed = 1234,
                  model_path = "models",
-                 multi_gene = True
                  ):
 
         # add device
@@ -45,7 +43,6 @@ class Model(object):
             torch.cuda.manual_seed_all(seed)
         torch.backends.cudnn.benchmark = True
 
-        self.adata = adata.copy()
         self.gene_emb = gene_emb
         self.x_dim = adata.shape[1]
         self.p_dim = gene_emb[list(gene_emb.keys())[0]].shape[0]
@@ -57,30 +54,46 @@ class Model(object):
         self.lambda_MI = lambda_MI
         self.eps = eps
         self.model_path = model_path
-        self.multi_gene = multi_gene
+
+
+
+        #Do the split
+
+
+
+
+        adata = None
+
+        n_split = 0
+        adata_processed, split = data_split(adata_processed, seed=n_split)
 
         # compute perturbation embeddings
         logger.info(f"Computing {self.p_dim}-dimensional perturbation embeddings for {adata.shape[0]} cells...")
         self.pert_emb_cells = np.zeros((adata.shape[0], self.p_dim))
-        self.pert_emb = {}
-        for i in tqdm(np.unique(adata.obs['condition'].values)):
-            genes = i.split('+')
-            if len(genes) > 1:
-                pert_emb_p = self.gene_emb[genes[0]] + self.gene_emb[genes[1]]
-            else:
-                pert_emb_p = self.gene_emb[genes[0]]
+
+
+        for i, pert in enumerate(adata.obs['condition'].values):
+            if pert != CONTROL_PERT:
+                self.pert_emb
+
+            
             self.pert_emb_cells[adata.obs['condition'].values == i] += pert_emb_p.reshape(1, -1)
             self.pert_emb[i] = pert_emb_p
         self.adata.obsm['pert_emb'] = self.pert_emb_cells
 
+        
+        self.adata.obsm['pert_emb'] = self.pert_emb_cells
+
         # control cells
-        ctrl_x = adata[adata.obs['condition'].values == 'ctrl'].X
+        ctrl_x = adata[adata.obs[PERT_KEY].values == CONTROL_PERT].X
         self.ctrl_mean = np.mean(ctrl_x, axis=0)
         self.ctrl_x = torch.from_numpy(ctrl_x - self.ctrl_mean.reshape(1, -1)).float().to(self.device)
         self.adata.X = self.adata.X - self.ctrl_mean.reshape(1, -1)
 
         # split datasets
         logger.info("Splitting data...")
+
+
         self.adata_train = self.adata[self.adata.obs[split_name].values == 'train']
         self.adata_val = self.adata[self.adata.obs[split_name].values == 'val']
         self.pert_val = np.unique(self.adata_val.obs['condition'].values)
@@ -208,7 +221,7 @@ class Model(object):
                                      (self.ctrl_x.shape[0], 1))).float().to(self.device)
             x_hat, p_hat, mean_z, log_var_z, s = self.Net(self.ctrl_x, val_p)
             if return_type == 'cells':
-                adata_pred = ad.AnnData(X=(x_hat.detach().cpu().numpy() + self.ctrl_mean.reshape(1, -1)))
+                adata_pred = sc.AnnData(X=(x_hat.detach().cpu().numpy() + self.ctrl_mean.reshape(1, -1)))
                 adata_pred.obs['condition'] = i
                 res[i] = adata_pred
             elif return_type == 'mean':
