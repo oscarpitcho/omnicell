@@ -5,9 +5,9 @@ control: non-targeting
 count_normalized: false
 description: Essential genes across cells dataset with basic out-of-distribution setup,
   no normalization applied
-folder_path: /om/group/abugoot/Projects/Omnicell_datasets/essential_gene_knockouts_raw
+folder_path: /orcd/data/omarabu/001/Omnicell_datasets/essential_gene_knockouts_raw
 log1p_transformed: false
-path: /om/group/abugoot/Projects/Omnicell_datasets/essential_gene_knockouts_raw/essential_gene_knockouts_raw.h5ad
+path: /orcd/data/omarabu/001/Omnicell_datasets/essential_gene_knockouts_raw/essential_gene_knockouts_raw.h5ad
 pert_embeddings:
 - UCE_ESM2_Mean_Imputed
 - BioBERT

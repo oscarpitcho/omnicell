@@ -1,20 +1,19 @@
 #!/bin/bash
-#SBATCH -t 48:00:00          # walltime = 48 hours
-#SBATCH --ntasks-per-node=4  # 4 CPU cores
+#SBATCH -t 12:00:00          # walltime = 48 hours
+#SBATCH -p ou_bcs_low        # partition name, should be ou_bcs_low to access GPU
 #SBATCH --mem=512GB          # memory per node
 #SBATCH --array=0-5          # Job array with indices 0-5 (6 cell lines)
-#SBATCH --gres=gpu:a100 #--constraint=high-capacity  # 1 non-A100 GPU 
 
 hostname                     # Print the hostname of the compute node
 
 # ===== CONFIGURATION =====
 # Set your config paths here
 PREPROCESSING_CONFIG="configs/ETL/preprocess_no_embedding.yaml"
-MODEL_CONFIG="configs/models/cell.yaml"
+MODEL_CONFIG="configs/models/cell_emb.yaml"
 # =======================
 
 source ~/.bashrc
-conda activate sandbox
+conda activate omnicell
 
 # Define the base directory for configs
 CONFIG_BASE_DIR="configs"
