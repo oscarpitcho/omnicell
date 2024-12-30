@@ -1,7 +1,7 @@
 name: sclambda
 latent_dim: 30
 hidden_dim: 512
-training_epochs: 200
+training_epochs: 10
 batch_size: 500
 lambda_MI: 200
 eps: 0.001

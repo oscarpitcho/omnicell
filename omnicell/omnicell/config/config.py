@@ -52,8 +52,9 @@ class Config:
     
     def get_train_path(self):
         #Ugly but it allows us to store different randomsplits in different sub directories.
+        datasplit_prefix = None
         datasplit_name_parts = self.get_datasplit_config_name().split('-')
-        if len(datasplit_prefix) > 1:
+        if len(datasplit_name_parts) > 1:
             datasplit_prefix = '-'.join(datasplit_name_parts[0:-1])
         
 
@@ -61,8 +62,9 @@ class Config:
         return Path(f"./models/{self.get_training_dataset_name()}/{self.get_etl_config_name()}/{self.get_model_name()}/{datasplit_prefix_path}{self.get_datasplit_config_name()}/{self.get_train_hash()}").resolve()
     
     def get_eval_path(self):
+        datasplit_prefix = None
         datasplit_name_parts = self.get_datasplit_config_name().split('-')
-        if len(datasplit_prefix) > 1:
+        if len(datasplit_name_parts) > 1:
             datasplit_prefix = '-'.join(datasplit_name_parts[0:-1])
         
         
