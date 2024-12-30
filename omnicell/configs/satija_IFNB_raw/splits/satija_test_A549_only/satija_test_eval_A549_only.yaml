@@ -1,0 +1,3 @@
+name: satija_test_eval_A549_only
+dataset: satija_IFNB_raw 
+evaluation_targets: [[A549, IFNAR2], [A549, STAT2]]
