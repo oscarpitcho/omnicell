@@ -1,6 +1,7 @@
 import os
 import time
 import numpy as np
+from pyparsing import C
 import scanpy as sc
 import pandas as pd
 from tqdm import tqdm
@@ -24,6 +25,7 @@ logger = logging.getLogger(__name__)
 class ModelPredictor(object):
     def __init__(self, 
                  gene_emb, # dictionary for gene embeddings
+                 input_dim,
                  latent_dim = 30, hidden_dim = 512,
                  training_epochs = 200,
                  batch_size = 500,
@@ -31,7 +33,10 @@ class ModelPredictor(object):
                  eps = 0.001,
                  seed = 1234,
                  model_path = "models",
+                 validation_frac = 0.2 
                  ):
+
+
 
         # add device
         self.device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
@@ -44,7 +49,7 @@ class ModelPredictor(object):
         torch.backends.cudnn.benchmark = True
 
         self.gene_emb = gene_emb
-        self.x_dim = adata.shape[1]
+        self.x_dim = input_dim
         self.p_dim = gene_emb[list(gene_emb.keys())[0]].shape[0]
         self.gene_emb.update({'ctrl': np.zeros(self.p_dim)})
         self.latent_dim = latent_dim
@@ -54,59 +59,88 @@ class ModelPredictor(object):
         self.lambda_MI = lambda_MI
         self.eps = eps
         self.model_path = model_path
-
-
-
-        #Do the split
+        self.validation_frac = validation_frac
 
 
 
 
-        adata = None
+    def train(self, adata: sc.AnnData):
+            
 
-        n_split = 0
-        adata_processed, split = data_split(adata_processed, seed=n_split)
+            #Do the split
+            adata = adata.copy()
+            self.gene_embedding_idx = {name: idx for idx, name in enumerate(adata.var_names)}
 
-        # compute perturbation embeddings
-        logger.info(f"Computing {self.p_dim}-dimensional perturbation embeddings for {adata.shape[0]} cells...")
-        self.pert_emb_cells = np.zeros((adata.shape[0], self.p_dim))
+            cell_types = adata.obs[CELL_KEY].unique()
+
+            assert len(cell_types) == 1, f"Only one cell type is allowe, found {cell_types}"
+
+            self.cell_type = cell_types[0]
 
 
-        for i, pert in enumerate(adata.obs['condition'].values):
-            if pert != CONTROL_PERT:
-                self.pert_emb
+            perts = [p for p in adata.obs[PERT_KEY].unique() if p != CONTROL_PERT]
+
+
+
+            #We randomly select fraction of the perts
+            
+
+
+            # compute perturbation embeddings
+            logger.info(f"Computing {self.p_dim}-dimensional perturbation embeddings for {adata.shape[0]} cells...")
+            self.pert_emb_cells = np.zeros((adata.shape[0], self.p_dim))
+
+
+            for i, pert in enumerate(adata.obs['condition'].values):
+                if pert != CONTROL_PERT:
+                    self.pert_emb_cells[i] = self.adata.varm[GENE_EMBEDDING_KEY][self.gene_embedding_idx[pert]]
+
+            self.adata.obsm['pert_emb'] = self.pert_emb_cells
 
             
-            self.pert_emb_cells[adata.obs['condition'].values == i] += pert_emb_p.reshape(1, -1)
-            self.pert_emb[i] = pert_emb_p
-        self.adata.obsm['pert_emb'] = self.pert_emb_cells
 
-        
-        self.adata.obsm['pert_emb'] = self.pert_emb_cells
+            # control cells
+            ctrl_x = adata[adata.obs[PERT_KEY].values == CONTROL_PERT].X
+            self.ctrl_mean = np.mean(ctrl_x, axis=0)
+            self.ctrl_x = torch.from_numpy(ctrl_x - self.ctrl_mean.reshape(1, -1)).float().to(self.device)
+            self.adata.X = self.adata.X - self.ctrl_mean.reshape(1, -1)
 
-        # control cells
-        ctrl_x = adata[adata.obs[PERT_KEY].values == CONTROL_PERT].X
-        self.ctrl_mean = np.mean(ctrl_x, axis=0)
-        self.ctrl_x = torch.from_numpy(ctrl_x - self.ctrl_mean.reshape(1, -1)).float().to(self.device)
-        self.adata.X = self.adata.X - self.ctrl_mean.reshape(1, -1)
+            # split datasets
+            logger.info("Splitting data...")
 
-        # split datasets
-        logger.info("Splitting data...")
+            
 
 
-        self.adata_train = self.adata[self.adata.obs[split_name].values == 'train']
-        self.adata_val = self.adata[self.adata.obs[split_name].values == 'val']
-        self.pert_val = np.unique(self.adata_val.obs['condition'].values)
+            # Selecting a fraction of the perts for validation
+            perts_validation = np.random.choice(perts, int(len(perts)*self.validation_frac ), replace=False)
+            perts_train = [p for p in perts if p not in perts_validation]
 
-        self.train_data = PertDataset(torch.from_numpy(self.adata_train.X).float().to(self.device), 
-                                      torch.from_numpy(self.adata_train.obsm['pert_emb']).float().to(self.device))
-        self.train_dataloader = DataLoader(self.train_data, batch_size=self.batch_size, shuffle=True)
+            #Selecting validation frac of control cells for validation
+            ctrl_cells = adata[adata.obs[PERT_KEY].values == CONTROL_PERT]
+            ctrl_cells_validation = np.random.choice(ctrl_cells.obs.index, int(len(ctrl_cells)*self.validation_frac), replace=False)
 
-        self.pert_delta = {}
-        for i in np.unique(self.adata.obs['condition'].values):
-            adata_i = self.adata[self.adata.obs['condition'].values == i]
-            delta_i = np.mean(adata_i.X, axis=0)
-            self.pert_delta[i] = delta_i
+
+            adata.obs['split'] = 'train'
+            adata.obs[adata.obs[PERT_KEY].isin(perts_validation).index]['split'] = 'val'
+            adata.obs[adata.obs.index.isin(ctrl_cells_validation)]['split'] = 'val'
+
+            self.adata_train = self.adata[self.adata.obs['split'].values == 'train']
+            self.adata_val = self.adata[self.adata.obs['split'].values == 'val']
+
+
+            self.pert_val = np.unique(self.adata_val.obs['condition'].values)
+
+            self.train_data = PertDataset(torch.from_numpy(self.adata_train.X).float().to(self.device), 
+                                        torch.from_numpy(self.adata_train.obsm['pert_emb']).float().to(self.device))
+            self.train_dataloader = DataLoader(self.train_data, batch_size=self.batch_size, shuffle=True)
+
+            self.pert_delta = {}
+            for i in np.unique(self.adata.obs[PERT_KEY].values):
+                adata_i = self.adata[self.adata.obs[PERT_KEY].values == i]
+                delta_i = np.mean(adata_i.X, axis=0)
+                self.pert_delta[i] = delta_i
+
+
 
     def loss_function(self, x, x_hat, p, p_hat, mean_z, log_var_z, s, s_marginal, T):
         reconstruction_loss = 0.5 * torch.mean(torch.sum((x_hat - x)**2, axis=1)) + 0.5 * torch.mean(torch.sum((p_hat - p)**2, axis=1))
@@ -192,16 +226,29 @@ class ModelPredictor(object):
                         self.model_best = copy.deepcopy(self.Net)
         logger.info("Finish training.")
         self.Net = self.model_best
-        if not os.path.exists(self.model_path):
-            os.makedirs(self.model_path)
 
+    def save(self, path):
         state = {'Net': self.Net.state_dict()}
         torch.save(state, os.path.join(self.model_path, "ckpt.pth"))
 
-    def load_pretrain(self):
-        self.Net = Net(x_dim = self.x_dim, p_dim = self.p_dim, 
-                       latent_dim = self.latent_dim, hidden_dim = self.hidden_dim)
-        self.Net.load_state_dict(torch.load(os.path.join(self.model_path, "ckpt.pth"))['Net'])
+    def load(self, path):
+        if os.path.exists(path):
+            self.Net = Net(x_dim = self.x_dim, p_dim = self.p_dim, latent_dim = self.latent_dim, hidden_dim = self.hidden_dim)
+            self.Net.load_state_dict(torch.load(os.path.join(self.model_path, "ckpt.pth"))['Net'])
+            return True
+        return False
+
+
+    def make_predict(self, adata: sc.AnnData, pert_id: str, cell_type: str) -> np.ndarray:
+        assert self.Net is not None, "Model has not been trained yet"\
+        "Please train the model first"
+        assert len(adata.obs[CELL_KEY].unique()) == 1, f"Cell type mismatch, expected only one cell type found {adata.obs[CELL_KEY].unique()}"
+        assert adata.obs[CELL_KEY].unique()[0] == self.cell_type, f"Cell type mismatch, expected {self.cell_type} found {adata.obs[CELL_KEY].unique()[0]}"
+
+        res = self.predict(pert_id, return_type='cells')
+        return res[pert_id].X
+
+
 
     def predict(self, 
                 pert_test, # perturbation or a list of perturbations
