@@ -24,22 +24,23 @@ logger = logging.getLogger(__name__)
 
 class ModelPredictor(object):
     def __init__(self, 
-                 gene_emb, # dictionary for gene embeddings
                  input_dim,
-                 latent_dim = 30, hidden_dim = 512,
-                 training_epochs = 200,
-                 batch_size = 500,
-                 lambda_MI = 200,
-                 eps = 0.001,
-                 seed = 1234,
-                 model_path = "models",
-                 validation_frac = 0.2 
+                 device,
+                 p_dim,
+                 latent_dim,
+                 hidden_dim,
+                 training_epochs,
+                 batch_size,
+                 lambda_MI,
+                 eps,
+                 seed,
+                 validation_frac,
+                 name #Useless, just used to make config unpacking easier
                  ):
 
 
-
         # add device
-        self.device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+        self.device = device
 
         # set random seed
         torch.manual_seed(seed)
@@ -48,59 +49,63 @@ class ModelPredictor(object):
             torch.cuda.manual_seed_all(seed)
         torch.backends.cudnn.benchmark = True
 
-        self.gene_emb = gene_emb
         self.x_dim = input_dim
-        self.p_dim = gene_emb[list(gene_emb.keys())[0]].shape[0]
-        self.gene_emb.update({'ctrl': np.zeros(self.p_dim)})
         self.latent_dim = latent_dim
         self.hidden_dim = hidden_dim
         self.training_epochs = training_epochs
         self.batch_size = batch_size
         self.lambda_MI = lambda_MI
         self.eps = eps
-        self.model_path = model_path
         self.validation_frac = validation_frac
+        self.adata = None
+        self.p_dim = p_dim
 
 
 
 
     def train(self, adata: sc.AnnData):
             
+            gene_emb_temp = adata.varm[GENE_EMBEDDING_KEY]
+            self.p_dim = gene_emb_temp.shape[1]
+
+            self.gene_emb = {}
+            for i, g in enumerate(adata.var_names):
+                self.gene_emb[g] = gene_emb_temp[i]
+
+            self.gene_emb.update({'ctrl': np.zeros(self.p_dim)})
+
 
             #Do the split
-            adata = adata.copy()
-            self.gene_embedding_idx = {name: idx for idx, name in enumerate(adata.var_names)}
+            self.adata = adata.copy()
+            self.gene_embedding_idx = {name: idx for idx, name in enumerate(self.adata.var_names)}
 
-            cell_types = adata.obs[CELL_KEY].unique()
+            cell_types = self.adata.obs[CELL_KEY].unique()
 
-            assert len(cell_types) == 1, f"Only one cell type is allowe, found {cell_types}"
-
-            self.cell_type = cell_types[0]
+            assert len(cell_types) == 1, f"Only one cell type is allowed, found {cell_types}"
 
 
-            perts = [p for p in adata.obs[PERT_KEY].unique() if p != CONTROL_PERT]
+            perts = [p for p in self.adata.obs[PERT_KEY].unique() if p != CONTROL_PERT]
 
 
 
-            #We randomly select fraction of the perts
             
 
 
             # compute perturbation embeddings
-            logger.info(f"Computing {self.p_dim}-dimensional perturbation embeddings for {adata.shape[0]} cells...")
-            self.pert_emb_cells = np.zeros((adata.shape[0], self.p_dim))
+            logger.info(f"Computing {self.p_dim}-dimensional perturbation embeddings for {self.adata.shape[0]} cells...")
+            self.pert_emb_cells = np.zeros((self.adata.shape[0], self.p_dim))
 
 
-            for i, pert in enumerate(adata.obs['condition'].values):
+            for i, pert in enumerate(self.adata.obs[PERT_KEY].values):
                 if pert != CONTROL_PERT:
-                    self.pert_emb_cells[i] = self.adata.varm[GENE_EMBEDDING_KEY][self.gene_embedding_idx[pert]]
+                    self.pert_emb_cells[i] = self.gene_emb[pert]
 
             self.adata.obsm['pert_emb'] = self.pert_emb_cells
 
             
 
             # control cells
-            ctrl_x = adata[adata.obs[PERT_KEY].values == CONTROL_PERT].X
+            ctrl_x = self.adata[self.adata.obs[PERT_KEY].values == CONTROL_PERT].X
             self.ctrl_mean = np.mean(ctrl_x, axis=0)
             self.ctrl_x = torch.from_numpy(ctrl_x - self.ctrl_mean.reshape(1, -1)).float().to(self.device)
             self.adata.X = self.adata.X - self.ctrl_mean.reshape(1, -1)
@@ -113,22 +118,35 @@ class ModelPredictor(object):
 
             # Selecting a fraction of the perts for validation
             perts_validation = np.random.choice(perts, int(len(perts)*self.validation_frac ), replace=False)
+            
             perts_train = [p for p in perts if p not in perts_validation]
 
             #Selecting validation frac of control cells for validation
-            ctrl_cells = adata[adata.obs[PERT_KEY].values == CONTROL_PERT]
+            ctrl_cells = self.adata[self.adata.obs[PERT_KEY].values == CONTROL_PERT]
             ctrl_cells_validation = np.random.choice(ctrl_cells.obs.index, int(len(ctrl_cells)*self.validation_frac), replace=False)
 
+            logger.debug(f"Validation Perts: {perts_validation}")
+            logger.debug(f"Train Perts: {perts_train}")
 
-            adata.obs['split'] = 'train'
-            adata.obs[adata.obs[PERT_KEY].isin(perts_validation).index]['split'] = 'val'
-            adata.obs[adata.obs.index.isin(ctrl_cells_validation)]['split'] = 'val'
+
+
+            self.adata.obs['split'] = 'train'
+
+            logger.debug(f"Adata Columns: {self.adata.obs.columns}")
+
+            # Create boolean masks
+            pert_mask = self.adata.obs[PERT_KEY].isin(perts_validation)
+            ctrl_mask = self.adata.obs.index.isin(ctrl_cells_validation)
+
+            # Apply masks directly
+            self.adata.obs.loc[pert_mask, 'split'] = 'val'
+            self.adata.obs.loc[ctrl_mask, 'split'] = 'val'
 
             self.adata_train = self.adata[self.adata.obs['split'].values == 'train']
             self.adata_val = self.adata[self.adata.obs['split'].values == 'val']
 
 
-            self.pert_val = np.unique(self.adata_val.obs['condition'].values)
+            self.pert_val = np.unique(self.adata_val.obs[PERT_KEY].values)
 
             self.train_data = PertDataset(torch.from_numpy(self.adata_train.X).float().to(self.device), 
                                         torch.from_numpy(self.adata_train.obsm['pert_emb']).float().to(self.device))
@@ -140,6 +158,7 @@ class ModelPredictor(object):
                 delta_i = np.mean(adata_i.X, axis=0)
                 self.pert_delta[i] = delta_i
 
+            self.train_real()
 
 
     def loss_function(self, x, x_hat, p, p_hat, mean_z, log_var_z, s, s_marginal, T):
@@ -156,7 +175,7 @@ class ModelPredictor(object):
         MI_latent = torch.mean(T(mean_z, s)) - torch.log(torch.mean(torch.exp(T(mean_z, s_marginal))))
         return - MI_latent
 
-    def train(self):
+    def train_real(self):
         self.Net = Net(x_dim = self.x_dim, p_dim = self.p_dim, 
                        latent_dim = self.latent_dim, hidden_dim = self.hidden_dim)
         params = list(self.Net.Encoder_x.parameters())+list(self.Net.Encoder_p.parameters())+list(self.Net.Decoder_x.parameters())+list(self.Net.Decoder_p.parameters())
@@ -198,16 +217,16 @@ class ModelPredictor(object):
             scheduler.step()
             scheduler_MINE.step()
             if (epoch+1) % 10 == 0:
-                logger.info("\tEpoch", (epoch+1), "complete!", "\t Loss: ", loss.item())
+                logger.info(f"Epoch  {(epoch+1)} complete! -  Loss: {loss.item()}")
                 if len(self.pert_val) > 0: # If validating
                     self.Net.eval()
                     corr_ls = []
                     for i in self.pert_val:
-                        if self.multi_gene:
+                        """if self.multi_gene:
                             genes = i.split('+')
                             pert_emb_p = self.gene_emb[genes[0]] + self.gene_emb[genes[1]]
-                        else:
-                            pert_emb_p = self.gene_emb[i]
+                        else:"""
+                        pert_emb_p = self.gene_emb[i]
                         val_p = torch.from_numpy(np.tile(pert_emb_p, 
                                                          (self.ctrl_x.shape[0], 1))).float().to(self.device)
                         x_hat, p_hat, mean_z, log_var_z, s = self.Net(self.ctrl_x, val_p)
@@ -216,7 +235,7 @@ class ModelPredictor(object):
                         corr_ls.append(corr)
 
                     corr_val = np.mean(corr_ls)
-                    logger.info("Validation correlation delta %.5f" % corr_val)
+                    logger.info(f"Validation correlation delta {corr_val}")
                     if corr_val > corr_val_best:
                         corr_val_best = corr_val
                         self.model_best = copy.deepcopy(self.Net)
@@ -227,23 +246,22 @@ class ModelPredictor(object):
         logger.info("Finish training.")
         self.Net = self.model_best
 
-    def save(self, path):
+    """def save(self, path):
         state = {'Net': self.Net.state_dict()}
-        torch.save(state, os.path.join(self.model_path, "ckpt.pth"))
+        torch.save(state, os.path.join(path, "ckpt.pth"))"""
 
-    def load(self, path):
+    """def load(self, path):
         if os.path.exists(path):
             self.Net = Net(x_dim = self.x_dim, p_dim = self.p_dim, latent_dim = self.latent_dim, hidden_dim = self.hidden_dim)
-            self.Net.load_state_dict(torch.load(os.path.join(self.model_path, "ckpt.pth"))['Net'])
+            self.Net.load_state_dict(torch.load(os.path.join(path, "ckpt.pth"))['Net'])
             return True
-        return False
+        return False"""
 
 
     def make_predict(self, adata: sc.AnnData, pert_id: str, cell_type: str) -> np.ndarray:
         assert self.Net is not None, "Model has not been trained yet"\
         "Please train the model first"
         assert len(adata.obs[CELL_KEY].unique()) == 1, f"Cell type mismatch, expected only one cell type found {adata.obs[CELL_KEY].unique()}"
-        assert adata.obs[CELL_KEY].unique()[0] == self.cell_type, f"Cell type mismatch, expected {self.cell_type} found {adata.obs[CELL_KEY].unique()[0]}"
 
         res = self.predict(pert_id, return_type='cells')
         return res[pert_id].X
@@ -259,11 +277,11 @@ class ModelPredictor(object):
         if isinstance(pert_test, str):
             pert_test = [pert_test]
         for i in pert_test:
-            if self.multi_gene:
+            """ if self.multi_gene:
                 genes = i.split('+')
                 pert_emb_p = self.gene_emb[genes[0]] + self.gene_emb[genes[1]]
-            else:
-                pert_emb_p = self.gene_emb[i]
+            else:"""
+            pert_emb_p = self.gene_emb[i]
             val_p = torch.from_numpy(np.tile(pert_emb_p, 
                                      (self.ctrl_x.shape[0], 1))).float().to(self.device)
             x_hat, p_hat, mean_z, log_var_z, s = self.Net(self.ctrl_x, val_p)
@@ -288,11 +306,11 @@ class ModelPredictor(object):
         if isinstance(pert_test, str):
             pert_test = [pert_test]
         for i in pert_test:
-            if self.multi_gene:
+            """if self.multi_gene:
                 genes = i.split('+')
                 pert_emb_p = self.gene_emb[genes[0]] + self.gene_emb[genes[1]]
-            else:
-                pert_emb_p = self.gene_emb[i]
+            else:"""
+            pert_emb_p = self.gene_emb[i]
             val_p = torch.from_numpy(np.tile(pert_emb_p, 
                                      (n_cells, 1))).float().to(self.device)
             s = self.Net.Encoder_p(val_p)

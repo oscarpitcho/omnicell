@@ -1,4 +1,5 @@
 
+from logging import config
 from typing import List, Tuple, Optional
 import logging
 from pathlib import Path
@@ -50,33 +51,23 @@ class Config:
 
     
     def get_train_path(self):
-        cell_emb = self.get_cell_embedding_name()
-        cell_emb_path = f"{cell_emb}/" if cell_emb is not None else ""
-        pert_emb = self.get_pert_embedding_name()
-        pert_emb_path = f"{pert_emb}/" if pert_emb is not None else ""
-
-
         #Ugly but it allows us to store different randomsplits in different sub directories.
-        datasplit_prefix = self.get_datasplit_config_name().split('-')
+        datasplit_name_parts = self.get_datasplit_config_name().split('-')
         if len(datasplit_prefix) > 1:
-            datasplit_prefix = '-'.join(datasplit_prefix[0:-1])
+            datasplit_prefix = '-'.join(datasplit_name_parts[0:-1])
         
+
         datasplit_prefix_path = f"{datasplit_prefix}/" if datasplit_prefix is not None else ""
-        return Path(f"./models/{self.get_training_dataset_name()}/{cell_emb_path}{pert_emb_path}{self.get_model_name()}/{datasplit_prefix_path}{self.get_datasplit_config_name()}/{self.get_train_hash()}").resolve()
+        return Path(f"./models/{self.get_training_dataset_name()}/{self.get_etl_config_name()}/{self.get_model_name()}/{datasplit_prefix_path}{self.get_datasplit_config_name()}/{self.get_train_hash()}").resolve()
     
     def get_eval_path(self):
-        cell_emb = self.get_cell_embedding_name()
-        cell_emb_path = f"{cell_emb}/" if cell_emb is not None else ""
-        pert_emb = self.get_pert_embedding_name()
-        pert_emb_path = f"{pert_emb}/" if pert_emb is not None else ""
-
-        datasplit_prefix = self.get_datasplit_config_name().split('-')
+        datasplit_name_parts = self.get_datasplit_config_name().split('-')
         if len(datasplit_prefix) > 1:
-            datasplit_prefix = '-'.join(datasplit_prefix[0:-1])
+            datasplit_prefix = '-'.join(datasplit_name_parts[0:-1])
         
         
         datasplit_prefix_path = f"{datasplit_prefix}/" if datasplit_prefix is not None else ""
-        return Path(f"./results/{self.get_training_dataset_name()}/{cell_emb_path}{pert_emb_path}{self.get_model_name()}/{datasplit_prefix_path}{self.get_datasplit_config_name()}/{self.get_train_hash()}/{self.get_eval_hash()}").resolve()
+        return Path(f"./results/{self.get_training_dataset_name()}/{self.get_etl_config_name()}/{self.get_model_name()}/{datasplit_prefix_path}{self.get_datasplit_config_name()}/{self.get_train_hash()}/{self.get_eval_hash()}").resolve()
 
     def __eq__(self, other):
         return self.to_dict() == other.to_dict()
@@ -134,6 +125,9 @@ class Config:
 
 
     ## Getters for ETL
+    def get_etl_config_name(self)-> str:
+        return self.etl_config['name']
+    
     def get_apply_normalization(self) -> bool:
         return self.etl_config['count_norm']
     
@@ -181,9 +175,6 @@ class Config:
         return self.get_cell_embedding_type() == 'local'
     
 
-    
-
-    
 
 
 

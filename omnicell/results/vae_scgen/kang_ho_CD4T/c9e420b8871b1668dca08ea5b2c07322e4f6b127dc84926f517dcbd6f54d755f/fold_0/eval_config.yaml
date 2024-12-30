@@ -1,9 +1,0 @@
-log_fold_change_threshold: null
-max_p_val: 0.05
-model_name: vae_scgen
-overwrite: false
-pval_iters: 10000
-pval_threshold: 0.05
-replicates: 10
-round: false
-task_name: kang_ho_CD4T

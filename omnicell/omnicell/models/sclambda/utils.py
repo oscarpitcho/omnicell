@@ -4,8 +4,7 @@ import scanpy as sc
 import pandas as pd
 import anndata as ad
 import umap
-from sclambda.model import *
-
+from omnicell.models.sclambda.model import *
 '''
 All dataset splitting functions are from or modified based on GEARS dataset spiltting
 https://github.com/snap-stanford/GEARS

@@ -72,10 +72,9 @@ def get_identity_features(adata):
 
 
 class DataLoader:
-    def __init__(self, config: Config, data_catalogue: Catalogue):
+    def __init__(self, config: Config):
         self.config = config
-        self.data_catalogue = data_catalogue
-        self.training_dataset_details: DatasetDetails = data_catalogue.get_dataset_details(config.get_training_dataset_name())
+        self.training_dataset_details: DatasetDetails = Catalogue.get_dataset_details(config.get_training_dataset_name())
 
         logger.debug(f"Training dataset details: {self.training_dataset_details}")
 
@@ -120,6 +119,7 @@ class DataLoader:
 
                 #TODO: This is something I will need to change
                 adata.obsm["embedding"] = np.load(self.config.get_local_cell_embedding_path())
+
             elif self.config.get_cell_embedding_name() in dataset_details.cell_embeddings:            
                 #We replace the data matrix with the cell embeddings
                 adata.obsm["embedding"] = adata.obsm[self.config.get_cell_embedding_name()]
@@ -150,10 +150,10 @@ class DataLoader:
                 raise ValueError(f"Metric space {self.config.get_metric_space()} not found in metric spaces available for dataset {dataset_details.name}")
 
         if self.gene_embedding_name is not None:
-            if self.gene_embedding_name not in self.dataset_details.gene_embedding:
+            if self.gene_embedding_name not in dataset_details.gene_embeddings:
                 raise ValueError(f"Gene Embedding {self.gene_embedding_name} is not found in gene embeddings available for dataset {dataset_details.name}")
             else:
-                embedding = torch.load(f"{dataset_details.folder_path}/{self.gene_embedding_name}")
+                embedding = torch.load(f"{dataset_details.folder_path}/{self.gene_embedding_name}.pt")
                 adata.varm["gene_embedding"] = embedding.numpy()
 
 
@@ -172,9 +172,7 @@ class DataLoader:
         # Checking if we have already a cached version of the training data
         if self.complete_training_adata is None:
             logger.info(f"Loading training data at path: {self.training_dataset_details.path}")
-            # adata = sc.read(self.training_dataset_details.path)
-            with open(self.training_dataset_details.path, 'rb') as f:
-                adata = sc.read_h5ad(f)
+            adata = sc.read(self.training_dataset_details.path)
 
             logger.info("Preprocessing training data")
             adata = self.preprocess_data(adata, training=True)
@@ -228,7 +226,7 @@ class DataLoader:
         return self.complete_training_adata
 
     def get_eval_data(self):
-        self.eval_dataset_details = self.data_catalogue.get_dataset_details(self.config.get_eval_dataset_name())
+        self.eval_dataset_details = Catalogue.get_dataset_details(self.config.get_eval_dataset_name())
 
         #To avoid loading the same data twice
         if self.config.get_training_dataset_name() == self.config.get_eval_dataset_name():
