@@ -4,13 +4,13 @@ import torch.nn.functional as F
 import numpy as np
 
 class Net(nn.Module):
-    def __init__(self, x_dim, p_dim, latent_dim = 30, hidden_dim = 512):
+    def __init__(self, x_dim, p_dim, large: bool, latent_dim = 30, hidden_dim = 512):
         super(Net, self).__init__()
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.Encoder_x = Encoder(input_dim=x_dim, hidden_dim=hidden_dim, latent_dim=latent_dim).to(self.device)
-        self.Encoder_p = Encoder(input_dim=p_dim, hidden_dim=hidden_dim, latent_dim=latent_dim, VAE=False).to(self.device)
-        self.Decoder_x = Decoder(latent_dim=latent_dim, hidden_dim = hidden_dim, output_dim = x_dim).to(self.device)
-        self.Decoder_p = Decoder(latent_dim=latent_dim, hidden_dim = hidden_dim, output_dim = p_dim).to(self.device)
+        self.Encoder_x = Encoder(input_dim=x_dim,large =large, hidden_dim=hidden_dim, latent_dim=latent_dim).to(self.device)
+        self.Encoder_p = Encoder(input_dim=p_dim, large=large, hidden_dim=hidden_dim, latent_dim=latent_dim, VAE=False).to(self.device)
+        self.Decoder_x = Decoder(latent_dim=latent_dim, large=large, hidden_dim = hidden_dim, output_dim = x_dim).to(self.device)
+        self.Decoder_p = Decoder(latent_dim=latent_dim, large=large, hidden_dim = hidden_dim, output_dim = p_dim).to(self.device)
         self.MINE = MINE(latent_dim=latent_dim, hidden_dim=hidden_dim).to(self.device)
 
     def reparameterization(self, mean, var):
@@ -27,40 +27,67 @@ class Net(nn.Module):
         
         return x_hat, p_hat, mean_z, log_var_z, s
 
+
+
 class Encoder(nn.Module):
-    def __init__(self, input_dim, hidden_dim, latent_dim, VAE=True):
+    def __init__(self, input_dim, latent_dim, hidden_dim, VAE=True, large=False):
         super(Encoder, self).__init__()
         self.VAE = VAE
-        self.FC_input = nn.Linear(input_dim, hidden_dim)
-        self.FC_input2 = nn.Linear(hidden_dim, hidden_dim)
-        self.FC_mean = nn.Linear(hidden_dim, latent_dim)
-        if self.VAE:
-            self.FC_var = nn.Linear(hidden_dim, latent_dim)
-        self.LeakyReLU = nn.LeakyReLU(0.2)
+        self.large = large
         
-    def forward(self, x):
-        h_ = self.LeakyReLU(self.FC_input(x))
-        h_ = self.LeakyReLU(self.FC_input2(h_))
-        mean = self.FC_mean(h_)
-        if self.VAE:
-            log_var  = self.FC_var(h_)
-            return mean, log_var
+        if large:
+            self.layers = nn.Sequential(
+                nn.Linear(input_dim, hidden_dim*8),
+                nn.LeakyReLU(0.2),
+                nn.Linear(hidden_dim*4, hidden_dim*2),
+                nn.LeakyReLU(0.2),
+                nn.Linear(hidden_dim*2, hidden_dim)
+            )
         else:
-            return mean
+            self.layers = nn.Sequential(
+                nn.Linear(input_dim, hidden_dim),
+                nn.LeakyReLU(0.2),
+                nn.Linear(hidden_dim, hidden_dim)
+            )
+            
+        self.fc_mean = nn.Linear(hidden_dim, latent_dim)
+        if VAE:
+            self.fc_var = nn.Linear(hidden_dim, latent_dim)
+    
+    def forward(self, x):
+        h = self.layers(x)
+        mean = self.fc_mean(h)
+        if self.VAE:
+            log_var = self.fc_var(h)
+            return mean, log_var
+        return mean
 
 class Decoder(nn.Module):
-    def __init__(self, latent_dim, hidden_dim, output_dim):
+    def __init__(self, latent_dim, output_dim, hidden_dim, large=False):
         super(Decoder, self).__init__()
-        self.FC_hidden = nn.Linear(latent_dim, hidden_dim)
-        self.FC_hidden2 = nn.Linear(hidden_dim, hidden_dim)
-        self.FC_output = nn.Linear(hidden_dim, output_dim)
-        self.LeakyReLU = nn.LeakyReLU(0.2)
-
+        
+        if large:
+            self.layers = nn.Sequential(
+                nn.Linear(latent_dim, hidden_dim*2),
+                nn.LeakyReLU(0.2),
+                nn.Linear(hidden_dim*2, hidden_dim*4),
+                nn.LeakyReLU(0.2),
+                nn.Linear(hidden_dim*8, hidden_dim),
+                nn.LeakyReLU(0.2),
+                nn.Linear(hidden_dim, output_dim)
+            )
+        else:
+            self.layers = nn.Sequential(
+                nn.Linear(latent_dim, hidden_dim),
+                nn.LeakyReLU(0.2),
+                nn.Linear(hidden_dim, hidden_dim),
+                nn.LeakyReLU(0.2),
+                nn.Linear(hidden_dim, output_dim)
+            )
+    
     def forward(self, x):
-        h = self.LeakyReLU(self.FC_hidden(x))
-        h = self.LeakyReLU(self.FC_hidden2(h))
-        out = self.FC_output(h)
-        return out
+        return self.layers(x)
+
 
 class MINE(nn.Module):
     def __init__(self, latent_dim, hidden_dim):

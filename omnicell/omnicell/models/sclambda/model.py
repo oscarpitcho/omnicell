@@ -35,6 +35,7 @@ class ModelPredictor(object):
                  eps,
                  seed,
                  validation_frac,
+                 large,
                  name #Useless, just used to make config unpacking easier
                  ):
 
@@ -59,6 +60,7 @@ class ModelPredictor(object):
         self.validation_frac = validation_frac
         self.adata = None
         self.p_dim = p_dim
+        self.large = large
 
 
 
@@ -177,7 +179,7 @@ class ModelPredictor(object):
 
     def train_real(self):
         self.Net = Net(x_dim = self.x_dim, p_dim = self.p_dim, 
-                       latent_dim = self.latent_dim, hidden_dim = self.hidden_dim)
+                       latent_dim = self.latent_dim, hidden_dim = self.hidden_dim,  large = self.large).to(self.device)
         params = list(self.Net.Encoder_x.parameters())+list(self.Net.Encoder_p.parameters())+list(self.Net.Decoder_x.parameters())+list(self.Net.Decoder_p.parameters())
         optimizer = Adam(params, lr=0.0005)
         scheduler = StepLR(optimizer, step_size=30, gamma=0.2)
