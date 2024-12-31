@@ -69,7 +69,10 @@ class Config:
         
         
         datasplit_prefix_path = f"{datasplit_prefix}/" if datasplit_prefix is not None else ""
-        return Path(f"./results/{self.get_training_dataset_name()}/{self.get_etl_config_name()}/{self.get_model_name()}/{datasplit_prefix_path}{self.get_datasplit_config_name()}/{self.get_train_hash()}/{self.get_eval_hash()}").resolve()
+
+        train_and_eval_hash = hashlib.sha256(f"{self.get_train_hash()}/{self.get_eval_hash()}")
+        train_and_eval_hash = train_and_eval_hash[:8]   
+        return Path(f"./results/{self.get_training_dataset_name()}/{self.get_etl_config_name()}/{self.get_model_name()}/{datasplit_prefix_path}{self.get_datasplit_config_name()}/{train_and_eval_hash}").resolve()
 
     def __eq__(self, other):
         return self.to_dict() == other.to_dict()
@@ -144,6 +147,9 @@ class Config:
 
     def get_metric_space(self) -> Optional[str]:
         return self.etl_config.get('metric_space', None)
+
+    def get_HVG(self) -> bool:
+        return self.etl_config.get('HVG')
 
 
     def get_cell_embedding_type(self) -> Optional[str]:

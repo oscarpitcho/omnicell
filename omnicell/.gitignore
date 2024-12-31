@@ -4,5 +4,5 @@ DEGs_per_pert_.json
 *.torch
 *.pth
 
-results/
-models/
+results
+models

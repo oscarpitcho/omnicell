@@ -214,8 +214,19 @@ class ModelPredictor(object):
 
                 optimizer.zero_grad()
                 loss = self.loss_function(x, x_hat, p, p_hat, mean_z, log_var_z, s, s_marginal, T=self.Net.MINE)
+                logger.debug(f"Epoch: {epoch} - Loss: {loss.item()}")
                 loss.backward()
                 optimizer.step()
+
+
+                total_norm = 0
+                for p in self.Net.parameters():
+                    param_norm = p.grad.detach().data.norm(2)
+                    total_norm += param_norm.item() ** 2
+                total_norm = total_norm ** 0.5
+
+                logger.debug(f"Gradient Norm: {total_norm}")
+
             scheduler.step()
             scheduler_MINE.step()
             if (epoch+1) % 10 == 0:

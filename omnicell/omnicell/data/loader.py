@@ -110,6 +110,21 @@ class DataLoader:
 
         adata.obs[PERT_KEY] = adata.obs[PERT_KEY].cat.rename_categories({control: CONTROL_PERT})
 
+        #Attaching gene embeddings
+        if self.gene_embedding_name is not None:
+            if self.gene_embedding_name not in dataset_details.gene_embeddings:
+                raise ValueError(f"Gene Embedding {self.gene_embedding_name} is not found in gene embeddings available for dataset {dataset_details.name}")
+            else:
+                embedding = torch.load(f"{dataset_details.folder_path}/{self.gene_embedding_name}.pt")
+                adata.varm["gene_embedding"] = embedding.numpy()
+
+
+        #Getting HVG genes
+        if not dataset_details.HVG and self.config.get_HVG():
+            logger.info("Filtering HVG genes")
+            sc.pp.highly_variable_genes(adata, n_top_genes=2000, flavor='seurat_v3')
+            adata = adata[:, adata.var.highly_variable]
+
         if (self.config.get_cell_embedding_name() is not None) & (self.config.get_apply_normalization() | self.config.get_apply_log1p()):
             raise ValueError("Cannot both apply cell embedding and normalization/log1p transformation")
         
@@ -149,12 +164,7 @@ class DataLoader:
             else:
                 raise ValueError(f"Metric space {self.config.get_metric_space()} not found in metric spaces available for dataset {dataset_details.name}")
 
-        if self.gene_embedding_name is not None:
-            if self.gene_embedding_name not in dataset_details.gene_embeddings:
-                raise ValueError(f"Gene Embedding {self.gene_embedding_name} is not found in gene embeddings available for dataset {dataset_details.name}")
-            else:
-                embedding = torch.load(f"{dataset_details.folder_path}/{self.gene_embedding_name}.pt")
-                adata.varm["gene_embedding"] = embedding.numpy()
+
 
 
         if dataset_details.precomputed_DEGs:
