@@ -70,7 +70,7 @@ class Config:
         
         datasplit_prefix_path = f"{datasplit_prefix}/" if datasplit_prefix is not None else ""
 
-        train_and_eval_hash = hashlib.sha256(f"{self.get_train_hash()}/{self.get_eval_hash()}")
+        train_and_eval_hash = hashlib.sha256(f"{self.get_train_hash()}/{self.get_eval_hash()}".encode()).hexdigest()
         train_and_eval_hash = train_and_eval_hash[:8]   
         return Path(f"./results/{self.get_training_dataset_name()}/{self.get_etl_config_name()}/{self.get_model_name()}/{datasplit_prefix_path}{self.get_datasplit_config_name()}/{train_and_eval_hash}").resolve()
 
