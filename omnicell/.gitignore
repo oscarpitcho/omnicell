@@ -6,3 +6,4 @@ DEGs_per_pert_.json
 
 results
 models
+*.h5ad

@@ -125,6 +125,12 @@ class DataLoader:
             sc.pp.highly_variable_genes(adata, n_top_genes=2000, flavor='seurat_v3')
             adata = adata[:, adata.var.highly_variable]
 
+
+            #TODO: Make this filtering apply only for datasets of genetic perturbation
+            #We remove observations perturbed with a gene whuch is not HVG / CONTROL
+            adata = adata[((adata.obs[PERT_KEY] == CONTROL_PERT) | adata.obs[PERT_KEY].isin(adata.var_names))]
+            logger.debug(f"Filtered HVG genes, # of data points: {len(adata)}, # of genes: {len(adata.var)}, # of conditions: {len(adata.obs[PERT_KEY].unique())}")
+
         if (self.config.get_cell_embedding_name() is not None) & (self.config.get_apply_normalization() | self.config.get_apply_log1p()):
             raise ValueError("Cannot both apply cell embedding and normalization/log1p transformation")
         
