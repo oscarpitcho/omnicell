@@ -2,3 +2,8 @@ lightning_logs/
 DEGs_per_pert_.json
 *.pt
 *.torch
+*.pth
+
+results
+models
+*.h5ad

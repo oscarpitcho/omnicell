@@ -1,4 +1,5 @@
 
+from logging import config
 from typing import List, Tuple, Optional
 import logging
 from pathlib import Path
@@ -50,33 +51,28 @@ class Config:
 
     
     def get_train_path(self):
-        cell_emb = self.get_cell_embedding_name()
-        cell_emb_path = f"{cell_emb}/" if cell_emb is not None else ""
-        pert_emb = self.get_pert_embedding_name()
-        pert_emb_path = f"{pert_emb}/" if pert_emb is not None else ""
-
-
         #Ugly but it allows us to store different randomsplits in different sub directories.
-        datasplit_prefix = self.get_datasplit_config_name().split('-')
-        if len(datasplit_prefix) > 1:
-            datasplit_prefix = '-'.join(datasplit_prefix[0:-1])
+        datasplit_prefix = None
+        datasplit_name_parts = self.get_datasplit_config_name().split('-')
+        if len(datasplit_name_parts) > 1:
+            datasplit_prefix = '-'.join(datasplit_name_parts[0:-1])
         
+
         datasplit_prefix_path = f"{datasplit_prefix}/" if datasplit_prefix is not None else ""
-        return Path(f"./models/{self.get_training_dataset_name()}/{cell_emb_path}{pert_emb_path}{self.get_model_name()}/{datasplit_prefix_path}{self.get_datasplit_config_name()}/{self.get_train_hash()}").resolve()
+        return Path(f"./models/{self.get_training_dataset_name()}/{self.get_etl_config_name()}/{self.get_model_name()}/{datasplit_prefix_path}{self.get_datasplit_config_name()}/{self.get_train_hash()}").resolve()
     
     def get_eval_path(self):
-        cell_emb = self.get_cell_embedding_name()
-        cell_emb_path = f"{cell_emb}/" if cell_emb is not None else ""
-        pert_emb = self.get_pert_embedding_name()
-        pert_emb_path = f"{pert_emb}/" if pert_emb is not None else ""
-
-        datasplit_prefix = self.get_datasplit_config_name().split('-')
-        if len(datasplit_prefix) > 1:
-            datasplit_prefix = '-'.join(datasplit_prefix[0:-1])
+        datasplit_prefix = None
+        datasplit_name_parts = self.get_datasplit_config_name().split('-')
+        if len(datasplit_name_parts) > 1:
+            datasplit_prefix = '-'.join(datasplit_name_parts[0:-1])
         
         
         datasplit_prefix_path = f"{datasplit_prefix}/" if datasplit_prefix is not None else ""
-        return Path(f"./results/{self.get_training_dataset_name()}/{cell_emb_path}{pert_emb_path}{self.get_model_name()}/{datasplit_prefix_path}{self.get_datasplit_config_name()}/{self.get_train_hash()}/{self.get_eval_hash()}").resolve()
+
+        train_and_eval_hash = hashlib.sha256(f"{self.get_train_hash()}/{self.get_eval_hash()}".encode()).hexdigest()
+        train_and_eval_hash = train_and_eval_hash[:8]   
+        return Path(f"./results/{self.get_training_dataset_name()}/{self.get_etl_config_name()}/{self.get_model_name()}/{datasplit_prefix_path}{self.get_datasplit_config_name()}/{train_and_eval_hash}").resolve()
 
     def __eq__(self, other):
         return self.to_dict() == other.to_dict()
@@ -132,7 +128,11 @@ class Config:
         return self.datasplit_config.get('holdout_perts', [])
     
 
+
     ## Getters for ETL
+    def get_etl_config_name(self)-> str:
+        return self.etl_config['name']
+    
     def get_apply_normalization(self) -> bool:
         return self.etl_config['count_norm']
     
@@ -147,6 +147,9 @@ class Config:
 
     def get_metric_space(self) -> Optional[str]:
         return self.etl_config.get('metric_space', None)
+
+    def get_HVG(self) -> bool:
+        return self.etl_config.get('HVG')
 
 
     def get_cell_embedding_type(self) -> Optional[str]:
@@ -166,6 +169,13 @@ class Config:
             return None
         else:
             return Config({'model_config': self.get_local_cell_embedding_config()}).get_model_name()
+        
+    def get_gene_embedding_name(self) -> Optional[str]:
+        return self.etl_config.get('gene_embedding', None)
+
+
+    def get_pert_embedding_name(self) -> Optional[str]:
+        return self.etl_config.get('pert_embedding', None) 
 
     
     @property
@@ -173,10 +183,6 @@ class Config:
         return self.get_cell_embedding_type() == 'local'
     
 
-    
-    def get_pert_embedding_name(self) -> Optional[str]:
-        return self.etl_config.get('pert_embedding', None) 
-    
 
 
 

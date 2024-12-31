@@ -7,6 +7,7 @@ from omnicell.data.catalogue import DatasetDetails, Catalogue
 import torch
 import logging
 import numpy as np
+import json
 import pandas as pd
 
 import os
@@ -71,16 +72,17 @@ def get_identity_features(adata):
 
 
 class DataLoader:
-    def __init__(self, config: Config, data_catalogue: Catalogue):
+    def __init__(self, config: Config):
         self.config = config
-        self.data_catalogue = data_catalogue
-        self.training_dataset_details: DatasetDetails = data_catalogue.get_dataset_details(config.get_training_dataset_name())
+        self.training_dataset_details: DatasetDetails = Catalogue.get_dataset_details(config.get_training_dataset_name())
 
         logger.debug(f"Training dataset details: {self.training_dataset_details}")
 
         self.pert_embedding_name: Optional[str] = config.get_pert_embedding_name()
 
         self.cell_embedding_name: Optional[str] = config.get_cell_embedding_name()
+
+        self.gene_embedding_name: Optional[str] = config.get_gene_embedding_name()
         
         #TODO: Handle
         self.pert_embedding_details: Optional[dict] = None
@@ -108,6 +110,27 @@ class DataLoader:
 
         adata.obs[PERT_KEY] = adata.obs[PERT_KEY].cat.rename_categories({control: CONTROL_PERT})
 
+        #Attaching gene embeddings
+        if self.gene_embedding_name is not None:
+            if self.gene_embedding_name not in dataset_details.gene_embeddings:
+                raise ValueError(f"Gene Embedding {self.gene_embedding_name} is not found in gene embeddings available for dataset {dataset_details.name}")
+            else:
+                embedding = torch.load(f"{dataset_details.folder_path}/{self.gene_embedding_name}.pt")
+                adata.varm["gene_embedding"] = embedding.numpy()
+
+
+        #Getting HVG genes
+        if not dataset_details.HVG and self.config.get_HVG():
+            logger.info("Filtering HVG genes")
+            sc.pp.highly_variable_genes(adata, n_top_genes=2000, flavor='seurat_v3')
+            adata = adata[:, adata.var.highly_variable]
+
+
+            #TODO: Make this filtering apply only for datasets of genetic perturbation
+            #We remove observations perturbed with a gene whuch is not HVG / CONTROL
+            adata = adata[((adata.obs[PERT_KEY] == CONTROL_PERT) | adata.obs[PERT_KEY].isin(adata.var_names))]
+            logger.debug(f"Filtered HVG genes, # of data points: {len(adata)}, # of genes: {len(adata.var)}, # of conditions: {len(adata.obs[PERT_KEY].unique())}")
+
         if (self.config.get_cell_embedding_name() is not None) & (self.config.get_apply_normalization() | self.config.get_apply_log1p()):
             raise ValueError("Cannot both apply cell embedding and normalization/log1p transformation")
         
@@ -117,6 +140,7 @@ class DataLoader:
 
                 #TODO: This is something I will need to change
                 adata.obsm["embedding"] = np.load(self.config.get_local_cell_embedding_path())
+
             elif self.config.get_cell_embedding_name() in dataset_details.cell_embeddings:            
                 #We replace the data matrix with the cell embeddings
                 adata.obsm["embedding"] = adata.obsm[self.config.get_cell_embedding_name()]
@@ -146,6 +170,13 @@ class DataLoader:
             else:
                 raise ValueError(f"Metric space {self.config.get_metric_space()} not found in metric spaces available for dataset {dataset_details.name}")
 
+
+
+
+        if dataset_details.precomputed_DEGs:
+            DEGs = json.load(open(f"{dataset_details.folder_path}/DEGs.json"))
+            adata.uns["DEGs"] = DEGs
+
         return adata
 
     def get_training_data(self) -> Tuple[sc.AnnData, Optional[dict]]:
@@ -157,9 +188,7 @@ class DataLoader:
         # Checking if we have already a cached version of the training data
         if self.complete_training_adata is None:
             logger.info(f"Loading training data at path: {self.training_dataset_details.path}")
-            # adata = sc.read(self.training_dataset_details.path)
-            with open(self.training_dataset_details.path, 'rb') as f:
-                adata = sc.read_h5ad(f)
+            adata = sc.read(self.training_dataset_details.path)
 
             logger.info("Preprocessing training data")
             adata = self.preprocess_data(adata, training=True)
@@ -170,7 +199,6 @@ class DataLoader:
         #Getting the per embedding if it is specified
         if self.pert_embedding_name is not None:
             if self.pert_embedding_name not in self.training_dataset_details.pert_embeddings:
-                print(self.training_dataset_details.pert_embeddings)
                 raise ValueError(f"Perturbation embedding {self.pert_embedding_name} not found in embeddings available for dataset {self.training_dataset_details.name}")
             else:
                 logger.info(f"Loading perturbation embedding from {self.training_dataset_details.folder_path}/{self.pert_embedding_name}.pt")
@@ -214,7 +242,7 @@ class DataLoader:
         return self.complete_training_adata
 
     def get_eval_data(self):
-        self.eval_dataset_details = self.data_catalogue.get_dataset_details(self.config.get_eval_dataset_name())
+        self.eval_dataset_details = Catalogue.get_dataset_details(self.config.get_eval_dataset_name())
 
         #To avoid loading the same data twice
         if self.config.get_training_dataset_name() == self.config.get_eval_dataset_name():

@@ -10,7 +10,7 @@ import scipy
 import logging
 import numpy as np
 import random
-from omnicell.constants import PERT_KEY, CELL_KEY, CONTROL_PERT, DATA_CATALOGUE_PATH
+from omnicell.constants import GENE_EMBEDDING_KEY, PERT_KEY, CELL_KEY, CONTROL_PERT, DATA_CATALOGUE_PATH
 from omnicell.data.utils import prediction_filename
 from omnicell.processing.utils import to_dense, to_coo
 from omnicell.config.config import Config
@@ -26,8 +26,16 @@ logger = logging.getLogger(__name__)
 
 random.seed(42)
 
-def get_model(model_name, config_model, loader, pert_rep, pert_map, input_dim, device, pert_ids):
+def get_model(model_name, config_model, loader, pert_rep_map, input_dim, device, pert_ids, pert_emb_dim):
     
+    if pert_rep_map is not None:
+        pert_keys = list(pert_rep_map.keys())
+        pert_rep = np.array([pert_rep_map[k] for k in pert_keys])
+        pert_map = {k: i for i, k in enumerate(pert_keys)}
+    else:
+        pert_rep = None
+        pert_map = None
+
 
     if "nearest-neighbor_pert_emb" in model_name:
         from omnicell.models.nearest_neighbor.predictor import NearestNeighborPredictor
@@ -65,10 +73,20 @@ def get_model(model_name, config_model, loader, pert_rep, pert_map, input_dim, d
         model = ScVIDRPredictor(config_model, input_dim, device, pert_ids)
 
     elif "test" in model_name:
-        from omnicell.models.dummy_predictor.predictor import TestPredictor
+        from omnicell.models.dummy_predictors.perfect_predictor import PerfectPredictor
         logger.info("Test model selected")
         adata_cheat = loader.get_complete_training_dataset()
-        model = TestPredictor(adata_cheat)
+        model = PerfectPredictor(adata_cheat)
+    elif "nn_oracle" in model_name:
+        from omnicell.models.dummy_predictors.oracle_nearest_neighbor import OracleNNPredictor
+        logger.info("NN Oracle model selected")
+        adata_cheat = loader.get_complete_training_dataset()
+        model = OracleNNPredictor(adata_cheat)
+
+    elif "sclambda" in model_name:
+        from omnicell.models.sclambda.model import ModelPredictor
+        logger.info("SCLambda model selected")
+        model = ModelPredictor(input_dim, device, pert_emb_dim, **config_model)
         
     else:
         raise ValueError(f'Unknown model name {model_name}')
@@ -99,32 +117,29 @@ def main(*args):
         filemode= 'w', level=args.loglevel, format='%(asctime)s - %(levelname)s - %(message)s'
     )
     
+    #This is polluting the output
+    logging.getLogger('numba').setLevel(logging.CRITICAL)
+    
     logger.info("Application started")
 
 
-    catalogue = Catalogue(DATA_CATALOGUE_PATH)
-    loader = DataLoader(config, catalogue)
+    loader = DataLoader(config)
     
     adata, pert_rep_map = loader.get_training_data()
 
-    if pert_rep_map is not None:
-        pert_keys = list(pert_rep_map.keys())
-        pert_rep = np.array([pert_rep_map[k] for k in pert_keys])
-        pert_map = {k: i for i, k in enumerate(pert_keys)}
-    else:
-        pert_rep = None
-        pert_map = None
+  
         
     input_dim = adata.obsm['embedding'].shape[1]
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     pert_ids = adata.obs[PERT_KEY].unique()
+    gene_emb_dim = adata.varm[GENE_EMBEDDING_KEY].shape[1] if GENE_EMBEDDING_KEY in adata.varm else None
 
     logger.info(f"Data loaded, # of cells: {adata.shape[0]}, # of features: {input_dim} # of perts: {len(pert_ids)}")
     logger.info(f"Running experiment on {device}")
 
     logger.debug(f"Training data loaded, perts are: {adata.obs[PERT_KEY].unique()}")
 
-    model = get_model(config.get_model_name(), config.model_config, loader, pert_rep, pert_map, input_dim, device, pert_ids)
+    model = get_model(config.get_model_name(), config.model_config, loader, pert_rep_map, input_dim, device, pert_ids, gene_emb_dim)
 
 
     
@@ -136,7 +151,7 @@ def main(*args):
         embedding_model_savepath = f"{config.get_train_path()}/embedding"
 
 
-        embedding_model = get_model(local_embedding_config['name'], local_embedding_config, loader, pert_rep, pert_map, input_dim, device, pert_ids)
+        embedding_model = get_model(local_embedding_config['name'], local_embedding_config, loader, pert_rep_map, input_dim, device, pert_ids)
 
         if hasattr(embedding_model, 'save') and hasattr(embedding_model, 'load'):
             if embedding_model.load(embedding_model_savepath):
@@ -171,8 +186,7 @@ def main(*args):
         else:
             logger.info("Model not trained, training model")
             model.train(adata)
-            logger.info("Training completed")
-            logger.info(f"Saving model to {model_savepath}")
+            logger.info(f"Training completed, saving model to {model_savepath}")
             os.makedirs(model_savepath, exist_ok=True)
 
             model.save(model_savepath)

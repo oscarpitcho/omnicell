@@ -10,11 +10,11 @@ Predictor to test the rest of the pipeline.
 
 It takes the entire dataset at construction and then uses the ground truth to make predictions. Thus it is a perfect predictor.
 """
-class TestPredictor():
+class PerfectPredictor():
 
     def __init__(self, adata: sc.AnnData):
         self.model = None
-        self.total_adata = adata.copy()
+        self.total_adata = adata
 
     
 
