@@ -8,7 +8,7 @@
 hostname
 
 source ~/.bashrc
-conda activate omnicell
+conda activate huggingface
 
 # Define arrays of models and datasets
 MODELS=("MMedllama-3-8B" "llamaPMC-13B" "llamaPMC-7B" "bioBERT")
