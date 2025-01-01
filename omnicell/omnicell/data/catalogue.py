@@ -15,6 +15,9 @@ from omnicell.constants import DATA_CATALOGUE_PATH
 #How do we handle edition of the catalogue
 #How do we type a dataset entry
 
+import os
+import json
+
 @dataclass
 class DatasetDetails:
     path: str
@@ -110,6 +113,16 @@ class Catalogue:
         else:
             raise ValueError(f"Dataset {dataset_name} not found in catalogue")
 
+    @staticmethod
+    def set_DEGs_available(dataset_name):
+        catalogue = Catalogue._get_catalogue()
+        if dataset_name in catalogue:
+            catalogue[dataset_name].precomputed_DEGs = True
+            Catalogue._save(catalogue)
+        else:
+            raise ValueError(f"Dataset {dataset_name} not found in catalogue")
+
+            
     """Flushes the content of the catalogue to disk, pushing any changes that have been made"""
     @staticmethod
     def _save(catalogue: dict):
