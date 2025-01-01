@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH -t 12:00:00
-#SBATCH --ntasks-per-node=4
+#SBATCH --ntasks-per-node=1
 #SBATCH --mem=512GB
 #SBATCH -p ou_bcs_low
 #SBATCH --array=0-15        # 4 models x 4 datasets = 16 combinations
