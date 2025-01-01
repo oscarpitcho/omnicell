@@ -6,4 +6,6 @@ DEGs_per_pert_.json
 
 results
 models
+!omnicell/models
+!configs/models
 *.h5ad
