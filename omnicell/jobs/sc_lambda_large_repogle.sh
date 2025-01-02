@@ -3,7 +3,7 @@
 #SBATCH --ntasks-per-node=1
 #SBATCH --mem=512GB
 #SBATCH -p ou_bcs_low
-#SBATCH --array=0-7       # 4 Gene Embeddings x 2 Splits = 8 combinations
+#SBATCH --array=0-7        # 4 Gene Embeddings x 2 Splits = 8 combinations
 #SBATCH --gres=gpu:h100:1  # 1 h100 GPU
 
 hostname
@@ -16,11 +16,11 @@ ETL_BASE_DIR="configs/ETL"
 # ===== CONFIGURATION =====
 DATASET="repogle_k562_essential_raw"
 SPLIT_BASE_DIR="${CONFIG_BASE_DIR}/${DATASET}/random_splits/rs_accP_k562_ood_ss:ns_20_2_most_pert_0.1"
-MODEL_CONFIG="${CONFIG_BASE_DIR}/models/sclambda_normal.yaml"
-MODEL_NAME="sclambda_normal"
+MODEL_CONFIG="${CONFIG_BASE_DIR}/models/sclambda_large.yaml"
+MODEL_NAME="sclambda_large"
 
 # Define configs and splits
-ETL_CONFIGS=("HVG_log_norm_llamaPMC7B" "HVG_log_norm_llamaPMC13B" "HVG_log_norm_MMedllama3_8B" "HVG_log_norm_BioBERT")
+ETL_CONFIGS=("log_norm_llamaPMC7B" "log_norm_llamaPMC13B" "log_norm_MMedllama3_8B" "log_norm_BioBERT")
 SPLITS=(0 1)
 
 # Calculate indices

@@ -99,6 +99,7 @@ class DataLoader:
     def preprocess_data(self, adata: sc.AnnData, training: bool) -> sc.AnnData:
 
         dataset_details = self.training_dataset_details if training else self.eval_dataset_details
+        dataset_name = self.config.get_training_dataset_name() if training else self.config.get_eval_dataset_name()
         # Standardize column names and key values
         condition_key = dataset_details.pert_key
         cell_key = dataset_details.cell_key if training else self.eval_dataset_details.cell_key
@@ -113,7 +114,7 @@ class DataLoader:
         #Attaching gene embeddings
         if self.gene_embedding_name is not None:
             if self.gene_embedding_name not in dataset_details.gene_embeddings:
-                raise ValueError(f"Gene Embedding {self.gene_embedding_name} is not found in gene embeddings available for dataset {dataset_details.name}")
+                raise ValueError(f"Gene Embedding {self.gene_embedding_name} is not found in gene embeddings available for dataset {dataset_name}")
             else:
                 embedding = torch.load(f"{dataset_details.folder_path}/{self.gene_embedding_name}.pt")
                 adata.varm["gene_embedding"] = embedding.numpy()
@@ -121,15 +122,16 @@ class DataLoader:
 
         #Getting HVG genes
         if not dataset_details.HVG and self.config.get_HVG():
-            logger.info("Filtering HVG genes")
+            logger.info(f"Filtering HVG to top 2000 genes of {adata.shape[1]}")
             sc.pp.highly_variable_genes(adata, n_top_genes=2000, flavor='seurat_v3')
             adata = adata[:, adata.var.highly_variable]
 
 
             #TODO: Make this filtering apply only for datasets of genetic perturbation
             #We remove observations perturbed with a gene whuch is not HVG / CONTROL
+        if self.config.get_drop_unmatched_perts():
+            logger.info("Removing observations with perturbations not in the dataset as a column")
             adata = adata[((adata.obs[PERT_KEY] == CONTROL_PERT) | adata.obs[PERT_KEY].isin(adata.var_names))]
-            logger.debug(f"Filtered HVG genes, # of data points: {len(adata)}, # of genes: {len(adata.var)}, # of conditions: {len(adata.obs[PERT_KEY].unique())}")
 
         if (self.config.get_cell_embedding_name() is not None) & (self.config.get_apply_normalization() | self.config.get_apply_log1p()):
             raise ValueError("Cannot both apply cell embedding and normalization/log1p transformation")
@@ -190,7 +192,7 @@ class DataLoader:
             logger.info(f"Loading training data at path: {self.training_dataset_details.path}")
             adata = sc.read(self.training_dataset_details.path)
 
-            logger.info(f"Loaded unpreprocessed data, # of data points: {len(adata)}, # of genes: {len(adata.var)}, # of conditions: {len(adata.obs[PERT_KEY].unique())}")
+            logger.info(f"Loaded unpreprocessed data, # of data points: {len(adata)}, # of genes: {len(adata.var)}.")
 
             logger.info("Preprocessing training data")
             adata = self.preprocess_data(adata, training=True)

@@ -130,6 +130,10 @@ class Config:
 
 
     ## Getters for ETL
+
+    def get_drop_unmatched_perts(self) -> bool:
+        return self.etl_config.get('drop_unmatched_perts')
+    
     def get_etl_config_name(self)-> str:
         return self.etl_config['name']
     
