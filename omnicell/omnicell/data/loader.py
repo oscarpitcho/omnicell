@@ -190,6 +190,8 @@ class DataLoader:
             logger.info(f"Loading training data at path: {self.training_dataset_details.path}")
             adata = sc.read(self.training_dataset_details.path)
 
+            logger.info(f"Loaded unpreprocessed data, # of data points: {len(adata)}, # of genes: {len(adata.var)}, # of conditions: {len(adata.obs[PERT_KEY].unique())}")
+
             logger.info("Preprocessing training data")
             adata = self.preprocess_data(adata, training=True)
 

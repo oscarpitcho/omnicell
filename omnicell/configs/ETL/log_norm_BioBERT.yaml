@@ -1,4 +1,5 @@
 name: log_norm_BioBERT
-log1p: True 
+log1p: True
+HVG: False 
 count_norm: True
 gene_embedding: bioBERT
