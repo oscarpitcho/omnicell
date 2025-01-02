@@ -3,7 +3,7 @@
 #SBATCH --ntasks-per-node=1
 #SBATCH --mem=512GB
 #SBATCH -p ou_bcs_low
-#SBATCH --array=0-5        # 3 Gene Embeddings x 2 Splits = 6 combinations
+#SBATCH --array=0-1        # 1 Gene Embeddings x 2 Splits = 2 combinations
 #SBATCH --gres=gpu:h100:1  # 1 h100 GPU
 
 hostname
@@ -20,7 +20,7 @@ MODEL_CONFIG="${CONFIG_BASE_DIR}/models/sclambda_normal.yaml"
 MODEL_NAME="sclambda_normal"
 
 # Define configs and splits
-ETL_CONFIGS=("HVG_log_norm_llamaPMC7B" "HVG_log_norm_llamaPMC13B" "HVG_log_norm_MMedllama3_8B")
+ETL_CONFIGS=("HVG_log_norm_llamaPMC7B")
 SPLITS=(0 1)
 
 # Calculate indices

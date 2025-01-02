@@ -20,7 +20,7 @@ MODEL_CONFIG="${CONFIG_BASE_DIR}/models/sclambda_normal.yaml"
 MODEL_NAME="sclambda_normal"
 
 # Define configs and splits
-ETL_CONFIGS=("bioBERT")
+ETL_CONFIGS=("HVG_log_norm_BioBERT")
 SPLITS=(0 1)
 
 # Calculate indices

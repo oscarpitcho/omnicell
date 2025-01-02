@@ -246,6 +246,10 @@ def main(*args):
             scipy.sparse.save_npz(f"{results_path}/{prediction_filename(pert_id, cell_id)}-control", control)
             scipy.sparse.save_npz(f"{results_path}/{prediction_filename(pert_id, cell_id)}-ground_truth", ground_truth)
 
+        logger.info("Evaluation completed")
+
+
+
 
 if __name__ == '__main__':
     main()
