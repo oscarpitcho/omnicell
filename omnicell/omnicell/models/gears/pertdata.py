@@ -15,6 +15,17 @@ from .data_utils import get_DE_genes, get_dropout_non_zero_genes, DataSplitter
 from .utils import print_sys, zip_data_download_wrapper, dataverse_download,\
                   filter_pert_in_go, get_genes_from_perts, tar_data_download_wrapper
 
+
+import time
+from contextlib import contextmanager
+
+@contextmanager
+def timer(description):
+    start = time.time()
+    yield
+    elapsed_time = time.time() - start
+    print_sys(f"{description}: {elapsed_time:.2f} seconds")
+
 class PertData:
     """
     Class for loading and processing perturbation data
@@ -551,53 +562,74 @@ class PertData:
             List of cell graphs
 
         """
+        with timer(f"create_cell_graph_dataset call duration: {pert_category}"):
 
-        num_de_genes = 20        
-        adata_ = split_adata[split_adata.obs['condition'] == pert_category]
-        if 'rank_genes_groups_cov_all' in adata_.uns:
-            de_genes = adata_.uns['rank_genes_groups_cov_all']
-            de = True
-        else:
-            de = False
-            num_de_genes = 1
-        Xs = []
-        ys = []
+            with timer(f"TEEST TIMER"):
+                for i in range(10):
+                    a = 0
 
-        # When considering a non-control perturbation
-        if pert_category != 'ctrl':
-            # Get the indices of applied perturbation
-            pert_idx = self.get_pert_idx(pert_category)
+            num_de_genes =  20        
+            adata_ = split_adata[split_adata.obs['condition'] == pert_category]
 
-            # Store list of genes that are most differentially expressed for testing
-            pert_de_category = adata_.obs['condition_name'][0]
-            if de:
-                de_idx = np.where(adata_.var_names.isin(
-                np.array(de_genes[pert_de_category][:num_de_genes])))[0]
+            print_sys(f"Adata shape: {adata_.shape}")
+            if 'rank_genes_groups_cov_all' in adata_.uns:
+                de_genes = adata_.uns['rank_genes_groups_cov_all']
+                de = True
             else:
+                de = False
+                num_de_genes = 1
+            Xs = []
+            ys = []
+
+            # When considering a non-control perturbation
+            if pert_category != 'ctrl':
+
+                # Get the indices of applied perturbation
+                pert_idx = self.get_pert_idx(pert_category)
+
+                # Store list of genes that are most differentially expressed for testing
+                pert_de_category = adata_.obs['condition_name'][0]
+                if de:
+                    de_idx = np.where(adata_.var_names.isin(
+                    np.array(de_genes[pert_de_category][:num_de_genes])))[0]
+                else:
+                    de_idx = [-1] * num_de_genes
+                    
+                with timer(f"Duration for double loop in {pert_category}"):
+                    for cell_z in adata_.X:
+                        # Use samples from control as basal expression
+                        #num_samples = 1 by default
+                        ctrl_samples = self.ctrl_adata[np.random.randint(0,
+                                                len(self.ctrl_adata), num_samples), :]
+                        for c in ctrl_samples.X:
+                            Xs.append(c)
+                            ys.append(cell_z)
+
+            # When considering a control perturbation
+            else:
+                pert_idx = None
                 de_idx = [-1] * num_de_genes
-            for cell_z in adata_.X:
-                # Use samples from control as basal expression
-                ctrl_samples = self.ctrl_adata[np.random.randint(0,
-                                        len(self.ctrl_adata), num_samples), :]
-                for c in ctrl_samples.X:
-                    Xs.append(c)
-                    ys.append(cell_z)
 
-        # When considering a control perturbation
-        else:
-            pert_idx = None
-            de_idx = [-1] * num_de_genes
-            for cell_z in adata_.X:
-                Xs.append(cell_z)
-                ys.append(cell_z)
+                with timer(f"This is control pert iterating over all cells in {pert_category}"):
+                    #Iterating over all cells? 
+                    for cell_z in adata_.X:
+                        Xs.append(cell_z)
+                        ys.append(cell_z)
 
-        # Create cell graphs
-        cell_graphs = []
-        for X, y in zip(Xs, ys):
-            cell_graphs.append(self.create_cell_graph(X.toarray(),
-                                y.toarray(), de_idx, pert_category, pert_idx))
+            # Create cell graphs
 
-        return cell_graphs
+
+            cell_graphs = []
+            with timer(f"Creating cell graphs for {pert_category}, iterating over {len(Xs)} cells"):
+                temp = zip(Xs, ys)
+                for i, (X, y) in enumerate(temp):
+                    cell_graph = None
+                    with timer(f"Iteraration {i}/{len(temp)} took: "):
+                        cell_graph = self.create_cell_graph(X.toarray(),
+                                            y.toarray(), de_idx, pert_category, pert_idx)
+                    cell_graphs.append(cell_graph)
+
+            return cell_graphs
 
     def create_dataset_file(self):
         """

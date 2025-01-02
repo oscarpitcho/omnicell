@@ -3,6 +3,7 @@ DEGs_per_pert_.json
 *.pt
 *.torch
 *.pth
+*.pkl
 
 results
 models
