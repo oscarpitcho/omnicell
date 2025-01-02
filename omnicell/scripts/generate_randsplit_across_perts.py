@@ -71,7 +71,7 @@ def main():
 
     split_name = f"rs_accP_{target_cell}_{args.split_mode}_ss:ns_{args.split_size}_{args.number_splits}"
     if args.most_perturbative is not None:
-        assert ds_details.DEGs is not None, "DEGs must be computed for this option"
+        assert ds_details.precomputed_DEGs is not None, "DEGs must be computed for this option"
         assert 0 < args.most_perturbative < 1, "most_perturbative must be a fraction between 0 and 1"
 
         split_name += f"_most_pert_{args.most_perturbative}"
@@ -134,6 +134,8 @@ def main():
         #make the directory
         os.makedirs(split_path, exist_ok=True)
 
+        print(f"Saving split {i} to {split_path}")
+        
         #Save the split config
         with open(f"{split_path}/split_config.yaml", 'w+') as f:
             yaml.dump(split_config, f)
@@ -144,36 +146,6 @@ def main():
 
 
 
-
-        #Save the configs
-
-
-
-
-
-
-
-    #Saving the configs
-
-    #If we holdout cells we need to make sure that we evaluate across several perts on the heldout cells
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-   
 
 
 if __name__ == "__main__":

@@ -1,0 +1,25 @@
+dataset: essential_gene_knockouts_raw
+holdout_cells: []
+holdout_perts:
+- RPL13
+- DDX24
+- RPL23A
+- NRDE2
+- FBL
+- CSE1L
+- SPC25
+- RPS18
+- RPL8
+- GTF2H1
+- RPS19
+- MAX
+- SUPT6H
+- PSMC4
+- MED10
+- NAA38
+- XPO1
+- DNTTIP2
+- RPL10
+- DDX18
+mode: ood
+name: rs_accP_k562_ood_ss:ns_20_2_most_pert_0.1-split_0

@@ -6,7 +6,9 @@ import numpy as np
 
 from omnicell.constants import *
 
+import logging
 
+logger = logging.getLogger(__name__)
 """
 Predictor to test the rest of the pipeline. 
 
@@ -14,7 +16,7 @@ It takes the entire dataset at construction and then uses the ground truth to ma
 """
 class OracleNNPredictor():
 
-    def __init__(self, adata: sc.AnnData, number_top_DEGs_overlap: int, p_threshold: float):
+    def __init__(self, adata: sc.AnnData, model_config: dict):
 
         assert "DEGs" in adata.uns.keys(), "DEGs not found in adata.uns"
 
@@ -22,12 +24,12 @@ class OracleNNPredictor():
         self.total_adata = adata
 
         self.DEGs = adata.uns["DEGs"].copy()
-        self.number_top_DEGs_overlap = number_top_DEGs_overlap
+        self.number_top_DEGs_overlap = model_config["number_top_DEGs_overlap"]
 
         for cell in self.DEGs:
             for pert in self.DEGs[cell]:
                 df = pd.DataFrame.from_dict(self.DEGs[cell][pert], orient='index')
-                df = df[df['pvals_adj'] < p_threshold]
+                df = df[df['pvals_adj'] < model_config['p_threshold']]
                 self.DEGs[cell][pert] = df
 
 
@@ -55,7 +57,7 @@ class OracleNNPredictor():
         closest_pert = max(DEG_overlaps, key=DEG_overlaps.get)
 
         
-        
+        logger.info(f"Selected perturbation {closest_pert} as closest to {pert_id} in cell type {cell_type}")
 
         nn_population = self.total_adata[(self.total_adata.obs[PERT_KEY] == closest_pert) & (self.total_adata.obs[CELL_KEY] == cell_type)]
 

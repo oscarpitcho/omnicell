@@ -155,7 +155,7 @@ class DataLoader:
             # Apply normalization and log1p if needed
             if self.config.get_apply_normalization() & (not dataset_details.count_normalized):
                 sc.pp.normalize_total(adata, target_sum=10_000)
-            elif not self.config.get_apply_normalization() & dataset_details.count_normalized:
+            elif ((not self.config.get_apply_normalization()) & dataset_details.count_normalized):
                 raise ValueError("Specified dataset is count normalized, but normalization is turned off in the config")
             
             if self.config.get_apply_log1p() & (not dataset_details.log1p_transformed):

@@ -81,7 +81,7 @@ def get_model(model_name, config_model, loader, pert_rep_map, input_dim, device,
         from omnicell.models.dummy_predictors.oracle_nearest_neighbor import OracleNNPredictor
         logger.info("NN Oracle model selected")
         adata_cheat = loader.get_complete_training_dataset()
-        model = OracleNNPredictor(adata_cheat)
+        model = OracleNNPredictor(adata_cheat, config_model)
 
     elif "sclambda" in model_name:
         from omnicell.models.sclambda.model import ModelPredictor

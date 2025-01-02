@@ -14,5 +14,5 @@ log1p_transformed: false
 path: /orcd/data/omarabu/001/Omnicell_datasets/repogle_k562_essential_raw/K562_essential_raw_singlecell_01.h5ad
 pert_embeddings: []
 pert_key: gene
-precomputed_DEGs: false
+precomputed_DEGs: true
 var_names_key: null

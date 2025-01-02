@@ -1,0 +1,43 @@
+dataset: repogle_k562_essential_raw
+evaluation_targets:
+- - k562
+  - MED30
+- - k562
+  - LSM6
+- - k562
+  - PHB
+- - k562
+  - RPL23
+- - k562
+  - RPS3
+- - k562
+  - CDC73
+- - k562
+  - RPS12
+- - k562
+  - CHMP3
+- - k562
+  - RPL36
+- - k562
+  - PRPF3
+- - k562
+  - GAB2
+- - k562
+  - RPS4X
+- - k562
+  - XPO1
+- - k562
+  - SON
+- - k562
+  - NUP54
+- - k562
+  - DDX47
+- - k562
+  - SNRPE
+- - k562
+  - SRRT
+- - k562
+  - RIOK1
+- - k562
+  - RPS9
+name: rs_accP_k562_ood_ss:ns_20_2_most_pert_0.1-eval_1

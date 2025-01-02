@@ -1,0 +1,5 @@
+name: HVG_log_norm_MMedllama3_8B
+HVG: True
+log1p: True 
+count_norm: True
+gene_embedding: MMedllama-3-8B
