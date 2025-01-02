@@ -13,6 +13,7 @@ def main():
 
     args = parser.parse_args()
     
+    print(f"Starting job {args.job_id} of {args.total_jobs} for dataset {args.dataset}")
 
      # Get dataset
     dd = Catalogue.get_dataset_details(args.dataset)

@@ -3,7 +3,7 @@
 #SBATCH --ntasks-per-node=1
 #SBATCH -p newnodes
 #SBATCH --mem=50GB
-#SBATCH --array=0-20
+#SBATCH --array=0-19 #20 jobs 
 hostname
 
 source ~/.bashrc
