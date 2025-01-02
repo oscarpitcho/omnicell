@@ -1,5 +1,0 @@
-name: HVG_log_norm_llamaPMC8B
-HVG: True
-log1p: True 
-count_norm: True
-gene_embedding: llamaPMC-8B

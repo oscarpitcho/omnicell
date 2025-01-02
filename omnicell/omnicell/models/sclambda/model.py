@@ -188,6 +188,8 @@ class ModelPredictor(object):
 
         corr_val_best = 0
         self.Net.train()
+        
+        past_gradient_norms = []
         for epoch in tqdm(range(self.training_epochs)):
             for x, p in self.train_dataloader:
                 # adversarial training on p
@@ -216,6 +218,10 @@ class ModelPredictor(object):
                 loss = self.loss_function(x, x_hat, p, p_hat, mean_z, log_var_z, s, s_marginal, T=self.Net.MINE)
                 logger.debug(f"Epoch: {epoch} - Loss: {loss.item()}")
                 loss.backward()
+
+
+                max_gradient_norm = sum(past_gradient_norms[-20:])/len(past_gradient_norms[-20:])
+                torch.nn.utils.clip_grad_norm_(self.Net.parameters(), max_gradient_norm)
                 optimizer.step()
 
 
@@ -226,6 +232,7 @@ class ModelPredictor(object):
                 total_norm = total_norm ** 0.5
 
                 logger.debug(f"Gradient Norm: {total_norm}")
+                past_gradient_norms.append(total_norm)
 
             scheduler.step()
             scheduler_MINE.step()
@@ -258,6 +265,8 @@ class ModelPredictor(object):
                         self.model_best = copy.deepcopy(self.Net)
         logger.info("Finish training.")
         self.Net = self.model_best
+
+
 
     """def save(self, path):
         state = {'Net': self.Net.state_dict()}
