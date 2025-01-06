@@ -36,6 +36,7 @@ class ModelPredictor(object):
                  seed,
                  validation_frac,
                  large,
+                 clip,
                  name #Useless, just used to make config unpacking easier
                  ):
 
@@ -61,6 +62,7 @@ class ModelPredictor(object):
         self.adata = None
         self.p_dim = p_dim
         self.large = large
+        self.clip = clip
 
 
 
@@ -219,9 +221,9 @@ class ModelPredictor(object):
                 logger.debug(f"Epoch: {epoch} - Loss: {loss.item()}")
                 loss.backward()
 
-
-                max_gradient_norm = sum(past_gradient_norms[-20:])/len(past_gradient_norms[-20:])
-                torch.nn.utils.clip_grad_norm_(self.Net.parameters(), max_gradient_norm)
+                if len(past_gradient_norms) > 1 and self.clip:
+                    max_gradient_norm = sum(past_gradient_norms[-20:])/len(past_gradient_norms[-20:])
+                    torch.nn.utils.clip_grad_norm_(self.Net.parameters(), max_gradient_norm)
                 optimizer.step()
 
 
@@ -236,7 +238,9 @@ class ModelPredictor(object):
 
             scheduler.step()
             scheduler_MINE.step()
-            if (epoch+1) % 10 == 0:
+
+            #Changed to validate after 5 epoch.
+            if (epoch+1) % 5 == 0:
                 logger.info(f"Epoch  {(epoch+1)} complete! -  Loss: {loss.item()}")
                 if len(self.pert_val) > 0: # If validating
                     self.Net.eval()

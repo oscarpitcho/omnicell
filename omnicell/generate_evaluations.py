@@ -314,9 +314,11 @@ def main(*args):
     MAX_DEPTH = 15
     args = parser.parse_args()
 
+    root_dir_points = '.'.join(args.root_dir.split('/'))
+
     root_dir = Path(args.root_dir).resolve()
 
-    logging.basicConfig(filename=f'output_evals_recursive_{root_dir.name}.log', filemode='w', level=args.loglevel, format='%(asctime)s - %(levelname)s - %(message)s')
+    logging.basicConfig(filename=f'output_evals_{root_dir_points}.log', filemode='w', level=args.loglevel, format='%(asctime)s - %(levelname)s - %(message)s')
     logger.info(f"Starting recursive evaluation from root directory: {root_dir}")
 
     process_directory(root_dir, args, 0, MAX_DEPTH, args.min_avg_depth)
