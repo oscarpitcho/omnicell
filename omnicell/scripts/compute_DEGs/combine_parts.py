@@ -26,11 +26,18 @@ if __name__ == "__main__":
                     combined_results[cell_type] = {}
                 combined_results[cell_type].update(pert_dict)
 
+    
+    print(f"Combined {len(part_files)} partial results into {len(combined_results)} cell types")
     # Save combined results
     output_file = f'{dd.folder_path}/DEGs.json'
     with open(output_file, 'w') as f:
         json.dump(combined_results, f)
     
+    print(f"Combined results saved to {output_file}")
+
     # Remove partial results
     for filename in part_files:
         os.remove(filename)
+
+    print(f"Removed {len(part_files)} partial result files")
+    print("Done")

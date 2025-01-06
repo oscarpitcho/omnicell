@@ -13,6 +13,7 @@ def main():
 
     args = parser.parse_args()
     
+    print(f"Starting job {args.job_id} of {args.total_jobs} for dataset {args.dataset}")
 
      # Get dataset
     dd = Catalogue.get_dataset_details(args.dataset)
@@ -20,11 +21,15 @@ def main():
         print("Precomputed DEGs found - Terminating")
         return
 
+
     adata = sc.read(dd.path)
+    print(f"Loaded dataset {args.dataset} with {adata.shape[0]} cells and {adata.shape[1]} genes")
     
     # Preprocess
     sc.pp.normalize_total(adata, target_sum=10_000)
     sc.pp.log1p(adata)
+
+    print("Preprocessing complete")
     
     results = {}
     

@@ -3,3 +3,4 @@ HVG: True
 log1p: True 
 count_norm: True
 gene_embedding: llamaPMC-13B
+drop_unmatched_perts: True

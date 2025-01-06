@@ -10,8 +10,7 @@ source ~/.bashrc
 conda activate omnicell
 
 DATASETS=("satija_IFNB_raw" "repogle_k562_essential_raw" "kang" "essential_gene_knockouts_raw")
+DATASET=${DATASETS[$SLURM_ARRAY_TASK_ID]}
 
 python -m scripts.compute_DEGs.combine_parts \
-    --dataset "${DATASET}" \
-    --job_id "${SLURM_ARRAY_TASK_ID}" \
-    --total_jobs "${TOTAL_JOBS}"
+    --dataset "${DATASET}" 

@@ -20,6 +20,8 @@ import numpy as np
 import random
 import yaml
 import logging
+import random
+
 
 logger = logging.getLogger(__name__)
 
@@ -198,7 +200,7 @@ def average_fold(fold_dir, min_occurences):
     degs_dicts  = []
     r2_mse_dicts = []
     c_r_dicts = []
-
+    random.shuffle(eval_targets)
     for (cell, pert) in eval_targets:
 
         try :
@@ -276,9 +278,13 @@ def process_directory(dir_path, args, depth, max_depth, min_compute_average_dept
     elif depth >= max_depth:
         logger.info(f"Reached maximum depth of {max_depth} at {dir_path}")
     else:
-        for subdir in dir_path.iterdir():
-            if subdir.is_dir():
-                process_directory(subdir, args, depth + 1, max_depth, min_compute_average_depth)
+        # Convert subdirectories to list and shuffle
+        subdirs = [subdir for subdir in dir_path.iterdir() if subdir.is_dir()]
+        random.shuffle(subdirs)
+        
+        # Process in random order
+        for subdir in subdirs:
+            process_directory(subdir, args, depth + 1, max_depth, min_compute_average_depth)
 
         # Once all subdirectories have been processed, average the results
         if depth >= min_compute_average_depth:
