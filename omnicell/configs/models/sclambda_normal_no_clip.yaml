@@ -1,4 +1,4 @@
-name: sclambda_normal
+name: sclambda_normal_no_clip
 latent_dim: 30
 hidden_dim: 512
 training_epochs: 200
@@ -8,4 +8,4 @@ eps: 0.001
 seed: 1234
 validation_frac: 0.2
 large: False
-clip: True
+clip: False
