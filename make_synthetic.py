@@ -14,7 +14,7 @@ def shift_prediction(control_adata, perturbed_adata, sum_control, sum_perturbed)
     """
 
 
-    # 1. Compute sum_diff
+    #Compute sum_diff
     sum_diff = sum_perturbed - sum_control  # shape: (n_genes,)
 
 
@@ -46,9 +46,6 @@ def shift_prediction(control_adata, perturbed_adata, sum_control, sum_perturbed)
             # We want to remove `abs(diff)` counts
             amt_to_remove = abs(diff)
 
-            # If amt_to_remove > current_total, we can't remove more than exists!
-            # One choice: remove exactly current_total and clamp to zero
-            # Or do partial removal. We'll try partial removal via multinomial
             to_remove = min(amt_to_remove, current_total)
 
             draws = np.random.multinomial(to_remove, p)
@@ -57,7 +54,7 @@ def shift_prediction(control_adata, perturbed_adata, sum_control, sum_perturbed)
             updated[updated < 0] = 0
             new_X[:, g] = updated
 
-    # 4. Build a new AnnData with the shifted data
+
     new_adata = AnnData(
         X=new_X,
         obs=control_adata.obs.copy(),
@@ -176,15 +173,13 @@ for dset in unique_datasets:
     
             
             
-            # Run your custom shift_prediction (assumed to return a new AnnData)
+
             predicted_shift = shift_prediction(adata1, adata2, adata1_sum, adata2_sum)
     
-            # Randomly select row indices without replacement
             random_indices = np.random.choice(predicted_shift.n_obs,
                                               size=min(S_ctrl.shape[0], S_IFNAR2.shape[0]),
                                               replace=False)
     
-            # Subselect to get new predicted shift
             predicted_shift = predicted_shift[random_indices, :].copy()
             adata1 = adata1[random_indices, :].copy()
             adata2 = adata2[:min(S_ctrl.shape[0], S_IFNAR2.shape[0]), :].copy()
@@ -213,13 +208,13 @@ for dset in unique_datasets:
         list_adata2_adjusted.append(adata2.copy())
 
 
-# Concatenate the lists of AnnData
+
 adata1_combined = anndata.concat(list_adata1_adjusted, join='outer', axis=0)
 adata2_combined = anndata.concat(list_adata2_adjusted, join='outer', axis=0)
 adata3_combined = anndata.concat(list_adata3_adjusted, join='outer', axis=0)
 adata4_combined = anndata.concat(list_adata4_adjusted, join='outer', axis=0)
 
-# Make sure var data lines up
+
 adata1_combined.var['gene'] = adata1.var['gene']
 adata2_combined.var['gene'] = adata2.var['gene']
 adata3_combined.var['gene'] = adata2.var['gene']
@@ -227,10 +222,7 @@ adata4_combined.var['gene'] = adata2.var['gene']
 
 
 
-# Alternatively, if you prefer to keep them sparse, comment out the above
-# lines and do, for example:
-# adata1_combined.X = sp.csr_matrix(adata1_combined.X)
-# etc.
+
 del adata1_combined['orig.ident']
 del adata2_combined.obs['orig.ident']
 del adata3_combined.obs['orig.ident']
