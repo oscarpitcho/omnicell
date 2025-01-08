@@ -63,45 +63,6 @@ def shift_prediction(control_adata, perturbed_adata, sum_control, sum_perturbed)
     )
     return new_adata
 
-
-def get_DEGs(control_adata, target_adata):
-    temp_concat = anndata.concat([control_adata, target_adata], label = 'batch')
-    sc.tl.rank_genes_groups(temp_concat, 'batch', method='wilcoxon', 
-                                groups = ['1'], ref = '0', rankby_abs = True)
-
-    rankings = temp_concat.uns['rank_genes_groups']
-    result_df = pd.DataFrame({'scores': rankings['scores']['1'],
-                     'pvals_adj': rankings['pvals_adj']['1']},
-                    index = rankings['names']['1'])
-    return result_df
-
-def get_DEG_with_direction(gene, score):
-    if score > 0:
-        return(f'{gene}+')
-    else:
-        return(f'{gene}-')
-def get_DEGs_overlaps(true_DEGs, pred_DEGs, DEG_vals, pval_threshold):
-    true_DEGs_for_comparison = [get_DEG_with_direction(gene,score) for gene, score in zip(true_DEGs.index, true_DEGs['scores'])]   
-    pred_DEGs_for_comparison = [get_DEG_with_direction(gene,score) for gene, score in zip(pred_DEGs.index, pred_DEGs['scores'])]
-
-    significant_DEGs = true_DEGs[true_DEGs['pvals_adj'] < pval_threshold]
-    num_DEGs = len(significant_DEGs)
-    DEG_vals.insert(0, num_DEGs)
-    
-    results = {}
-    for val in DEG_vals:
-        if val > num_DEGs:
-            results[f'Overlap_in_top_{val}_DEGs'] = None
-        else:
-            results[f'Overlap_in_top_{val}_DEGs'] = len(set(true_DEGs_for_comparison[0:val]).intersection(set(pred_DEGs_for_comparison[0:val])))
-
-    return results
-
-
-
-
-
-
 S_IFNog = sc.read(f'input/satija_IFN.h5ad')
 S_TGF = sc.read(f'input/satija_TGF.h5ad')
 S_IFNog.var_names = S_IFNog.var['gene']
