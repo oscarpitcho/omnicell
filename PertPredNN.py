@@ -9,9 +9,6 @@ from torch.utils.data import Dataset, DataLoader, random_split
 import torch.optim as optim
 import scanpy as sc
 import anndata
-
-#####MY STUFF
-
 import pandas as pd
 from scipy.sparse import issparse
 import scipy
