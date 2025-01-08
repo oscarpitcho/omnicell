@@ -181,7 +181,7 @@ adata4_combined.var['gene'] = adata2.var['gene']
 
 
 
-del adata1_combined['orig.ident']
+del adata1_combined.obs['orig.ident']
 del adata2_combined.obs['orig.ident']
 del adata3_combined.obs['orig.ident']
 del adata4_combined.obs['orig.ident']
