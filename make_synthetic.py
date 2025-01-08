@@ -162,9 +162,6 @@ for dset in unique_datasets:
         adata1 = S_ctrl
         adata2 = S_IFNAR2
     
-        pert_strength = 0
-        adata2.obs['pert_strength'] = pert_strength
-    
         list_adata1_adjusted.append(adata1.copy())
         list_adata2_adjusted.append(adata2.copy())
 
