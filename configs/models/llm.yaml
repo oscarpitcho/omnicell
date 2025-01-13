@@ -1,0 +1,22 @@
+name: llm
+
+model:
+  ff_dim: 128
+  emb_dim: 256
+  encoder_layer: 4
+  encoder_head: 4
+  decoder_layer: 4
+  decoder_head: 4
+  mask_ratio: 0.75
+  true_sparsity: True
+  expr_activation: 'sigmoid'
+
+training:
+  base_learning_rate: 5.e-4
+  weight_decay: 0.0
+  total_epoch: 500
+  warmup_epoch: 1
+  use_sparsity_loss: True
+  use_mask_task: False
+  use_active_weights: True
+  lr_step: 32

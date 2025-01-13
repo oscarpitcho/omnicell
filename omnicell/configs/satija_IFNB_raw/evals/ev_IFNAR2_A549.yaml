@@ -1,3 +1,0 @@
-name: ev_IFNAR2_A549
-dataset: satija_IFNB_raw 
-evaluation_targets: [[A549, IFNAR2]]

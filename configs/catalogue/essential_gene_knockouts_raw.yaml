@@ -1,0 +1,20 @@
+HVG: false
+cell_embeddings: []
+cell_key: cell_type
+control: non-targeting
+count_normalized: false
+description: Essential genes
+folder_path: /orcd/data/omarabu/001/Omnicell_datasets/essential_gene_knockouts_raw
+gene_embeddings:
+- MMedllama-3-8B
+- llamaPMC-7B
+- bioBERT
+- llamaPMC-13B
+log1p_transformed: false
+path: /orcd/data/omarabu/001/Omnicell_datasets/essential_gene_knockouts_raw/essential_gene_knockouts_raw.h5ad
+pert_embeddings:
+- UCE_ESM2_Mean_Imputed
+- BioBERT
+pert_key: gene
+precomputed_DEGs: true 
+var_names_key: null

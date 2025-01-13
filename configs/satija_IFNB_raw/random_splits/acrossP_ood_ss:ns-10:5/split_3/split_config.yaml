@@ -1,0 +1,15 @@
+dataset: satija_IFNB_raw
+holdout_cells: []
+holdout_perts:
+- ID3
+- HES4
+- HERC6
+- MAPK8
+- IRF9
+- SOCS1
+- USP18
+- JAK1
+- CEBPB
+- ID2
+mode: ood
+name: split_3_ss:ns-10:5

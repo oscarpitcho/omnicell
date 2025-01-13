@@ -1,0 +1,25 @@
+dataset: essential_gene_knockouts_raw
+holdout_cells: []
+holdout_perts:
+- ATL2
+- EEFSEC
+- RFT1
+- BUB3
+- NAA10
+- KRTAP4-7
+- DDX3X
+- GPS2
+- CEBPZ
+- NMT1
+- PPA1
+- ATP5ME
+- SRPRB
+- ATR
+- CDK2
+- PSMD6
+- HSPH1
+- SNRPE
+- POU5F1B
+- ANKRD17
+mode: ood
+name: split_6_ood_ss:ns-20:10

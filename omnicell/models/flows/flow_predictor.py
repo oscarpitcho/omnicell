@@ -1,0 +1,91 @@
+import os 
+import scanpy as sc
+import torch
+
+import numpy as np
+
+from omnicell.models.datamodules import get_dataloader
+
+from omnicell.models.flows.arch import CMHA, CMLP, CFM
+from omnicell.models.flows.flow_utils import compute_conditional_flow
+from pytorch_lightning.callbacks import TQDMProgressBar
+import pytorch_lightning as pl
+
+import logging
+
+from omnicell.constants import CELL_KEY, CONTROL_PERT, PERT_KEY
+
+logger = logging.getLogger(__name__)
+
+class FlowPredictor():
+    def __init__(self, config, input_size, pert_rep, pert_map):
+        self.model_config = config['model'] if config['model'] is not None else {}
+        self.trainig_config = config['training'] if config['training'] is not None else {}
+
+        self.max_epochs = self.trainig_config['max_epochs']
+
+        self.pert_map = pert_map
+        self.pert_rep = pert_rep
+
+        if config['arch'] == 'mlp':
+            self.model = CMLP(training_module=CFM, feat_dim=input_size, cond_dim=pert_rep.shape[1], time_varying=True, **self.model_config)
+        elif config['arch'] == 'mha':
+            self.model = CMHA(training_module=CFM, feat_dim=input_size, cond_dim=pert_rep.shape[1], time_varying=True, **self.model_config)
+        else:
+            raise NotImplementedError(f"Model architecture {self.model_config['arch']} not implemented")
+        
+
+    #Should take care of saving the model under some results/model/checkpoints in 
+    #BTW I think hidden dirs fuck with with the cluster, so don't call it .checkpoint
+    def train(self, adata):
+
+        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+        logger.debug(f"Adata obsm keys: {adata.obsm}")
+
+
+        #TODO: Will this copy the data again? - We are already getting oom errors
+        self.pert_ids = adata.obs[PERT_KEY].map(self.pert_map | {'NT': -1}).values.astype(int) 
+        adata.obsm['embedding'] = torch.Tensor(adata['embedding']).type(torch.float32)
+        # adata.obsm['embedding'] = adata.obsm['embedding'].toarray()
+        # adata.obsm['embedding'] = adata.obsm['embedding'] / adata.obsm['embedding'].sum(axis=1)[:, None]
+        # adata.obsm["standard"] = adata.obsm['embedding']
+
+        dl = get_dataloader(adata, pert_ids=self.pert_ids, pert_reps=self.pert_rep, collate='cfm')
+
+        # Train the model
+        trainer = pl.Trainer(
+            accelerator='gpu', devices=1,  # Specify the number of GPUs to use
+            max_epochs=self.max_epochs,  # Specify the maximum number of training epochs
+            # default_root_dir=save_path,
+            callbacks=[TQDMProgressBar(refresh_rate=100)]
+        )
+
+        
+        self.model = self.model.to(device)            
+        trainer.fit(self.model, dl)
+
+    def save(self, path):
+        torch.save(self.model.state_dict(), f"{path}/model.pth")
+
+    def load(self, path):
+        if os.path.exists(path):
+            self.model.load_state_dict(torch.load(f"{path}/model.pth"))
+            return True
+        return False
+    
+
+    #I mean to we need to evaluate anything? 
+    def make_predict(self, adata: sc.AnnData, pert_id: str, cell_type: str) -> np.ndarray:
+        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+        cell_types = adata.obs[CELL_KEY].values
+        control_eval = adata[cell_types == cell_type].obsm['embedding']
+        traj = compute_conditional_flow(
+            self.model, 
+            control_eval, 
+            np.repeat(self.pert_map[pert_id], control_eval.shape[0]), 
+            self.pert_rep,
+            n_batches = 5 
+        )  
+        return traj[-1, :, :]

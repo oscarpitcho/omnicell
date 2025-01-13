@@ -1,0 +1,18 @@
+name: omnicell
+channels:
+  - conda-forge
+dependencies:
+  - python=3.9
+  - jupyterlab
+  - pytorch
+  - scanpy
+  - matplotlib
+  - yaml
+  - tqdm
+  - numpy
+  - pot
+  - lightning
+  - pip
+  - pip:
+    - torchcfm
+    - torchdyn

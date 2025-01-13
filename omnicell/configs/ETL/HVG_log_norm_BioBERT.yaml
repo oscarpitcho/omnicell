@@ -1,6 +1,0 @@
-name: HVG_log_norm_BioBERT
-HVG: True
-log1p: True 
-count_norm: True
-gene_embedding: bioBERT
-drop_unmatched_perts: True

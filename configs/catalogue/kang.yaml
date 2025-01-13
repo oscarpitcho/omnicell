@@ -1,0 +1,18 @@
+HVG: false
+cell_embeddings: []
+cell_key: cell_type
+control: control
+count_normalized: false
+description: Some description of the dataset
+folder_path: /orcd/data/omarabu/001/Omnicell_datasets/kang/
+gene_embeddings:
+- MMedllama-3-8B
+- llamaPMC-7B
+- bioBERT
+- llamaPMC-13B
+log1p_transformed: false
+path: /orcd/data/omarabu/001/Omnicell_datasets/kang/kang.h5ad
+pert_embeddings: null
+pert_key: condition_key
+precomputed_DEGs: false
+var_names_key: null

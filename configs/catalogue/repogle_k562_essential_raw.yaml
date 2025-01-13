@@ -1,0 +1,18 @@
+HVG: false
+cell_embeddings: []
+cell_key: cell_type
+control: non-targeting
+count_normalized: false
+description: Repogle K562 datasets, fetched from Dans folder on Openmind
+folder_path: /orcd/data/omarabu/001/Omnicell_datasets/repogle_k562_essential_raw/
+gene_embeddings:
+- bioBERT
+- MMedllama-3-8B
+- llamaPMC-7B
+- llamaPMC-13B
+log1p_transformed: false
+path: /orcd/data/omarabu/001/Omnicell_datasets/repogle_k562_essential_raw/K562_essential_raw_singlecell_01.h5ad
+pert_embeddings: []
+pert_key: gene
+precomputed_DEGs: true
+var_names_key: null

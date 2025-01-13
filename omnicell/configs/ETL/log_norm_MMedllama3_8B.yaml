@@ -1,6 +1,0 @@
-name: log_norm_MMedllama3_8B
-HVG: False
-log1p: True 
-count_norm: True
-gene_embedding: MMedllama-3-8B
-drop_unmatched_perts: True
