@@ -138,7 +138,3 @@ To add a new model:
 2. Implement the required interface methods (`train`, `predict`, `save`, `load`)
 3. Add model configuration in `configs/models/`
 4. Register the model in the `get_model` function in `train.py`
-
-## License
-
-[Add your license information here]
