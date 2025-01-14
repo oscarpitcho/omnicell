@@ -34,13 +34,15 @@ omnicell/
 ## Supported Models
 
 The framework currently supports multiple model architectures:
-- SCLambda (with and without gradient clipping)
 - Nearest Neighbor approaches
 - Flow-based models
 - Language model-based approaches
-- Variational Autoencoders (VAE)
-- Cell embedding models
+- scGen
 - scVIDR
+- SCLambda (with and without gradient clipping)
+- GEARS
+
+With more model architectures coming!
 
 ## Configuration System
 
