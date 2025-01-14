@@ -122,7 +122,6 @@ def main(*args):
     
     logger.info("Application started")
 
-
     loader = DataLoader(config)
     
     adata, pert_rep_map = loader.get_training_data()
@@ -193,9 +192,9 @@ def main(*args):
         model.train(adata)
         logger.info("Training completed")    
 
-
-
     # if model has encode function then encode the full adata and save in the model dir
+    # some models have additional data, like the logvar in a VAE, which we also save
+    # so we can load the model and decode the data
     if hasattr(model, 'encode'):
         logger.info("Encoding full dataset")
         adata = loader.get_complete_training_dataset()
@@ -204,7 +203,7 @@ def main(*args):
         if additional_data is not None:
             np.save(f"{model_savepath}/additional_data.npy", additional_data)
 
-    #It is not none --> We are going to evaluate
+    # If we have an evaluation config, we are going to evaluate
     if args.eval_config is not None and hasattr(model, 'make_predict'):
         logger.info("Running evaluation")
         
@@ -218,6 +217,7 @@ def main(*args):
         with open(f"{results_path}/config.yaml", 'w+') as f:
             yaml.dump(config.to_dict(), f, indent=2, default_flow_style=False)
 
+        # evaluate each pair of cells and perts
         for cell_id, pert_id, ctrl_data, gt_data in loader.get_eval_data():
             logger.debug(f"Making predictions for cell: {cell_id}, pert: {pert_id}")
 
@@ -229,7 +229,6 @@ def main(*args):
             else:
                 preds = model.make_predict(ctrl_data, pert_id, cell_id)
          
-
             preds = to_coo(preds)
             control  = to_coo(ctrl_data.X)
             ground_truth = to_coo(gt_data.X)
@@ -240,8 +239,6 @@ def main(*args):
             scipy.sparse.save_npz(f"{results_path}/{prediction_filename(pert_id, cell_id)}-ground_truth", ground_truth)
 
         logger.info("Evaluation completed")
-
-
 
 
 if __name__ == '__main__':
