@@ -80,8 +80,6 @@ class DataLoader:
 
         self.pert_embedding_name: Optional[str] = config.get_pert_embedding_name()
 
-        self.cell_embedding_name: Optional[str] = config.get_cell_embedding_name()
-
         self.gene_embedding_name: Optional[str] = config.get_gene_embedding_name()
         
         #TODO: Handle
@@ -126,44 +124,28 @@ class DataLoader:
             sc.pp.highly_variable_genes(adata, n_top_genes=2000, flavor='seurat_v3')
             adata = adata[:, adata.var.highly_variable]
 
-
             #TODO: Make this filtering apply only for datasets of genetic perturbation
             #We remove observations perturbed with a gene whuch is not HVG / CONTROL
         if self.config.get_drop_unmatched_perts():
             logger.info("Removing observations with perturbations not in the dataset as a column")
             adata = adata[((adata.obs[PERT_KEY] == CONTROL_PERT) | adata.obs[PERT_KEY].isin(adata.var_names))]
 
-        if (self.config.get_cell_embedding_name() is not None) & (self.config.get_apply_normalization() | self.config.get_apply_log1p()):
-            raise ValueError("Cannot both apply cell embedding and normalization/log1p transformation")
         
-        elif self.config.get_cell_embedding_name() is not None:
-            if self.config.has_local_cell_embedding:
-                logger.info(f"Loading cell embedding from {self.config.get_cell_embedding_name()}")
+        adata.obsm["embedding"] = adata.X.toarray().astype('float32')
+        # Set gene names
+        if dataset_details.var_names_key:
+            adata.var_names = adata.var[dataset_details.var_names_key]
 
-                #TODO: This is something I will need to change
-                adata.obsm["embedding"] = np.load(self.config.get_local_cell_embedding_path())
-
-            elif self.config.get_cell_embedding_name() in dataset_details.cell_embeddings:            
-                #We replace the data matrix with the cell embeddings
-                adata.obsm["embedding"] = adata.obsm[self.config.get_cell_embedding_name()]
-            else:
-                raise ValueError(f"Cell embedding {self.config.get_cell_embedding_name()} not found in embeddings available for dataset {dataset_details.name}")
-        else:
-            adata.obsm["embedding"] = adata.X.toarray().astype('float32')
-            # Set gene names
-            if dataset_details.var_names_key:
-                adata.var_names = adata.var[dataset_details.var_names_key]
-
-            # Apply normalization and log1p if needed
-            if self.config.get_apply_normalization() & (not dataset_details.count_normalized):
-                sc.pp.normalize_total(adata, target_sum=10_000)
-            elif ((not self.config.get_apply_normalization()) & dataset_details.count_normalized):
-                raise ValueError("Specified dataset is count normalized, but normalization is turned off in the config")
-            
-            if self.config.get_apply_log1p() & (not dataset_details.log1p_transformed):
-                sc.pp.log1p(adata)
-            elif not self.config.get_apply_log1p() & dataset_details.log1p_transformed:
-                raise ValueError("Specified dataset is log1p transformed, but log1p transformation is turned off in the config")
+        # Apply normalization and log1p if needed
+        if self.config.get_apply_normalization() & (not dataset_details.count_normalized):
+            sc.pp.normalize_total(adata, target_sum=10_000)
+        elif ((not self.config.get_apply_normalization()) & dataset_details.count_normalized):
+            raise ValueError("Specified dataset is count normalized, but normalization is turned off in the config")
+        
+        if self.config.get_apply_log1p() & (not dataset_details.log1p_transformed):
+            sc.pp.log1p(adata)
+        elif (not self.config.get_apply_log1p()) & dataset_details.log1p_transformed:
+            raise ValueError("Specified dataset is log1p transformed, but log1p transformation is turned off in the config")
 
 
         if self.config.get_metric_space() is not None:

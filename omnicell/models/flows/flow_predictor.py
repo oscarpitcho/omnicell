@@ -29,8 +29,6 @@ class FlowPredictor():
 
         if config['arch'] == 'mlp':
             self.model = CMLP(training_module=CFM, feat_dim=input_size, cond_dim=pert_rep.shape[1], time_varying=True, **self.model_config)
-        elif config['arch'] == 'mha':
-            self.model = CMHA(training_module=CFM, feat_dim=input_size, cond_dim=pert_rep.shape[1], time_varying=True, **self.model_config)
         else:
             raise NotImplementedError(f"Model architecture {self.model_config['arch']} not implemented")
         
@@ -43,13 +41,9 @@ class FlowPredictor():
 
         logger.debug(f"Adata obsm keys: {adata.obsm}")
 
-
         #TODO: Will this copy the data again? - We are already getting oom errors
         self.pert_ids = adata.obs[PERT_KEY].map(self.pert_map | {'NT': -1}).values.astype(int) 
         adata.obsm['embedding'] = torch.Tensor(adata['embedding']).type(torch.float32)
-        # adata.obsm['embedding'] = adata.obsm['embedding'].toarray()
-        # adata.obsm['embedding'] = adata.obsm['embedding'] / adata.obsm['embedding'].sum(axis=1)[:, None]
-        # adata.obsm["standard"] = adata.obsm['embedding']
 
         dl = get_dataloader(adata, pert_ids=self.pert_ids, pert_reps=self.pert_rep, collate='cfm')
 
@@ -61,7 +55,6 @@ class FlowPredictor():
             callbacks=[TQDMProgressBar(refresh_rate=100)]
         )
 
-        
         self.model = self.model.to(device)            
         trainer.fit(self.model, dl)
 
@@ -75,7 +68,6 @@ class FlowPredictor():
         return False
     
 
-    #I mean to we need to evaluate anything? 
     def make_predict(self, adata: sc.AnnData, pert_id: str, cell_type: str) -> np.ndarray:
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 

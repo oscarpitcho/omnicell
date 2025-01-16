@@ -87,6 +87,11 @@ def get_model(model_name, config_model, loader, pert_rep_map, input_dim, device,
         from omnicell.models.sclambda.model import ModelPredictor
         logger.info("SCLambda model selected")
         model = ModelPredictor(input_dim, device, pert_emb_dim, **config_model)
+
+    elif "mean_model" in model_name:
+        from omnicell.models.mean_models.model import MeanPredictor
+        logger.info("Mean model selected")
+        model = MeanPredictor(config_model)
         
     else:
         raise ValueError(f'Unknown model name {model_name}')
@@ -137,36 +142,6 @@ def main(*args):
     logger.debug(f"Training data loaded, perts are: {adata.obs[PERT_KEY].unique()}")
 
     model = get_model(config.get_model_name(), config.model_config, loader, pert_rep_map, input_dim, device, pert_ids, gene_emb_dim)
-
-    if config.has_local_cell_embedding:
-
-        local_embedding_config = config.get_local_cell_embedding_config()
-
-        # Saving the embedding model and prediction models in different places to make sure they don't overwrite each other
-        embedding_model_savepath = f"{config.get_train_path()}/embedding"
-        embedding_model = get_model(local_embedding_config['name'], local_embedding_config, loader, pert_rep_map, input_dim, device, pert_ids)
-
-        if hasattr(embedding_model, 'save') and hasattr(embedding_model, 'load'):
-            if embedding_model.load(embedding_model_savepath):
-                logger.info(f"Local cell embedding model already trained, loaded model from {embedding_model_savepath}")
-            else:
-                logger.info("Local cell embedding model not trained, training model")
-                embedding_model.train(adata)
-                logger.info("Training completed")
-                logger.info(f"Saving model to {embedding_model_savepath}")
-                os.makedirs(embedding_model_savepath, exist_ok=True)
-
-                embedding_model.save(embedding_model_savepath)
-
-        else:
-            logger.info("Local cell embedding model does not support saving/loading, training from scratch")
-            embedding_model.train(adata)
-            logger.info("Training completed")
-
-        embedding = embedding_model.encode(adata)
-
-        #TODO: What effect does this have on the original adata in the dataloader?
-        adata.obsm['embedding'] = embedding
 
     model_savepath = f"{config.get_train_path()}/training"
 
@@ -221,13 +196,8 @@ def main(*args):
         for cell_id, pert_id, ctrl_data, gt_data in loader.get_eval_data():
             logger.debug(f"Making predictions for cell: {cell_id}, pert: {pert_id}")
 
-            if config.has_local_cell_embedding:
-                ctrl_data_emb = embedding_model.encode(ctrl_data)
-                preds_emb = model.make_predict(ctrl_data_emb, pert_id, cell_id)
-                preds = embedding_model.decode(preds_emb)
 
-            else:
-                preds = model.make_predict(ctrl_data, pert_id, cell_id)
+            preds = model.make_predict(ctrl_data, pert_id, cell_id)
          
             preds = to_coo(preds)
             control  = to_coo(ctrl_data.X)

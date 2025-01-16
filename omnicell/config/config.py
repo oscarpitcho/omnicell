@@ -48,8 +48,6 @@ class Config:
     def from_dict(config_dict: dict) -> 'Config':
         return Config(config_dict['model_config'], config_dict['etl_config'], config_dict['datasplit_config'], config_dict['eval_config'])
     
-
-    
     def get_train_path(self):
         #Ugly but it allows us to store different randomsplits in different sub directories.
         datasplit_prefix = None
@@ -130,7 +128,6 @@ class Config:
 
 
     ## Getters for ETL
-
     def get_drop_unmatched_perts(self) -> bool:
         return self.etl_config.get('drop_unmatched_perts')
     
