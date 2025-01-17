@@ -84,7 +84,6 @@ def main():
     print(f'Total coverage: {coverage}/{len(perts)}')
     print(f"Size of the embedding: {len(embedding)}")
 
-
     #Register the new embedding in the catalogue, This modifies the underlying yaml file
     catalogue.register_new_pert_embedding(args.dataset_name, args.embedding_name)
 

@@ -132,25 +132,19 @@ def compute_cell_type_means(adata, cell_type):
 
 class MeanPredictor():
 
-    def __init__(self, model_config: dict):
+    def __init__(self, model_config: dict, pert_rep_map: dict):
         self.model = None
         self.model_type = model_config['model_type']
-        self.pca_gene_embeddings = model_config['pca_gene_embeddings']
-        self.pca_gene_embeddings_components = model_config['pca_gene_embeddings_components']
-        self.gene_emb = None
+        self.pca_pert_embeddings = model_config['pca_pert_embeddings']
+        self.pca_pert_embeddings_components = model_config['pca_pert_embeddings_components']
+        self.pert_rep_map = pert_rep_map
 
     def train(self, adata: sc.AnnData):
-        if self.pca_gene_embeddings:
-            pca = PCA(n_components=self.pca_gene_embeddings_components)
-            gene_emb_temp = pca.fit_transform(adata.varm[GENE_EMBEDDING_KEY])
-        else:
-            gene_emb_temp = adata.varm[GENE_EMBEDDING_KEY]
+        if self.pca_pert_embeddings:
+            pca = PCA(n_components=self.pca_pert_embeddings_components)
+            pert_emb_temp = pca.fit_transform(np.array(list(self.pert_rep_map.values())))
+            self.pert_rep_map = {pert : pert_emb_temp[i] for i, pert in enumerate(self.pert_rep_map.keys())}
 
-        gene_emb = {}
-        for i, g in enumerate(adata.var_names):
-            gene_emb[g] = gene_emb_temp[i]
-        
-        self.gene_emb = gene_emb
         # Get unique cell types
         cell_types = adata.obs[CELL_KEY].unique()
 
@@ -165,7 +159,7 @@ class MeanPredictor():
             
             # Create feature matrix X and target matrix Y
             Y = np.array([pert_deltas_dict[pert] for pert in idxs])
-            X = np.array([gene_emb[g] for g in idxs])
+            X = np.array([self.pert_rep_map[g] for g in idxs])
 
             # Store the embeddings
             Xs.append(X)
@@ -178,6 +172,6 @@ class MeanPredictor():
         
     def make_predict(self, adata: sc.AnnData, pert_id: str, cell_type: str) -> np.ndarray:
         ctrl_cells = adata[(adata.obs[PERT_KEY] == CONTROL_PERT) & (adata.obs[CELL_KEY] == cell_type)].X.toarray()
-        X_new = np.array(self.gene_emb[pert_id].reshape(1, -1))
+        X_new = np.array(self.pert_rep_map[pert_id].reshape(1, -1))
         shift_pred = np.array(self.model.predict(X_new)).flatten()
         return distribute_shift(ctrl_cells, shift_pred)

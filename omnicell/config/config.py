@@ -23,15 +23,6 @@ class Config:
         self.etl_config = etl_config
         self.eval_config = eval_config
 
-        if self.has_local_cell_embedding:
-            cell_model_config_path = Path(self.etl_config["cell_embedding_model"]).resolve()
-            cell_etl_config_path = Path(self.etl_config["cell_embedding_etl"]).resolve()
-            cell_model_config = yaml.load(open(cell_model_config_path), Loader=yaml.UnsafeLoader)
-            cell_etl_config = yaml.load(open(cell_etl_config_path), Loader=yaml.UnsafeLoader)
-            self.local_cell_embedding_config = Config(cell_model_config, cell_etl_config, self.datasplit_config)
-        else:
-            self.local_cell_embedding_config = None
-
     @staticmethod
     def from_yamls(model_config_path: str, etl_config_path: str, datasplit_config_path: str, eval_config_path: Optional[str] = None) -> 'Config':
         model_config_path = Path(model_config_path).resolve()
@@ -77,9 +68,7 @@ class Config:
     
     #We completely control the serialization of the config object in this class 
     def to_dict(self):
-        serialized = deepcopy(vars(self))
-        serialized['local_cell_embedding_config'] = serialized['local_cell_embedding_config'].to_dict() if serialized['local_cell_embedding_config'] is not None else None
-        return serialized
+        return deepcopy(vars(self))
     
     def get_train_hash(self):
         train_hash = hashlib.sha256(json.dumps(self.get_training_config().to_dict()).encode()).hexdigest()
@@ -139,12 +128,6 @@ class Config:
     
     def get_apply_log1p(self) -> bool:
         return self.etl_config['log1p']
-   
-    def get_cell_embedding_name(self) -> Optional[str]:
-        cell_emb_name = self.etl_config.get('cell_embedding', None)
-        if self.has_local_cell_embedding:
-            cell_emb_name = self.local_cell_embedding_config.get_train_hash()
-        return cell_emb_name
 
     def get_metric_space(self) -> Optional[str]:
         return self.etl_config.get('metric_space', None)
@@ -153,24 +136,6 @@ class Config:
         return self.etl_config.get('HVG')
 
 
-    def get_cell_embedding_type(self) -> Optional[str]:
-        if 'cell_embedding' not in self.etl_config:
-            return None
-        else:
-            return self.etl_config['cell_embedding'].get('type', None)
-
-    def get_local_cell_embedding_config(self)-> Optional[dict]:
-        if not self.has_local_cell_embedding:
-            return None
-        else:
-            return self.etl_config['cell_embedding']["embedding_config"]
-    
-    def get_local_cell_embedding_model_name(self)-> Optional[str]:
-        if not self.has_local_cell_embedding:
-            return None
-        else:
-            return Config({'model_config': self.get_local_cell_embedding_config()}).get_model_name()
-        
     def get_gene_embedding_name(self) -> Optional[str]:
         return self.etl_config.get('gene_embedding', None)
 

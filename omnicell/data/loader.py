@@ -115,7 +115,9 @@ class DataLoader:
                 raise ValueError(f"Gene Embedding {self.gene_embedding_name} is not found in gene embeddings available for dataset {dataset_name}")
             else:
                 embedding = torch.load(f"{dataset_details.folder_path}/{self.gene_embedding_name}.pt")
-                adata.varm["gene_embedding"] = embedding.numpy()
+                gene_rep_map = {embedding["gene_names"][i]: embedding["repr"][i] for i in range(len(embedding["repr"]))}
+                gene_rep = np.array([gene_rep_map[gene] for gene in adata.var_names])
+                adata.varm["gene_embedding"] = gene_rep
 
 
         #Getting HVG genes
@@ -154,9 +156,6 @@ class DataLoader:
             else:
                 raise ValueError(f"Metric space {self.config.get_metric_space()} not found in metric spaces available for dataset {dataset_details.name}")
 
-
-
-
         if dataset_details.precomputed_DEGs:
             DEGs = json.load(open(f"{dataset_details.folder_path}/DEGs.json"))
             adata.uns["DEGs"] = DEGs
@@ -189,6 +188,7 @@ class DataLoader:
             else:
                 logger.info(f"Loading perturbation embedding from {self.training_dataset_details.folder_path}/{self.pert_embedding_name}.pt")
                 pert_embedding = torch.load(f"{self.training_dataset_details.folder_path}/{self.pert_embedding_name}.pt")
+                pert_embedding = {pert_embedding["gene_names"][i]: pert_embedding["repr"][i] for i in range(len(pert_embedding["repr"]))}
         else:
             pert_embedding = get_identity_features(self.complete_training_adata)
 

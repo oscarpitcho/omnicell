@@ -91,7 +91,7 @@ def get_model(model_name, config_model, loader, pert_rep_map, input_dim, device,
     elif "mean_model" in model_name:
         from omnicell.models.mean_models.model import MeanPredictor
         logger.info("Mean model selected")
-        model = MeanPredictor(config_model)
+        model = MeanPredictor(config_model, pert_rep_map)
         
     else:
         raise ValueError(f'Unknown model name {model_name}')
@@ -166,17 +166,6 @@ def main(*args):
         logger.info("Model does not support saving/loading, training from scratch")
         model.train(adata)
         logger.info("Training completed")    
-
-    # if model has encode function then encode the full adata and save in the model dir
-    # some models have additional data, like the logvar in a VAE, which we also save
-    # so we can load the model and decode the data
-    if hasattr(model, 'encode'):
-        logger.info("Encoding full dataset")
-        adata = loader.get_complete_training_dataset()
-        embedded_data, additional_data = model.encode(adata)
-        np.save(f"{model_savepath}/embedded_data.npy", embedded_data)
-        if additional_data is not None:
-            np.save(f"{model_savepath}/additional_data.npy", additional_data)
 
     # If we have an evaluation config, we are going to evaluate
     if args.eval_config is not None and hasattr(model, 'make_predict'):
