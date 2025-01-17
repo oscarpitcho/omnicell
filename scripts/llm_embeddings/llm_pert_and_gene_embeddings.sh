@@ -1,16 +1,16 @@
 #!/bin/bash
 #SBATCH -t 12:00:00
 #SBATCH -n 4
-#SBATCH --mem=512GB
+#SBATCH --mem=256GB
 #SBATCH -p ou_bcs_low
-#SBATCH --array=0-11       # 3 datasets × 4 LLMs = 12 combinations
+#SBATCH --array=0-15       # 4 datasets × 4 LLMs = 16 combinations
 #SBATCH --gres=gpu:h100:1
 
 hostname
 
 # Define datasets and models
-DATASETS=("essential_gene_knockouts_raw" "repogle_k562_essential_raw" "satija_IFNB_raw")
-LLMS=("MMedllama-3-8B" "llamaPMC-13B" "llamaPMC-7B" "bioBERT")
+DATASETS=("essential_gene_knockouts_raw" "repogle_k562_essential_raw" "kang" "satija_IFNB_raw")
+LLMS=("MMedllama-3-8B" "llamaPMC-13B" "llamaPMC-7B"  "bioBERT")
 
 # Calculate indices for current task
 dataset_idx=$((SLURM_ARRAY_TASK_ID / ${#LLMS[@]}))
