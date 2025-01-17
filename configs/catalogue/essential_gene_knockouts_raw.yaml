@@ -15,6 +15,10 @@ path: /orcd/data/omarabu/001/Omnicell_datasets/essential_gene_knockouts_raw/esse
 pert_embeddings:
 - UCE_ESM2_Mean_Imputed
 - BioBERT
+- MMedllama-3-8B
+- llamaPMC-13B
+- bioBERT
+- llamaPMC-7B
 pert_key: gene
-precomputed_DEGs: true 
+precomputed_DEGs: true
 var_names_key: null
