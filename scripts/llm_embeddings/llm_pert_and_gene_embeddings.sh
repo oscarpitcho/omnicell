@@ -21,7 +21,7 @@ DATASET=${DATASETS[$dataset_idx]}
 LLM=${LLMS[$llm_idx]}
 
 source ~/.bashrc
-conda activate omnicell
+conda activate huggingface
 
 # Generate gene embeddings
 python -m scripts.llm_embeddings.generate_llm_gene_embeddings \
@@ -29,7 +29,7 @@ python -m scripts.llm_embeddings.generate_llm_gene_embeddings \
     --model_name ${LLM}
 
 # Generate perturbation embeddings
-python -m scripts.llm_embeddings.generate_llm_perturbation_embeddings \
+python -m scripts.llm_embeddings.generate_llm_pert_embeddings \
     --dataset_name ${DATASET} \
     --model_name ${LLM}
 
