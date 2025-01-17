@@ -114,9 +114,10 @@ class DataLoader:
             if self.gene_embedding_name not in dataset_details.gene_embeddings:
                 raise ValueError(f"Gene Embedding {self.gene_embedding_name} is not found in gene embeddings available for dataset {dataset_name}")
             else:
-                embedding = torch.load(f"{dataset_details.folder_path}/{self.gene_embedding_name}.pt")
-                gene_rep_map = {embedding["gene_names"][i]: embedding["repr"][i] for i in range(len(embedding["repr"]))}
-                gene_rep = np.array([gene_rep_map[gene] for gene in adata.var_names])
+                embeddings_and_gene_names = torch.load(f"{dataset_details.folder_path}/gene_embeddings/{self.gene_embedding_name}.pt")
+                embedding = embeddings_and_gene_names["embedding"]
+                
+                gene_rep = np.array(embedding)
                 adata.varm["gene_embedding"] = gene_rep
 
 
@@ -187,8 +188,11 @@ class DataLoader:
                 raise ValueError(f"Perturbation embedding {self.pert_embedding_name} not found in embeddings available for dataset {self.training_dataset_details.name}")
             else:
                 logger.info(f"Loading perturbation embedding from {self.training_dataset_details.folder_path}/{self.pert_embedding_name}.pt")
-                pert_embedding = torch.load(f"{self.training_dataset_details.folder_path}/{self.pert_embedding_name}.pt")
-                pert_embedding = {pert_embedding["gene_names"][i]: pert_embedding["repr"][i] for i in range(len(pert_embedding["repr"]))}
+                pert_embeddings_and_name = torch.load(f"{self.training_dataset_details.folder_path}/pert_embeddings/{self.pert_embedding_name}.pt")
+                embeddings = pert_embeddings_and_name["embedding"]
+                pert_names = pert_embeddings_and_name["pert_names"]
+                pert_embedding = {pert_names[i]: embeddings[i] for i in range(len(embeddings))}
+
         else:
             pert_embedding = get_identity_features(self.complete_training_adata)
 
