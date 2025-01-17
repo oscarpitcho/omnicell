@@ -1,0 +1,23 @@
+dataset: satija_IFNB_raw
+evaluation_targets:
+- - HT29
+  - HERC5
+- - HT29
+  - IFNAR1
+- - HT29
+  - CEBPB
+- - HT29
+  - SP100
+- - HT29
+  - DTX3L
+- - HT29
+  - ADAR
+- - HT29
+  - ID1
+- - HT29
+  - NFKB1
+- - HT29
+  - CRKL
+- - HT29
+  - MYC
+name: rs-across-cells-ood-split-ss:10_eval_HT29

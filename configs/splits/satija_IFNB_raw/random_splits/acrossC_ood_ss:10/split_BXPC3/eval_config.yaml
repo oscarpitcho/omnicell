@@ -1,0 +1,23 @@
+dataset: satija_IFNB_raw
+evaluation_targets:
+- - BXPC3
+  - HERC5
+- - BXPC3
+  - IFNAR1
+- - BXPC3
+  - CEBPB
+- - BXPC3
+  - SP100
+- - BXPC3
+  - DTX3L
+- - BXPC3
+  - ADAR
+- - BXPC3
+  - ID1
+- - BXPC3
+  - NFKB1
+- - BXPC3
+  - CRKL
+- - BXPC3
+  - MYC
+name: rs-across-cells-ood-split-ss:10_eval_BXPC3

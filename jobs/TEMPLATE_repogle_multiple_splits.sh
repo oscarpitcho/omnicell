@@ -27,7 +27,7 @@ ETL_BASE_DIR="configs/ETL"
 
 # ===== CONFIGURATION =====
 DATASET="repogle_k562_essential_raw"
-SPLIT_BASE_DIR="${CONFIG_BASE_DIR}/${DATASET}/random_splits/rs_accP_k562_ood_ss:ns_20_2_most_pert_0.1"
+SPLIT_BASE_DIR="${CONFIG_BASE_DIR}/splits/${DATASET}/random_splits/rs_accP_k562_ood_ss:ns_20_2_most_pert_0.1"
 
 
 
