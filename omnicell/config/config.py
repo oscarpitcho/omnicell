@@ -32,7 +32,6 @@ class ETLConfig:
     HVG: bool = False
     gene_embedding: Optional[str] = None
     pert_embedding: Optional[str] = None
-    cell_embedding_type: str = 'none'
 
     @classmethod
     def from_yaml(cls, path: str) -> 'ETLConfig':
