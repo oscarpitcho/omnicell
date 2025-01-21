@@ -5,7 +5,7 @@ control: NT
 count_normalized: false
 description: Some description of the dataset
 folder_path: /orcd/data/omarabu/001/Omnicell_datasets/satija_IFNG_raw/
-gene_embeddings:
+gene_embeddings: null
 log1p_transformed: false
 path: /orcd/data/omarabu/001/Omnicell_datasets/satija_IFNG_raw/Seurat_IFNG.h5ad
 pert_embeddings: []
