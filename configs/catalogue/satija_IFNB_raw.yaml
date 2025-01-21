@@ -6,18 +6,16 @@ count_normalized: false
 description: Some description of the dataset
 folder_path: /orcd/data/omarabu/001/Omnicell_datasets/satija_IFNB_raw/
 gene_embeddings:
-- llamaPMC-7B
-- llamaPMC-13B
 - bioBERT
 - MMedllama-3-8B
+- llamaPMC-7B
+- llamaPMC-13B
 log1p_transformed: false
 path: /orcd/data/omarabu/001/Omnicell_datasets/satija_IFNB_raw/Seurat_IFNB.h5ad
 pert_embeddings:
-- UCE_ESM2_Mean_Imputed
-- BioBERT
+- bioBERT
 - MMedllama-3-8B
 - llamaPMC-7B
-- bioBERT
 - llamaPMC-13B
 pert_key: gene
 precomputed_DEGs: true

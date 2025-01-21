@@ -8,3 +8,7 @@ results
 # Ignore all log files
 output_*
 slurm*
+*.h5ad
+*.pkl
+*.pt
+*.h5
