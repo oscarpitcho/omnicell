@@ -91,6 +91,7 @@ Define the environment variable `OMNICELL_ROOT` in your `~/.bashrc` file like su
 
 ```bash
 export OMNICELL_ROOT='/orcd/data/omarabu/001/opitcho/omnicell'```
+```
 
 ### Cluster Execution (SLURM)
 
