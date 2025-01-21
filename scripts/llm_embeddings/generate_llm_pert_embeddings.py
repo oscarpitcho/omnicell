@@ -23,7 +23,6 @@ from transformers import AutoTokenizer, AutoModelForCausalLM
 print(torch.cuda.is_available())
 
 
-logger = logging.getLogger(__name__)
 
 
 
@@ -43,7 +42,8 @@ def main():
     ds_details = Catalogue.get_dataset_details(args.dataset_name)
 
     if args.model_name in ds_details.pert_embeddings:
-        logger.info(f"Embedding {args.model_name} already exists for dataset {args.dataset_name} - Terminating")
+        print(f"Embedding {args.model_name} already exists for dataset {args.dataset_name} - Terminating")
+        print(f"Available embeddings: {ds_details.pert_embeddings}")
         return
 
     assert torch.cuda.is_available(), "CUDA not available"
@@ -81,7 +81,7 @@ def main():
 
     embeddings = []
 
-    for i, g in enumerate(pert_names):
+    for _, g in enumerate(pert_names):
 
         inputs = tokenizer(g, return_tensors="pt").to("cuda")
 
@@ -115,8 +115,7 @@ def main():
     #Register the new embedding in the catalogue, This modifies the underlying yaml file
     Catalogue.register_new_pert_embedding(args.dataset_name, args.model_name)
 
-    print("Gene embedding generated and saved successfully")
-
+    print("Pert embedding generated and saved successfully")
 
 
 

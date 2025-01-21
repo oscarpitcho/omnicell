@@ -23,6 +23,11 @@ LLM=${LLMS[$llm_idx]}
 source ~/.bashrc
 conda activate huggingface
 
+echo "Current git branch" 
+git branch
+
+echo "Generating pert and gene llm embeddings for dataset ${DATASET} with model ${LLM}"
+
 # Generate gene embeddings
 python -m scripts.llm_embeddings.generate_llm_gene_embeddings \
     --dataset_name ${DATASET} \

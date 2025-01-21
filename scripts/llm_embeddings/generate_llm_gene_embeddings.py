@@ -43,7 +43,9 @@ def main():
     ds_details = Catalogue.get_dataset_details(args.dataset_name)
 
     if args.model_name in ds_details.gene_embeddings:
-        logger.info(f"Embedding {args.model_name} already exists for dataset {args.dataset_name} - Terminating")
+
+        print(f"Embedding {args.model_name} already exists for dataset {args.dataset_name} - Terminating")
+        print(f"Available embeddings: {ds_details.gene_embeddings}")
         return
 
     assert torch.cuda.is_available(), "CUDA not available"
