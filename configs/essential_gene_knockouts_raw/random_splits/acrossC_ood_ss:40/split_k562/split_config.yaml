@@ -1,6 +1,0 @@
-dataset: essential_gene_knockouts_raw
-holdout_cells:
-- k562
-holdout_perts: []
-mode: ood
-name: rs-across-perts-ood-split-ss:40_split_k562

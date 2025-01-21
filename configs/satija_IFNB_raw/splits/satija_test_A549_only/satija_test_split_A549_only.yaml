@@ -1,7 +1,0 @@
-name: satija_test_eval_A549_only
-mode: ood
-dataset: satija_IFNB_raw
-holdout_perts: ['IFNAR2', 'STAT2']
-holdout_cells: ['BXPC3', 'HAP1', 'HT29', 'K562', 'MCF7']
-
-
