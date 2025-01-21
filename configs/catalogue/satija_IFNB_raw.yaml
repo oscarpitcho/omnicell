@@ -9,11 +9,14 @@ gene_embeddings:
 - bioBERT
 - MMedllama-3-8B
 - llamaPMC-7B
+- llamaPMC-13B
 log1p_transformed: false
 path: /orcd/data/omarabu/001/Omnicell_datasets/satija_IFNB_raw/Seurat_IFNB.h5ad
 pert_embeddings:
 - bioBERT
 - MMedllama-3-8B
+- llamaPMC-7B
+- llamaPMC-13B
 pert_key: gene
 precomputed_DEGs: true
 var_names_key: null
