@@ -5,10 +5,12 @@ control: NT
 count_normalized: false
 description: Some description of the dataset
 folder_path: /orcd/data/omarabu/001/Omnicell_datasets/satija_IFNB_raw/
-gene_embeddings: []
+gene_embeddings:
+- bioBERT
 log1p_transformed: false
 path: /orcd/data/omarabu/001/Omnicell_datasets/satija_IFNB_raw/Seurat_IFNB.h5ad
-pert_embeddings: []
+pert_embeddings:
+- bioBERT
 pert_key: gene
 precomputed_DEGs: true
 var_names_key: null

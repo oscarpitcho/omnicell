@@ -59,7 +59,6 @@ class Catalogue:
                     dataset_name = file_name.split(".")[0]
                     _catalogue[dataset_name] = DatasetDetails(**yaml.load(f, Loader=yaml.FullLoader))
 
-        print(_catalogue)
         return _catalogue
 
 
