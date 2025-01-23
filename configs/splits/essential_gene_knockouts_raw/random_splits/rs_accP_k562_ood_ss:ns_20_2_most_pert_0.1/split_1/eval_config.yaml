@@ -1,0 +1,43 @@
+dataset: essential_gene_knockouts_raw
+evaluation_targets:
+- - k562
+  - PHB2
+- - k562
+  - THOC2
+- - k562
+  - TWISTNB
+- - k562
+  - ZMAT2
+- - k562
+  - DDX24
+- - k562
+  - NUP98
+- - k562
+  - RPS5
+- - k562
+  - RPA2
+- - k562
+  - INTS2
+- - k562
+  - RPS7
+- - k562
+  - RPS20
+- - k562
+  - KAT8
+- - k562
+  - SNRPG
+- - k562
+  - RPL37A
+- - k562
+  - BUD13
+- - k562
+  - KANSL2
+- - k562
+  - RPS13
+- - k562
+  - QARS
+- - k562
+  - NSRP1
+- - k562
+  - TIMM23B
+name: rs_accP_k562_ood_ss:ns_20_2_most_pert_0.1-eval_1

@@ -1,0 +1,25 @@
+dataset: repogle_k562_essential_raw
+holdout_cells: []
+holdout_perts:
+- RPL15
+- U2AF1
+- RPL4
+- RPL7
+- RNF113A
+- TRRAP
+- RPL13
+- RPS3
+- DDX18
+- RPL27A
+- SNRPD3
+- DNTTIP2
+- PHB
+- WDR36
+- TSR2
+- RPL10
+- XAB2
+- EIF3A
+- LSM2
+- PCF11
+mode: ood
+name: rs_accP_k562_ood_ss:ns_20_2_most_pert_0.1-split_0

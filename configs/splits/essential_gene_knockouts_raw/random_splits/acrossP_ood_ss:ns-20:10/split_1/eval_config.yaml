@@ -1,0 +1,43 @@
+dataset: essential_gene_knockouts_raw
+evaluation_targets:
+- - k562
+  - CEBPZ
+- - k562
+  - DDX3X
+- - k562
+  - KRTAP4-7
+- - k562
+  - HSPH1
+- - k562
+  - ATL2
+- - k562
+  - ANKRD17
+- - k562
+  - PPA1
+- - k562
+  - EEFSEC
+- - k562
+  - PSMD6
+- - k562
+  - ATR
+- - k562
+  - BUB3
+- - k562
+  - POU5F1B
+- - k562
+  - NMT1
+- - k562
+  - CDK2
+- - k562
+  - ATP5ME
+- - k562
+  - SRPRB
+- - k562
+  - NAA10
+- - k562
+  - RFT1
+- - k562
+  - GPS2
+- - k562
+  - SNRPE
+name: eval_1_ood_ss:ns-20:10

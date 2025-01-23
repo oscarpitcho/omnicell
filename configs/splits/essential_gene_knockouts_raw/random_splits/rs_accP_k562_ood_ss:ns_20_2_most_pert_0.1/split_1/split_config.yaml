@@ -1,0 +1,25 @@
+dataset: essential_gene_knockouts_raw
+holdout_cells: []
+holdout_perts:
+- PHB2
+- THOC2
+- TWISTNB
+- ZMAT2
+- DDX24
+- NUP98
+- RPS5
+- RPA2
+- INTS2
+- RPS7
+- RPS20
+- KAT8
+- SNRPG
+- RPL37A
+- BUD13
+- KANSL2
+- RPS13
+- QARS
+- NSRP1
+- TIMM23B
+mode: ood
+name: rs_accP_k562_ood_ss:ns_20_2_most_pert_0.1-split_1

@@ -1,5 +1,9 @@
 name: omnicell
+channel_priority: strict
 channels:
+  - pytorch
+  - nvidia
+  - pyg
   - conda-forge
 dependencies:
   - python=3.9
