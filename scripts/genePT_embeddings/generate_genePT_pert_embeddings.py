@@ -55,21 +55,23 @@ def main():
 
 
     print(f"Loading dataset from {ds_details.path}")
-    adata = sc.read(ds_details.path, backed='r') 
+    adata = sc.read(ds_details.path, backed='r+') 
 
 
     pert_names = [x for x in adata.obs[ds_details.pert_key].unique() if x != ds_details.control]
 
 
     embeddings = []
+    names = []
 
     for i, g in enumerate(pert_names):
+        if g in pert_embeddings:
 
+            p_emb = pert_embeddings[g]
+            p_emb = torch.tensor(p_emb)
 
-        p_emb = pert_embeddings[g]
-        p_emb = torch.tensor(p_emb)
-
-        embeddings.append(p_emb)
+            embeddings.append(p_emb)
+            names.append(g)
 
         
 
@@ -82,7 +84,7 @@ def main():
     os.makedirs(save_path_gene_emb, exist_ok=True)
     
     
-    torch.save({"embedding": embeddings, "pert_names" : list(pert_names)},f"{save_path_gene_emb}/{EMBEDDING_NAME}.pt")
+    torch.save({"embedding": embeddings, "pert_names" : names},f"{save_path_gene_emb}/{EMBEDDING_NAME}.pt")
 
 
     #Register the new embedding in the catalogue, This modifies the underlying yaml file
