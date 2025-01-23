@@ -208,7 +208,8 @@ class DataLoader:
         # Checking if we have already a cached version of the preprocessed training data
         if self.complete_training_adata is None:
             logger.info(f"Loading training data at path: {self.training_dataset_details.path}")
-            adata = sc.read(self.training_dataset_details.path)
+            with open(self.training_dataset_details.path, 'rb') as f:
+                adata = sc.read_h5ad(f)
 
             logger.info(f"Loaded unpreprocessed data, # of data points: {len(adata)}, # of genes: {len(adata.var)}.")
 
