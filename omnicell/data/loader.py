@@ -161,7 +161,7 @@ class DataLoader:
 
 
 
-            adata = adata[adata.obs[PERT_KEY].isin(perts_with_embedding)]
+            adata = adata[(adata.obs[PERT_KEY].isin(perts_with_embedding)) | (adata.obs[PERT_KEY] == CONTROL_PERT)]
             number_perts_after_embedding_matching = len(adata.obs[PERT_KEY].unique())
 
             logger.info(f"Removed {number_perts_before - number_perts_after_column_matching} perturbations that were not in the dataset columns and {number_perts_after_column_matching - number_perts_after_embedding_matching} perturbations that did not have an embedding for a total of {number_perts_before - number_perts_after_embedding_matching} perturbations removed out of an initial {number_perts_before} perturbations")

@@ -137,6 +137,7 @@ def main(*args):
     gene_emb_dim = adata.varm[GENE_EMBEDDING_KEY].shape[1] if GENE_EMBEDDING_KEY in adata.varm else None
 
     logger.info(f"Data loaded, # of cells: {adata.shape[0]}, # of features: {input_dim} # of perts: {len(pert_ids)}")
+    logger.debug(f"Number of control cells {len(adata[adata.obs[PERT_KEY] == CONTROL_PERT])}")
     logger.info(f"Running experiment on {device}")
 
     logger.debug(f"Training data loaded, perts are: {adata.obs[PERT_KEY].unique()}")

@@ -42,7 +42,7 @@ def main():
     ds_details = Catalogue.get_dataset_details(args.dataset_name)
 
     if EMBEDDING_NAME in ds_details.pert_embeddings:
-        print(f"Embedding f{EMBEDDING_NAME} already exists for dataset {args.dataset_name} - Terminating")
+        print(f"Embedding {EMBEDDING_NAME} already exists for dataset {args.dataset_name} - Terminating")
         return
 
 
@@ -55,7 +55,11 @@ def main():
 
 
     print(f"Loading dataset from {ds_details.path}")
-    adata = sc.read(ds_details.path, backed='r+') 
+
+    with open(ds_details.path, 'rb') as f:
+        adata = sc.read_h5ad(f)
+
+
 
 
     pert_names = [x for x in adata.obs[ds_details.pert_key].unique() if x != ds_details.control]
