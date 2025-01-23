@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 from omnicell.constants import CELL_KEY, CONTROL_PERT, PERT_KEY
 from omnicell.models.collate_fns import ot_collate, cfm_collate
-
+from collections import defaultdict
 
 
 class StratifiedBatchSampler(Sampler[List[int]]):
@@ -53,12 +53,10 @@ class StratifiedBatchSampler(Sampler[List[int]]):
 
 class SCFMDataset(torch.utils.data.Dataset):
     def __init__(
-        self, source, target, pert_ids, pert_mat, source_strata, target_strata, size=int(1e4)
+        self, source, target, pert_ids, pert_map, source_strata, target_strata, size=int(1e4)
     ):
         source, target = np.array(source), np.array(target)
-        pert_ids, pert_mat = np.array(pert_ids), np.array(pert_mat)
-        
-        print(target.shape)
+        pert_ids = np.array(pert_ids) # , np.array(pert_mat)
         
         assert target.shape[0] == pert_ids.shape[0]
         assert source.shape[0] == source_strata.shape[0]
@@ -71,34 +69,61 @@ class SCFMDataset(torch.utils.data.Dataset):
         self.num_strata = len(self.strata)
         print(source_strata, self.strata, self.num_strata)
         
-        self.pert_ids = np.unique(pert_ids)
+        self.unique_pert_ids = np.unique(pert_ids)
         
-        self.source = [source[source_strata == stratum] for stratum in self.strata]
-        self.target = [
-            [
-                target[target_strata == stratum][pert_ids[target_strata == stratum] == pert_id] 
-                for pert_id in self.pert_ids
-            ] for stratum in self.strata
-        ]
-        self.pert_ids = [
-            [
-                pert_ids[target_strata == stratum][pert_ids[target_strata == stratum] == pert_id] 
-                for pert_id in self.pert_ids
-            ] for stratum in self.strata
-        ]
-        self.pert_mat = pert_mat
+        # self.source = [source[source_strata == stratum] for stratum in self.strata]
+        # self.target = [
+        #     [
+        #         target[target_strata == stratum][pert_ids[target_strata == stratum] == pert_id] 
+        #         for pert_id in self.pert_ids
+        #     ] for stratum in self.strata
+        # ]
+        # self.pert_ids = [
+        #     [
+        #         pert_ids[target_strata == stratum][pert_ids[target_strata == stratum] == pert_id] 
+        #         for pert_id in self.pert_ids
+        #     ] for stratum in self.strata
+        # ]
+
+        print("Creating source indices")
+        self.source_indices = {
+            stratum: np.where(source_strata == stratum)[0] 
+            for stratum in self.strata
+        }
+        print("Creating target indices")
+        self.target_indices = {
+            stratum: np.where(target_strata == stratum)[0] 
+            for stratum in self.strata
+        }
+        print("Creating pert indices")
+        self.pert_indices = {
+            pert: np.where(pert_ids == pert)[0] 
+            for pert in self.unique_pert_ids
+        }
+        print("Creating source and target dicts")
+        self.source = {}
+        self.target = defaultdict(dict)
+        self.pert_ids = defaultdict(dict)
+        for stratum in self.strata:
+            self.source[stratum] = source[source_strata == stratum]
+            for pert in self.unique_pert_ids:
+                self.target[stratum][pert] = target[(target_strata == stratum) & (pert_ids == pert)]
+                self.pert_ids[stratum][pert] = pert_ids[(target_strata == stratum) & (pert_ids == pert)]
+        self.pert_map = pert_map
         
 
     def __len__(self):
         return self.size
 
     def __getitem__(self, strata_idx):
-        stratum, idx = strata_idx
-        sidx = np.random.choice(self.source[stratum[0]].shape[0])
+        (stratum_idx, pert_idx), idx = strata_idx
+        stratum, pert = self.strata[stratum_idx], self.unique_pert_ids[pert_idx]
+        sidx = np.random.choice(self.source[stratum].shape[0])
+        print()
         return (
-            self.source[stratum[0]][sidx],
-            self.target[stratum[0]][stratum[1]][idx],
-            self.pert_mat[self.pert_ids[stratum[0]][stratum[1]][idx]],
+            self.source[stratum][sidx],
+            self.target[stratum][pert][idx],
+            self.pert_map[self.pert_ids[stratum][pert][idx]],
         )
 
 def get_identity_features(adata, cell_type_features=True):
@@ -119,17 +144,18 @@ def get_identity_features(adata, cell_type_features=True):
 
 
 def get_dataloader(
-        adata, batch_size=512, verbose=0, pert_reps=None, pert_ids=None, collate='ot'
+        adata, batch_size=512, verbose=0, pert_map=None, pert_ids=None, collate='ot', X=None
 ):
+        if X is None:
+            X = adata.X.toarray()
+            
         # CONTROL_PERT = 'NT'
         control_idx = adata.obs[PERT_KEY] == CONTROL_PERT
         pert_idx = adata.obs[PERT_KEY] != CONTROL_PERT
         cell_types = adata.obs[CELL_KEY].values
 
-        if pert_reps is None:
-            pert_ids, pert_reps, cell_types = get_identity_features(adata)
-
-        X = adata.obsm['embedding'] 
+        if pert_map is None:
+            pert_ids, pert_map, cell_types = get_identity_features(adata)
 
         control_train = X[control_idx]
         pert_train = X[pert_idx]
@@ -137,12 +163,12 @@ def get_dataloader(
         control_cell_types = cell_types[control_idx]
         pert_cell_types = cell_types[pert_idx]
 
-        print("pert_ids", pert_ids, pert_ids.shape)
-        print("pert_ids_train", pert_ids_train, pert_ids_train.shape)
+        # print("pert_ids", pert_ids, pert_ids.shape)
+        # print("pert_ids_train", pert_ids_train, pert_ids_train.shape)
 
-        print("cell_types", cell_types, cell_types.shape)
-        print("control_cell_types", control_cell_types, control_cell_types.shape)
-        print("pert_cell_types", pert_cell_types, pert_cell_types.shape)        
+        # print("cell_types", cell_types, cell_types.shape)
+        # print("control_cell_types", control_cell_types, control_cell_types.shape)
+        # print("pert_cell_types", pert_cell_types, pert_cell_types.shape)        
 
         if collate == 'ot':
              collate_fn = ot_collate
@@ -153,14 +179,21 @@ def get_dataloader(
 
         dset = SCFMDataset(
             control_train, pert_train, 
-            pert_ids_train, pert_reps, 
+            pert_ids_train, pert_map, 
             control_cell_types, pert_cell_types, size=X.shape[0]
         )
-        ns = np.array([[t.shape[0] for t in ts] for ts in dset.target])
+        ns = np.array(
+            [
+                [
+                    dset.target[stratum][pert].shape[0] for pert in dset.target[stratum]
+                ] for stratum in dset.target
+            ]
+        )
+        
         dl = torch.utils.data.DataLoader(
             dset, collate_fn=collate_fn, 
             batch_sampler=StratifiedBatchSampler(
                 ns=ns, batch_size=batch_size
             )
         )
-        return dl
+        return dset, ns, dl
