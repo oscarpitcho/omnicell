@@ -46,7 +46,6 @@ def are_identical(vals):
 
 def df_to_heatmap(df, title, path):
 
-    print(f"DF in heatmap function is {df}")
     # Calculate figure size based on dataframe dimensions
     row_count, col_count = df.shape
     base_size = 4  # Base size for a small dataframe
@@ -183,7 +182,6 @@ def main(*args):
 
         results[column_name] = result_dict
 
-
     #Find the intersection of the keys in all the results files
 
     keys = [set(x.keys()) for x in results.values()]
@@ -211,10 +209,6 @@ def main(*args):
     results_df = pd.concat(results.values(), axis=1)
 
     print(f"Results df before calling heatmap: {results_df}")
-
-    
-   
-        
     #Create a dataframe with all the results
 
     if args.metrics == 'None':

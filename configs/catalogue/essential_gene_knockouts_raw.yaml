@@ -17,6 +17,7 @@ pert_embeddings:
 - MMedllama-3-8B
 - llamaPMC-7B
 - llamaPMC-13B
+- GenePT
 pert_key: gene
 precomputed_DEGs: true
 var_names_key: null

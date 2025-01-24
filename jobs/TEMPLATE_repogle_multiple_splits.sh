@@ -51,7 +51,11 @@ python train.py \
     --datasplit_config ${SPLIT_BASE_DIR}/${SPLIT_DIR}/split_config.yaml \
     --eval_config ${SPLIT_BASE_DIR}/${SPLIT_DIR}/eval_config.yaml \
     --model_config ${MODEL_CONFIG} \
+    --slurm_id ${SLURM_ARRAY_JOB_ID} \
+    --slurm_array_task_id ${SLURM_ARRAY_TASK_ID} \
     -l DEBUG
+
+echo "Generating evaluations for ./results/${DATASET}/${ETL}/${MODEL}"
 
 # Generate evaluations
 python generate_evaluations.py \

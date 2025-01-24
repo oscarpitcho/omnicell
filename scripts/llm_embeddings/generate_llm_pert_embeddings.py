@@ -103,12 +103,12 @@ def main():
 
     print(f"Embeddings shape: {embeddings.shape}")
 
-    save_path_gene_emb = f"{ds_details.folder_path}/pert_embeddings/"
+    save_path_pert_emb = f"{ds_details.folder_path}/pert_embeddings/"
 
-    os.makedirs(save_path_gene_emb, exist_ok=True)
+    os.makedirs(save_path_pert_emb, exist_ok=True)
     
     
-    torch.save({"embedding": embeddings, "pert_names" : list(pert_names)},f"{save_path_gene_emb}/{args.model_name}.pt")
+    torch.save({"embedding": embeddings, "pert_names" : list(pert_names)},f"{save_path_pert_emb}/{args.model_name}.pt")
 
 
 
