@@ -127,6 +127,7 @@ def main(*args):
     
     #This is polluting the output
     logging.getLogger('numba').setLevel(logging.CRITICAL)
+    logging.getLogger('pytorch_lightning').setLevel(logging.CRITICAL)
     
     logger.info("Application started")
 

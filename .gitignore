@@ -4,7 +4,7 @@ __pycache__
 
 results
 ./models/
-./lightning_logs/
+lightning_logs/
 
 # Ignore all log files
 output_*
