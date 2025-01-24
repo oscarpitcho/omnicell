@@ -108,6 +108,7 @@ def main(*args):
     parser.add_argument('--eval_config', type=str, default=None, help='Path to yaml config file of the evaluations, if none provided the model will only be trained.')
     parser.add_argument('--test_mode', action='store_true', default=False, help='Run in test mode, datasetsize will be capped at 10000')
     parser.add_argument('--slurm_id', type=int, default=1, help='Slurm id for the job, useful for arrays')
+    parser.add_argument('--slurm_array_task_id', type=int, default=1, help='Slurm array task id, useful for arrays')
     parser.add_argument('-l', '--log', dest='loglevel', choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'], help="Set the logging level (default: %(default)s)", default='INFO')
 
     args = parser.parse_args()
@@ -117,8 +118,10 @@ def main(*args):
 
     config = Config.from_yamls(args.model_config, args.etl_config, args.datasplit_config, args.eval_config)
 
+    logfile_name = f'output_{args.slurm_id}_{args.slurm_array_task_id}_{config.get_etl_config_name()}_{config.get_model_name()}_{config.get_datasplit_config_name()}.log'
+
     logging.basicConfig(
-        filename=f'output_{args.slurm_id}_{config.get_model_name()}_{config.get_datasplit_config_name()}.log', 
+        filename=logfile_name, 
         filemode= 'w', level=args.loglevel, format='%(asctime)s - %(levelname)s - %(message)s'
     )
     
@@ -189,6 +192,7 @@ def main(*args):
 
             preds = model.make_predict(ctrl_data, pert_id, cell_id)
          
+            #TODO: Make sure all results are log normalized before saving. So as to not break the evals.
             preds = to_coo(preds)
             control  = to_coo(ctrl_data.X)
             ground_truth = to_coo(gt_data.X)
@@ -199,6 +203,9 @@ def main(*args):
             scipy.sparse.save_npz(f"{results_path}/{prediction_filename(pert_id, cell_id)}-ground_truth", ground_truth)
 
         logger.info("Evaluation completed")
+        logger.info("Saving logfile to results folder")
+
+        os.rename(logfile_name, f"{results_path}/{logfile_name}")
 
 
 if __name__ == '__main__':

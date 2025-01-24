@@ -3,7 +3,7 @@
 #SBATCH --ntasks-per-node=1
 #SBATCH --mem=96GB
 #SBATCH -p ou_bcs_low
-#SBATCH --array=0-7        # 4 Gene Embeddings x 2 Splits = 2 combinations
+#SBATCH --array=0-1       # 1 Gene Embeddings x 2 Splits = 2 combinations
 
 hostname
 
@@ -19,7 +19,7 @@ MODEL_CONFIG="${CONFIG_BASE_DIR}/models/linear_mean_model.yaml"
 MODEL_NAME="linear_mean_model"
 
 # Define configs and splits
-ETL_CONFIGS=("log_norm_BioBERT_pert_emb" "log_norm_GenePT_pert_emb" "log_norm_llamaPMC7B_pert_emb"  "log_norm_MMedllama3_8B_pert_emb")
+ETL_CONFIGS=("log_norm_llamaPMC13B_pert_emb")
 SPLITS=(0 1)
 
 # Calculate indices
@@ -42,7 +42,7 @@ python train.py \
     --datasplit_config ${SPLIT_BASE_DIR}/${SPLIT_DIR}/split_config.yaml \
     --eval_config ${SPLIT_BASE_DIR}/${SPLIT_DIR}/eval_config.yaml \
     --model_config ${MODEL_CONFIG} \
-    --slurm_id ${SLURM_ARRAY_JOB_ID} \  
+    --slurm_id ${SLURM_ARRAY_JOB_ID} \
     --slurm_array_task_id ${SLURM_ARRAY_TASK_ID} \
     -l DEBUG
 
