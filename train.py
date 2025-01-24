@@ -118,7 +118,7 @@ def main(*args):
 
     config = Config.from_yamls(args.model_config, args.etl_config, args.datasplit_config, args.eval_config)
 
-    logfile_name = f'output_{args.slurm_id}_{args.slurm_array_task_id}_{config.get_etl_config_name()}_{config.get_model_name()}_{config.get_datasplit_config_name()}.log'
+    logfile_name = f'output_{args.slurm_id}_{args.slurm_array_task_id}_{config.get_model_name()}_{config.get_etl_config_name()}_{config.get_datasplit_config_name()}.log'
 
     logging.basicConfig(
         filename=logfile_name, 
@@ -192,7 +192,7 @@ def main(*args):
 
             preds = model.make_predict(ctrl_data, pert_id, cell_id)
          
-            #TODO: Make sure all results are log normalized before saving. So as to not break the evals.
+            #TODO: Make sure all results are log normalized before saving. So as to not break the evals --> sc.tl.rankgenes expects log normalized data
             preds = to_coo(preds)
             control  = to_coo(ctrl_data.X)
             ground_truth = to_coo(gt_data.X)

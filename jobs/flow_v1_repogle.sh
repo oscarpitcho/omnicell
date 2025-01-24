@@ -2,8 +2,9 @@
 #SBATCH -t 12:00:00
 #SBATCH --ntasks-per-node=1
 #SBATCH --mem=96GB
+#SBATCH --gres=gpu:h100:1  # 1 h100 GPU
 #SBATCH -p ou_bcs_low
-#SBATCH --array=0-7        # 4 Gene Embeddings x 2 Splits = 2 combinations
+#SBATCH --array=0-9        # 5 Gene Embeddings x 2 Splits = 10 combinations
 
 hostname
 
@@ -15,11 +16,11 @@ ETL_BASE_DIR="configs/ETL"
 # ===== CONFIGURATION =====
 DATASET="repogle_k562_essential_raw"
 SPLIT_BASE_DIR="${CONFIG_BASE_DIR}/splits/${DATASET}/random_splits/rs_accP_k562_ood_ss:ns_20_2_most_pert_0.1"
-MODEL_CONFIG="${CONFIG_BASE_DIR}/models/linear_mean_model.yaml"
-MODEL_NAME="linear_mean_model"
+MODEL_CONFIG="${CONFIG_BASE_DIR}/models/flow.yaml"
+MODEL_NAME="flow"
 
 # Define configs and splits
-ETL_CONFIGS=("log_norm_BioBERT_pert_emb" "log_norm_GenePT_pert_emb" "log_norm_llamaPMC7B_pert_emb"  "log_norm_MMedllama3_8B_pert_emb")
+ETL_CONFIGS=("log_norm_BioBERT_pert_emb" "log_norm_GenePT_pert_emb" "log_norm_llamaPMC7B_pert_emb" "log_norm_llamaPMC13B_pert_emb" "log_norm_MMedllama3_8B_pert_emb")
 SPLITS=(0 1)
 
 # Calculate indices
