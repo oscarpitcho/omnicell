@@ -55,6 +55,8 @@ python train.py \
     --slurm_array_task_id ${SLURM_ARRAY_TASK_ID} \
     -l DEBUG
 
+echo "Generating evaluations for ./results/${DATASET}/${ETL}/${MODEL}"
+
 # Generate evaluations
 python generate_evaluations.py \
     --root_dir ./results/${DATASET}/${ETL}/${MODEL}

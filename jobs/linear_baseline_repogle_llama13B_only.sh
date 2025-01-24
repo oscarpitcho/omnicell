@@ -47,6 +47,9 @@ python train.py \
     -l DEBUG
 
 # Generate evaluations
+
+echo "Generating evaluations for ./results/${DATASET}/${ETL}/${MODEL}"
+
 python generate_evaluations.py \
     --root_dir ./results/${DATASET}/${ETL}/${MODEL}
 
