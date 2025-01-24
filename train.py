@@ -92,6 +92,17 @@ def get_model(model_name, config_model, loader, pert_rep_map, input_dim, device,
         from omnicell.models.mean_models.model import MeanPredictor
         logger.info("Mean model selected")
         model = MeanPredictor(config_model, pert_rep_map)
+    elif "control_predictor" in model_name:
+        from omnicell.models.dummy_predictors.control_predictor import ControlPredictor
+        logger.info("Control model selected")
+        adata_cheat = loader.get_complete_training_dataset()
+        model = ControlPredictor(adata_cheat)
+    
+    elif "mean_shift_dist" in model_name:
+        from omnicell.models.dummy_predictors.mean_shift_dist import MeanShiftDistributionPredictor
+        logger.info("Mean Shift Distribution model selected")
+        adata_cheat = loader.get_complete_training_dataset()
+        model = MeanShiftDistributionPredictor(adata_cheat)
         
     else:
         raise ValueError(f'Unknown model name {model_name}')

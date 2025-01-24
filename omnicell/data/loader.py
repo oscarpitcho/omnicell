@@ -66,9 +66,13 @@ Bullet points are sorted by increasing difficulty
 
 def get_identity_features(adata):
     perts = [p for p in np.unique(adata.obs[PERT_KEY]) if p != CONTROL_PERT]
-    # one hot encode set perts
-    pert_rep = pd.get_dummies(perts).set_index(perts).astype(np.float32)
-    return {pert: pert_rep[pert].values for pert in perts}
+    n_perts = len(perts)
+    
+    # Create identity matrix instead of using get_dummies
+    identity_matrix = np.eye(n_perts, dtype=np.float32)
+    
+    # Create dictionary mapping perturbations to one-hot vectors
+    return {pert: identity_matrix[i] for i, pert in enumerate(perts)}
 
 
 class DataLoader:
@@ -136,7 +140,7 @@ class DataLoader:
 
         else:
             logger.info("Using identity features for perturbations")
-            pert_embedding = get_identity_features(self.complete_training_adata)
+            pert_embedding = get_identity_features(adata)
             adata.uns[PERT_EMBEDDING_KEY] = pert_embedding
 
 
@@ -283,7 +287,7 @@ class DataLoader:
             gt_data = self.complete_eval_adata[(self.complete_eval_adata.obs[PERT_KEY] == pert_id) & (self.complete_eval_adata.obs[CELL_KEY] == cell_id)]
             ctrl_data = self.complete_eval_adata[(self.complete_eval_adata.obs[CELL_KEY] == cell_id) & (self.complete_eval_adata.obs[PERT_KEY] == CONTROL_PERT)]
 
-
+            logger.debug(f"Loaded data for cell: {cell_id}, pert: {pert_id}, # of pert data points: {len(gt_data)}, # of control points: {len(ctrl_data)}")
 
             #If no data is found we skip the evaluation
             if len(gt_data) == 0:
