@@ -46,7 +46,6 @@ def are_identical(vals):
 
 def df_to_heatmap(df, title, path):
 
-    print(f"DF in heatmap function is {df}")
     # Calculate figure size based on dataframe dimensions
     row_count, col_count = df.shape
     base_size = 4  # Base size for a small dataframe

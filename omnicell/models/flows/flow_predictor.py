@@ -47,15 +47,14 @@ class FlowPredictor():
 
         dset, ns, dl = get_dataloader(adata, pert_ids=self.pert_ids, pert_map=self.pert_map, collate='cfm')
 
-        print(f"Training model")
+        logger.info(f"Training model")
         # Train the model
         trainer = pl.Trainer(
             accelerator='gpu', 
             devices=1,
             max_epochs=self.max_epochs,
-            callbacks=[TQDMProgressBar(refresh_rate=1)],
-            enable_progress_bar=True,
-        )
+            logger=True)
+        
         self.model = self.model.to(device)            
         trainer.fit(self.model, dl)
 

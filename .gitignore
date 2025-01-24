@@ -3,8 +3,8 @@ __pycache__
 *.npz
 
 results
-./models/
-lightning_logs/
+/models/
+/lightning_logs/
 
 # Ignore all log files
 output_*
