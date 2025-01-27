@@ -150,7 +150,6 @@ class DataLoader:
         elif (not self.config.get_apply_log1p()) & dataset_details.log1p_transformed:
             raise ValueError("Specified dataset is log1p transformed, but log1p transformation is turned off in the config")
 
-
         if self.config.get_metric_space() is not None:
             if self.config.get_metric_space() in dataset_details.metric_spaces:
                 adata.obsm["metric_space"] = adata.obsm[self.config.get_metric_space()]
@@ -249,15 +248,11 @@ class DataLoader:
             adata = self.preprocess_data(adata, training=False)
             self.complete_eval_adata = adata
 
-
-
         #TODO: Double check that this is evaluated lazily
         logger.debug(f"Eval targets are {self.config.get_eval_targets()}")
         for cell_id, pert_id in self.config.get_eval_targets():
             gt_data = self.complete_eval_adata[(self.complete_eval_adata.obs[PERT_KEY] == pert_id) & (self.complete_eval_adata.obs[CELL_KEY] == cell_id)]
             ctrl_data = self.complete_eval_adata[(self.complete_eval_adata.obs[CELL_KEY] == cell_id) & (self.complete_eval_adata.obs[PERT_KEY] == CONTROL_PERT)]
-
-
 
             #If no data is found we skip the evaluation
             if len(gt_data) == 0:
