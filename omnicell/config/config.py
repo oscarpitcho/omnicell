@@ -39,7 +39,6 @@ class ETLConfig:
 @dataclass
 class EmbeddingConfig:
     """Configuration for all embeddings attached to the the dataset."""
-    name: str
     gene_embedding: Optional[str] = None
     pert_embedding: Optional[str] = None
     metric_space: Optional[str] = None
@@ -49,6 +48,20 @@ class EmbeddingConfig:
         with open(path) as f:
             return cls(**yaml.safe_load(f))
 
+    @property
+    def name (self) -> str:
+        """Get the name of the embedding configuration."""
+
+        #format: gemb_X_pemb_Y_mspace_Z
+        name_parts = []
+        if self.gene_embedding:
+            name_parts.append(f"gemb_{self.gene_embedding}")
+        if self.pert_embedding:
+            name_parts.append(f"pemb_{self.pert_embedding}")
+        if self.metric_space:
+            name_parts.append(f"mspace_{self.metric_space}")
+
+        return '_'.join(name_parts)
 
 @dataclass
 class DatasplitConfig:
@@ -82,7 +95,7 @@ class Config:
     model_config: ModelConfig
     etl_config: ETLConfig
     datasplit_config: DatasplitConfig
-    embedding_config: EmbeddingConfig
+    embedding_config: Optional[EmbeddingConfig] = None
     eval_config: Optional[EvalConfig] = None
 
 
