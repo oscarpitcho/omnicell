@@ -203,11 +203,23 @@ def main(*args):
 
 
             preds = model.make_predict(ctrl_data, pert_id, cell_id)
+
+            preds = preds
+            control = ctrl_data.X
+            ground_truth = gt_data.X
+
+            
+            #No log1p in the config --> we need to log normalize the results before saving them for evals to work
+            if not config.etl_config.log1p:
+                preds = np.log1p(preds)
+                control = np.log1p(control)
+                ground_truth = np.log1p(ground_truth)
          
-            #TODO: Make sure all results are log normalized before saving. So as to not break the evals --> sc.tl.rankgenes expects log normalized data
             preds = to_coo(preds)
             control  = to_coo(ctrl_data.X)
             ground_truth = to_coo(gt_data.X)
+
+
 
             #TODO: We only need to save one control file per cell, if we have several perts we can reuse the same control file
             scipy.sparse.save_npz(f"{results_path}/{prediction_filename(pert_id, cell_id)}-preds", preds)
