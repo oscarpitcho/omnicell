@@ -6,7 +6,7 @@ import numpy as np
 
 from omnicell.models.datamodules import get_dataloader
 
-from omnicell.models.flows.arch import CMHA, CMLP, CFM
+from omnicell.models.flows.arch import CMHA, CMLP, CFM, CFMC, CMLPC
 from omnicell.models.flows.flow_utils import compute_conditional_flow
 from pytorch_lightning.callbacks import TQDMProgressBar
 import pytorch_lightning as pl
@@ -27,8 +27,11 @@ class FlowPredictor():
         self.pert_map = {k: pert_rep[pert_map[k]] for k in pert_map}
         # self.pert_rep = pert_rep
 
+        
         if config['arch'] == 'mlp':
             self.model = CMLP(training_module=CFM, feat_dim=input_size, cond_dim=pert_rep.shape[1], time_varying=True, **self.model_config)
+        elif config['arch'] == 'mlpc':
+            self.model = CMLPC(training_module=CFMC, feat_dim=input_size, cond_dim=pert_rep.shape[1], time_varying=True, **self.model_config)
         else:
             raise NotImplementedError(f"Model architecture {self.model_config['arch']} not implemented")
         
