@@ -29,10 +29,7 @@ class ETLConfig:
     count_norm: bool = False
     log1p: bool = False
     drop_unmatched_perts: bool = False
-    metric_space: Optional[str] = None
     HVG: bool = False
-    gene_embedding: Optional[str] = None
-    pert_embedding: Optional[str] = None
 
     @classmethod
     def from_yaml(cls, path: str) -> 'ETLConfig':
@@ -42,6 +39,7 @@ class ETLConfig:
 @dataclass
 class EmbeddingConfig:
     """Configuration for all embeddings attached to the the dataset."""
+    name: str
     gene_embedding: Optional[str] = None
     pert_embedding: Optional[str] = None
     metric_space: Optional[str] = None
@@ -142,6 +140,7 @@ class Config:
         
         return Path(
             f"./models/{self.datasplit_config.dataset}"
+            f"/{self.embedding_config.name}"
             f"/{self.etl_config.name}"
             f"/{self.model_config.name}"
             f"/{datasplit_prefix_path}{self.datasplit_config.name}"
@@ -159,6 +158,7 @@ class Config:
         
         return Path(
             f"./results/{self.datasplit_config.dataset}"
+            f"/{self.embedding_config.name}"
             f"/{self.etl_config.name}"
             f"/{self.model_config.name}"
             f"/{datasplit_prefix_path}{self.datasplit_config.name()}"
@@ -187,6 +187,7 @@ class Config:
     def get_training_config(self) -> 'Config':
         """Get a new Config instance with only training-related configurations."""
         return Config(
+            embedding_config=self.embedding_config,
             model_config=self.model_config,
             etl_config=self.etl_config,
             datasplit_config=self.datasplit_config

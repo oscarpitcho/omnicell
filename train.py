@@ -157,7 +157,7 @@ def main(*args):
 
     logger.debug(f"Training data loaded, perts are: {adata.obs[PERT_KEY].unique()}")
 
-    model = get_model(config.model_config.name), config.model_config, loader, pert_rep_map, input_dim, device, pert_ids, gene_emb_dim)
+    model = get_model(config.model_config.name, config.model_config, loader, pert_rep_map, input_dim, device, pert_ids, gene_emb_dim)
 
     model_savepath = f"{config.get_train_path()}/training"
 
