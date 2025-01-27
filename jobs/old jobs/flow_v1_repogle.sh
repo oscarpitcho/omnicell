@@ -1,35 +1,27 @@
 #!/bin/bash
 #SBATCH -t 12:00:00
-#SBATCH -n 4      #4 CPUS
-#SBATCH --mem=512GB
-#SBATCH -p ou_bcs_low
+#SBATCH --ntasks-per-node=1
+#SBATCH --mem=96GB
 #SBATCH --gres=gpu:h100:1  # 1 h100 GPU
-#SBATCH --array=0-5        # CHANGE HERE TO MATCH SIZE OF CROSS PRODUCT: 3 Gene Embeddings x 2 Splits = 6 combinations 
-
+#SBATCH -p ou_bcs_low
+#SBATCH --array=0-9        # 5 Gene Embeddings x 2 Splits = 10 combinations
 
 hostname
-
-
-### CHANGE HERE FOR THE CORRECT MODEL CONFIG ###
-MODEL_CONFIG="${CONFIG_BASE_DIR}/models/sclambda_normal.yaml"
-MODEL_NAME="sclambda_normal"
-
-### CHANGE HERE TO SELECT ONLY THE RELEVANT ETL CONFIGS UNDER ${ETL_BASE_DIR} ###
-ETL_CONFIGS=("HVG_log_norm_llamaPMC8B" "HVG_log_norm_llamaPMC13B" "HVG_log_norm_MMedllama3_8B")
-
-### CHANGE HERE TO ONLY SELECT ONE OF THE RANDOM SPLITS ###
-SPLITS=(0 1) # 2 splits (0) or (1)
-
 
 CONFIG_BASE_DIR="configs"
 ETL_BASE_DIR="configs/ETL"
 
 
+
 # ===== CONFIGURATION =====
 DATASET="repogle_k562_essential_raw"
 SPLIT_BASE_DIR="${CONFIG_BASE_DIR}/splits/${DATASET}/random_splits/rs_accP_k562_ood_ss:ns_20_2_most_pert_0.1"
+MODEL_CONFIG="${CONFIG_BASE_DIR}/models/flow.yaml"
+MODEL_NAME="flow"
 
-
+# Define configs and splits
+ETL_CONFIGS=("log_norm_BioBERT_pert_emb" "log_norm_GenePT_pert_emb" "log_norm_llamaPMC7B_pert_emb" "log_norm_llamaPMC13B_pert_emb" "log_norm_MMedllama3_8B_pert_emb")
+SPLITS=(0 1)
 
 # Calculate indices
 etl_config_idx=$((SLURM_ARRAY_TASK_ID / ${#SPLITS[@]}))
@@ -55,10 +47,8 @@ python train.py \
     --slurm_array_task_id ${SLURM_ARRAY_TASK_ID} \
     -l DEBUG
 
-echo "Generating evaluations for ./results/${DATASET}/${ETL}/${MODEL}"
-
 # Generate evaluations
 python generate_evaluations.py \
     --root_dir ./results/${DATASET}/${ETL}/${MODEL}
-    
+
 echo "All jobs finished for ${SPLIT_DIR}"

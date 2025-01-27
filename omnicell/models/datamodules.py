@@ -174,6 +174,8 @@ def get_dataloader(
              collate_fn = ot_collate
         elif collate == 'cfm':
             collate_fn = cfm_collate    
+        elif collate == 'cfm_control':
+            collate_fn = lambda batch: cfm_collate(batch, return_control=True)
         else:
             raise ValueError(f"Collate function {collate} not recognized")
 

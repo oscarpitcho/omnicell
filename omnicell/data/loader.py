@@ -2,7 +2,7 @@ import scanpy as sc
 from typing import Optional, List, Tuple
 from dataclasses import dataclass, field
 from omnicell.config.config import Config
-from omnicell.constants import PERT_KEY, CELL_KEY, CONTROL_PERT
+from omnicell.constants import PERT_KEY, CELL_KEY, CONTROL_PERT, PERT_EMBEDDING_KEY
 from omnicell.data.catalogue import DatasetDetails, Catalogue
 import torch
 import logging
@@ -65,10 +65,14 @@ Bullet points are sorted by increasing difficulty
 #TODO: Want to include generic dataset caching, we might starting having many datasets involved in training, not just one
 
 def get_identity_features(adata):
-    perts = np.unique(adata.obs[PERT_KEY])
-    # one hot encode set perts
-    pert_rep = pd.get_dummies(perts).set_index(perts).astype(np.float32)
-    return {pert: pert_rep[pert].values for pert in perts}
+    perts = [p for p in np.unique(adata.obs[PERT_KEY]) if p != CONTROL_PERT]
+    n_perts = len(perts)
+    
+    # Create identity matrix instead of using get_dummies
+    identity_matrix = np.eye(n_perts, dtype=np.float32)
+    
+    # Create dictionary mapping perturbations to one-hot vectors
+    return {pert: identity_matrix[i] for i, pert in enumerate(perts)}
 
 
 class DataLoader:
@@ -121,17 +125,53 @@ class DataLoader:
                 adata.varm["gene_embedding"] = gene_rep
 
 
+        #Getting the per embedding if it is specified
+        if self.pert_embedding_name is not None:
+            if self.pert_embedding_name not in self.training_dataset_details.pert_embeddings:
+                raise ValueError(f"Perturbation embedding {self.pert_embedding_name} not found in embeddings available for dataset {self.training_dataset_details.name}")
+            else:
+                logger.info(f"Loading perturbation embedding from {self.training_dataset_details.folder_path}/{self.pert_embedding_name}.pt")
+                pert_embeddings_and_name = torch.load(f"{self.training_dataset_details.folder_path}/pert_embeddings/{self.pert_embedding_name}.pt")
+                embeddings = pert_embeddings_and_name["embedding"]
+                pert_names = pert_embeddings_and_name["pert_names"]
+                pert_embedding = {pert_names[i]: embeddings[i] for i in range(len(embeddings))}
+
+                adata.uns[PERT_EMBEDDING_KEY] = pert_embedding
+
+        else:
+            logger.info("Using identity features for perturbations")
+            pert_embedding = get_identity_features(adata)
+            adata.uns[PERT_EMBEDDING_KEY] = pert_embedding
+
+
         #Getting HVG genes
         if not dataset_details.HVG and self.config.get_HVG():
             logger.info(f"Filtering HVG to top 2000 genes of {adata.shape[1]}")
             sc.pp.highly_variable_genes(adata, n_top_genes=2000, flavor='seurat_v3')
             adata = adata[:, adata.var.highly_variable]
 
-            #TODO: Make this filtering apply only for datasets of genetic perturbation
-            #We remove observations perturbed with a gene whuch is not HVG / CONTROL
+        #TODO: Make this filtering apply only for datasets of genetic perturbation
+        #We remove observations perturbed with a gene whuch is not in the columns of the dataset
+        #We also remove perturbations that do not have any embedding
         if self.config.get_drop_unmatched_perts():
             logger.info("Removing observations with perturbations not in the dataset as a column")
+
+            number_perts_before = len(adata.obs[PERT_KEY].unique())
             adata = adata[((adata.obs[PERT_KEY] == CONTROL_PERT) | adata.obs[PERT_KEY].isin(adata.var_names))]
+            number_perts_after_column_matching = len(adata.obs[PERT_KEY].unique())
+
+            pert_embedding = adata.uns[PERT_EMBEDDING_KEY]
+            perts_with_embedding = set(pert_embedding.keys())
+
+
+
+            adata = adata[(adata.obs[PERT_KEY].isin(perts_with_embedding)) | (adata.obs[PERT_KEY] == CONTROL_PERT)]
+            number_perts_after_embedding_matching = len(adata.obs[PERT_KEY].unique())
+
+            logger.info(f"Removed {number_perts_before - number_perts_after_column_matching} perturbations that were not in the dataset columns and {number_perts_after_column_matching - number_perts_after_embedding_matching} perturbations that did not have an embedding for a total of {number_perts_before - number_perts_after_embedding_matching} perturbations removed out of an initial {number_perts_before} perturbations")
+        
+
+
 
         
         adata.obsm["embedding"] = adata.X.toarray().astype('float32')
@@ -168,7 +208,7 @@ class DataLoader:
         If an pert embedding is specified then it is also returned
         """
 
-        # Checking if we have already a cached version of the training data
+        # Checking if we have already a cached version of the preprocessed training data
         if self.complete_training_adata is None:
             logger.info(f"Loading training data at path: {self.training_dataset_details.path}")
             with open(self.training_dataset_details.path, 'rb') as f:
@@ -182,20 +222,7 @@ class DataLoader:
             self.complete_training_adata = adata
             logger.debug(f"Loaded complete data, # of data points: {len(adata)}, # of genes: {len(adata.var)}, # of conditions: {len(adata.obs[PERT_KEY].unique())}")
 
-        #Getting the per embedding if it is specified
-        if self.pert_embedding_name is not None:
-            if self.pert_embedding_name not in self.training_dataset_details.pert_embeddings:
-                raise ValueError(f"Perturbation embedding {self.pert_embedding_name} not found in embeddings available for dataset {self.training_dataset_details.name}")
-            else:
-                logger.info(f"Loading perturbation embedding from {self.training_dataset_details.folder_path}/{self.pert_embedding_name}.pt")
-                pert_embeddings_and_name = torch.load(f"{self.training_dataset_details.folder_path}/pert_embeddings/{self.pert_embedding_name}.pt")
-                embeddings = pert_embeddings_and_name["embedding"]
-                pert_names = pert_embeddings_and_name["pert_names"]
-                pert_embedding = {pert_names[i]: embeddings[i] for i in range(len(embeddings))}
-
-        else:
-            pert_embedding = get_identity_features(self.complete_training_adata)
-
+    
         # Doing the data split
         if self.config.get_mode() == "ood":
             logger.info("Doing OOD split")
@@ -215,6 +242,9 @@ class DataLoader:
         #Subsetting complete dataset to entries for training
         adata_train = self.complete_training_adata[train_mask]
 
+
+        #We still return the pert embedding here to not break code that relies on it
+        pert_embedding = adata.uns[PERT_EMBEDDING_KEY]
         return adata_train, pert_embedding
 
 

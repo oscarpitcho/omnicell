@@ -1,3 +1,0 @@
-name: ev_satija_across_genes
-dataset: satija_IFNB_hvg   
-evaluation_targets: [[A549, IFNAR2], [A549, TYK2], [A549, STAT2], [A549, IFNAR1]]

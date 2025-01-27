@@ -35,7 +35,7 @@ def distribute_shift(ctrl_cells, mean_shift):
             continue  
 
         # Current counts for this gene across cells
-        gene_counts = ctrl_cells[:, g]
+        gene_counts = ctrl_cells[:, g].astype(np.float64)
 
         current_total = gene_counts.sum().astype(np.float64)
         

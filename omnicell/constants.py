@@ -11,6 +11,7 @@ CELL_KEY = 'cell'
 CONTROL_PERT = 'ctrl'
 GENE_VAR_KEY = 'gene'
 GENE_EMBEDDING_KEY = 'gene_embedding'
+PERT_EMBEDDING_KEY = 'pert_embedding'
 
 # Set root path - either from env var or current directory
 if 'OMNICELL_ROOT' in os.environ:

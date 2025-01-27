@@ -92,6 +92,17 @@ def get_model(model_name, config_model, loader, pert_rep_map, input_dim, device,
         from omnicell.models.mean_models.model import MeanPredictor
         logger.info("Mean model selected")
         model = MeanPredictor(config_model, pert_rep_map)
+    elif "control_predictor" in model_name:
+        from omnicell.models.dummy_predictors.control_predictor import ControlPredictor
+        logger.info("Control model selected")
+        adata_cheat = loader.get_complete_training_dataset()
+        model = ControlPredictor(adata_cheat)
+    
+    elif "mean_shift_dist" in model_name:
+        from omnicell.models.dummy_predictors.mean_shift_dist import MeanShiftDistributionPredictor
+        logger.info("Mean Shift Distribution model selected")
+        adata_cheat = loader.get_complete_training_dataset()
+        model = MeanShiftDistributionPredictor(adata_cheat)
         
     else:
         raise ValueError(f'Unknown model name {model_name}')
@@ -108,6 +119,7 @@ def main(*args):
     parser.add_argument('--eval_config', type=str, default=None, help='Path to yaml config file of the evaluations, if none provided the model will only be trained.')
     parser.add_argument('--test_mode', action='store_true', default=False, help='Run in test mode, datasetsize will be capped at 10000')
     parser.add_argument('--slurm_id', type=int, default=1, help='Slurm id for the job, useful for arrays')
+    parser.add_argument('--slurm_array_task_id', type=int, default=1, help='Slurm array task id, useful for arrays')
     parser.add_argument('-l', '--log', dest='loglevel', choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'], help="Set the logging level (default: %(default)s)", default='INFO')
 
     args = parser.parse_args()
@@ -117,13 +129,16 @@ def main(*args):
 
     config = Config.from_yamls(args.model_config, args.etl_config, args.datasplit_config, args.eval_config)
 
+    logfile_name = f'output_{args.slurm_id}_{args.slurm_array_task_id}_{config.get_model_name()}_{config.get_etl_config_name()}_{config.get_datasplit_config_name()}.log'
+
     logging.basicConfig(
-        filename=f'output_{args.slurm_id}_{config.get_model_name()}_{config.get_datasplit_config_name()}.log', 
+        filename=logfile_name, 
         filemode= 'w', level=args.loglevel, format='%(asctime)s - %(levelname)s - %(message)s'
     )
     
     #This is polluting the output
     logging.getLogger('numba').setLevel(logging.CRITICAL)
+    logging.getLogger('pytorch_lightning').setLevel(logging.CRITICAL)
     
     logger.info("Application started")
 
@@ -137,6 +152,7 @@ def main(*args):
     gene_emb_dim = adata.varm[GENE_EMBEDDING_KEY].shape[1] if GENE_EMBEDDING_KEY in adata.varm else None
 
     logger.info(f"Data loaded, # of cells: {adata.shape[0]}, # of features: {input_dim} # of perts: {len(pert_ids)}")
+    logger.debug(f"Number of control cells {len(adata[adata.obs[PERT_KEY] == CONTROL_PERT])}")
     logger.info(f"Running experiment on {device}")
 
     logger.debug(f"Training data loaded, perts are: {adata.obs[PERT_KEY].unique()}")
@@ -188,6 +204,7 @@ def main(*args):
 
             preds = model.make_predict(ctrl_data, pert_id, cell_id)
          
+            #TODO: Make sure all results are log normalized before saving. So as to not break the evals --> sc.tl.rankgenes expects log normalized data
             preds = to_coo(preds)
             control  = to_coo(ctrl_data.X)
             ground_truth = to_coo(gt_data.X)
@@ -198,6 +215,9 @@ def main(*args):
             scipy.sparse.save_npz(f"{results_path}/{prediction_filename(pert_id, cell_id)}-ground_truth", ground_truth)
 
         logger.info("Evaluation completed")
+        logger.info("Saving logfile to results folder")
+
+        os.rename(logfile_name, f"{results_path}/{logfile_name}")
 
 
 if __name__ == '__main__':
