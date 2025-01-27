@@ -23,6 +23,7 @@ SPLITS=(0 1) # 2 splits (0) or (1)
 
 CONFIG_BASE_DIR="configs"
 ETL_BASE_DIR="configs/ETL"
+EMB_BASE_DIR="configs/embeddings"
 
 
 # ===== CONFIGURATION =====

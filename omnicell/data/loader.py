@@ -82,9 +82,10 @@ class DataLoader:
 
         logger.debug(f"Training dataset details: {self.training_dataset_details}")
 
-        self.pert_embedding_name: Optional[str] = config.embedding_config.pert_embedding
+        self.pert_embedding_name: Optional[str] = config.embedding_config.pert_embedding if config.embedding_config is not None else None
+        self.gene_embedding_name: Optional[str] = config.embedding_config.gene_embedding if config.embedding_config is not None else None
+        self.metric_space: Optional[str] = config.embedding_config.metric_space if config.embedding_config is not None else None
 
-        self.gene_embedding_name: Optional[str] = config.embedding_config.gene_embedding
         
         #TODO: Handle
         self.pert_embedding_details: Optional[dict] = None
@@ -190,9 +191,9 @@ class DataLoader:
         elif (not self.config.etl_config.log1p) & dataset_details.log1p_transformed:
             raise ValueError("Specified dataset is log1p transformed, but log1p transformation is turned off in the config")
 
-        if self.config.embedding_config.metric_space is not None:
-            if self.config.embedding_config.metric_space in dataset_details.metric_spaces:
-                adata.obsm["metric_space"] = adata.obsm[self.config.embedding_config.metric_space]
+        if self.metric_space is not None:
+            if self.metric_space in dataset_details.metric_spaces:
+                adata.obsm["metric_space"] = adata.obsm[self.metric_space]
             else:
                 raise ValueError(f"Metric space {self.config.embedding_config.metric_space} not found in metric spaces available for dataset {dataset_details.name}")
 
