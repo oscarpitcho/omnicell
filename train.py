@@ -129,7 +129,7 @@ def main(*args):
 
     config = Config.from_yamls(args.model_config, args.etl_config, args.datasplit_config, args.eval_config)
 
-    logfile_name = f'output_{args.slurm_id}_{args.slurm_array_task_id}_{config.get_model_name()}_{config.get_etl_config_name()}_{config.get_datasplit_config_name()}.log'
+    logfile_name = f'output_{args.slurm_id}_{args.slurm_array_task_id}_{config.model_config.name}_{config.etl_config.name}_{config.datasplit_config.name}.log'
 
     logging.basicConfig(
         filename=logfile_name, 
@@ -157,7 +157,7 @@ def main(*args):
 
     logger.debug(f"Training data loaded, perts are: {adata.obs[PERT_KEY].unique()}")
 
-    model = get_model(config.get_model_name(), config.model_config, loader, pert_rep_map, input_dim, device, pert_ids, gene_emb_dim)
+    model = get_model(config.model_config.name), config.model_config, loader, pert_rep_map, input_dim, device, pert_ids, gene_emb_dim)
 
     model_savepath = f"{config.get_train_path()}/training"
 

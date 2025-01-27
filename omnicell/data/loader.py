@@ -78,13 +78,13 @@ def get_identity_features(adata):
 class DataLoader:
     def __init__(self, config: Config):
         self.config = config
-        self.training_dataset_details: DatasetDetails = Catalogue.get_dataset_details(config.get_training_dataset_name())
+        self.training_dataset_details: DatasetDetails = Catalogue.get_dataset_details(config.datasplit_config.dataset)
 
         logger.debug(f"Training dataset details: {self.training_dataset_details}")
 
-        self.pert_embedding_name: Optional[str] = config.get_pert_embedding_name()
+        self.pert_embedding_name: Optional[str] = config.embedding_config.pert_embedding
 
-        self.gene_embedding_name: Optional[str] = config.get_gene_embedding_name()
+        self.gene_embedding_name: Optional[str] = config.embedding_config.gene_embedding
         
         #TODO: Handle
         self.pert_embedding_details: Optional[dict] = None
@@ -101,7 +101,7 @@ class DataLoader:
     def preprocess_data(self, adata: sc.AnnData, training: bool) -> sc.AnnData:
 
         dataset_details = self.training_dataset_details if training else self.eval_dataset_details
-        dataset_name = self.config.get_training_dataset_name() if training else self.config.get_eval_dataset_name()
+        dataset_name = self.config.datasplit_config.dataset if training else self.config.eval_config.dataset
         # Standardize column names and key values
         condition_key = dataset_details.pert_key
         cell_key = dataset_details.cell_key if training else self.eval_dataset_details.cell_key
@@ -145,7 +145,7 @@ class DataLoader:
 
 
         #Getting HVG genes
-        if not dataset_details.HVG and self.config.get_HVG():
+        if not dataset_details.HVG and self.config.etl_config.HVG:
             logger.info(f"Filtering HVG to top 2000 genes of {adata.shape[1]}")
             sc.pp.highly_variable_genes(adata, n_top_genes=2000, flavor='seurat_v3')
             adata = adata[:, adata.var.highly_variable]
@@ -153,7 +153,7 @@ class DataLoader:
         #TODO: Make this filtering apply only for datasets of genetic perturbation
         #We remove observations perturbed with a gene whuch is not in the columns of the dataset
         #We also remove perturbations that do not have any embedding
-        if self.config.get_drop_unmatched_perts():
+        if self.config.etl_config.drop_unmatched_perts:
             logger.info("Removing observations with perturbations not in the dataset as a column")
 
             number_perts_before = len(adata.obs[PERT_KEY].unique())
@@ -180,21 +180,21 @@ class DataLoader:
             adata.var_names = adata.var[dataset_details.var_names_key]
 
         # Apply normalization and log1p if needed
-        if self.config.get_apply_normalization() & (not dataset_details.count_normalized):
+        if self.config.etl_config.count_norm & (not dataset_details.count_normalized):
             sc.pp.normalize_total(adata, target_sum=10_000)
-        elif ((not self.config.get_apply_normalization()) & dataset_details.count_normalized):
+        elif ((not self.config.etl_config.count_norm) & dataset_details.count_normalized):
             raise ValueError("Specified dataset is count normalized, but normalization is turned off in the config")
         
-        if self.config.get_apply_log1p() & (not dataset_details.log1p_transformed):
+        if self.config.etl_config.log1p & (not dataset_details.log1p_transformed):
             sc.pp.log1p(adata)
-        elif (not self.config.get_apply_log1p()) & dataset_details.log1p_transformed:
+        elif (not self.config.etl_config.log1p) & dataset_details.log1p_transformed:
             raise ValueError("Specified dataset is log1p transformed, but log1p transformation is turned off in the config")
 
-        if self.config.get_metric_space() is not None:
-            if self.config.get_metric_space() in dataset_details.metric_spaces:
-                adata.obsm["metric_space"] = adata.obsm[self.config.get_metric_space()]
+        if self.config.embedding_config.metric_space is not None:
+            if self.config.embedding_config.metric_space in dataset_details.metric_spaces:
+                adata.obsm["metric_space"] = adata.obsm[self.config.embedding_config.metric_space]
             else:
-                raise ValueError(f"Metric space {self.config.get_metric_space()} not found in metric spaces available for dataset {dataset_details.name}")
+                raise ValueError(f"Metric space {self.config.embedding_config.metric_space} not found in metric spaces available for dataset {dataset_details.name}")
 
         if dataset_details.precomputed_DEGs:
             DEGs = json.load(open(f"{dataset_details.folder_path}/DEGs.json"))
@@ -224,10 +224,10 @@ class DataLoader:
 
     
         # Doing the data split
-        if self.config.get_mode() == "ood":
+        if self.config.datasplit_config.mode == "ood":
             logger.info("Doing OOD split")
             # Taking cells for training where neither the cell nor the perturbation is held out
-            holdout_mask = (self.complete_training_adata.obs[PERT_KEY].isin(self.config.get_heldout_perts())) | (self.complete_training_adata.obs[CELL_KEY].isin(self.config.get_heldout_cells()))
+            holdout_mask = (self.complete_training_adata.obs[PERT_KEY].isin(self.config.datasplit_config.holdout_perts)) | (self.complete_training_adata.obs[CELL_KEY].isin(self.config.datasplit_config.holdout_cells))
             train_mask = ~holdout_mask
 
         # IID, we include unperturbed holdouts cells
@@ -236,7 +236,7 @@ class DataLoader:
             # Holding out only cells that have heldout perturbations AND cell. Thus:
             # A perturbation will be included on the non holdout cell type eg
             # Control of heldout cell type will be included
-            holdout_mask = (self.complete_training_adata.obs[CELL_KEY].isin(self.config.get_heldout_cells())) & (self.complete_training_adata.obs[PERT_KEY].isin(self.config.get_heldout_perts()))
+            holdout_mask = (self.complete_training_adata.obs[CELL_KEY].isin(self.config.datasplit_config.holdout_cells)) & (self.complete_training_adata.obs[PERT_KEY].isin(self.config.datasplit_config.holdout_perts))
             train_mask = ~holdout_mask
 
         #Subsetting complete dataset to entries for training
@@ -262,10 +262,10 @@ class DataLoader:
         return self.complete_training_adata
 
     def get_eval_data(self):
-        self.eval_dataset_details = Catalogue.get_dataset_details(self.config.get_eval_dataset_name())
+        self.eval_dataset_details = Catalogue.get_dataset_details(self.config.eval_config.dataset)
 
         #To avoid loading the same data twice
-        if self.config.get_training_dataset_name() == self.config.get_eval_dataset_name():
+        if self.config.datasplit_config.dataset == self.config.eval_config.dataset:
             self.complete_eval_adata = self.get_complete_training_dataset()
 
         else:
@@ -279,18 +279,18 @@ class DataLoader:
             self.complete_eval_adata = adata
 
         #TODO: Double check that this is evaluated lazily
-        logger.debug(f"Eval targets are {self.config.get_eval_targets()}")
-        for cell_id, pert_id in self.config.get_eval_targets():
+        logger.debug(f"Eval targets are {self.config.eval_config.evaluation_targets}")
+        for cell_id, pert_id in self.config.self.config.eval_config.evaluation_targets:
             gt_data = self.complete_eval_adata[(self.complete_eval_adata.obs[PERT_KEY] == pert_id) & (self.complete_eval_adata.obs[CELL_KEY] == cell_id)]
             ctrl_data = self.complete_eval_adata[(self.complete_eval_adata.obs[CELL_KEY] == cell_id) & (self.complete_eval_adata.obs[PERT_KEY] == CONTROL_PERT)]
 
             #If no data is found we skip the evaluation
             if len(gt_data) == 0:
-                logger.warning(f"No data found for cell: {cell_id}, pert: {pert_id} in {self.config.get_eval_dataset_name()}, will skip evaluation")
+                logger.warning(f"No data found for cell: {cell_id}, pert: {pert_id} in {self.config.eval_config.dataset}, will skip evaluation")
                 continue
             
             if len(ctrl_data) == 0:
-                logger.critical(f"No control data found for cell: {cell_id} in {self.config.get_eval_dataset_name()}, will skip evaluation")
+                logger.critical(f"No control data found for cell: {cell_id} in {self.config.eval_config.dataset}, will skip evaluation")
                 continue
            
             
