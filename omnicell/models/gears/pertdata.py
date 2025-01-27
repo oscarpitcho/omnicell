@@ -624,7 +624,7 @@ class PertData:
                 temp = zip(Xs, ys)
                 for i, (X, y) in enumerate(temp):
                     cell_graph = None
-                    with timer(f"Iteraration {i}/{len(temp)} took: "):
+                    with timer(f"Iteration {i}/{len(Xs)} took: "):
                         cell_graph = self.create_cell_graph(X.toarray(),
                                             y.toarray(), de_idx, pert_category, pert_idx)
                     cell_graphs.append(cell_graph)
