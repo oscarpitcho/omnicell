@@ -281,7 +281,7 @@ class DataLoader:
 
         #TODO: Double check that this is evaluated lazily
         logger.debug(f"Eval targets are {self.config.eval_config.evaluation_targets}")
-        for cell_id, pert_id in self.config.self.config.eval_config.evaluation_targets:
+        for cell_id, pert_id in self.config.eval_config.evaluation_targets:
             gt_data = self.complete_eval_adata[(self.complete_eval_adata.obs[PERT_KEY] == pert_id) & (self.complete_eval_adata.obs[CELL_KEY] == cell_id)]
             ctrl_data = self.complete_eval_adata[(self.complete_eval_adata.obs[CELL_KEY] == cell_id) & (self.complete_eval_adata.obs[PERT_KEY] == CONTROL_PERT)]
 
