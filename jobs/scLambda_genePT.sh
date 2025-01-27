@@ -4,7 +4,7 @@
 #SBATCH --mem=512GB
 #SBATCH -p ou_bcs_low
 #SBATCH --gres=gpu:h100:1  # 1 h100 GPU
-#SBATCH --array=0-5        # CHANGE HERE TO MATCH SIZE OF CROSS PRODUCT: 3 Gene Embeddings x 2 Splits = 6 combinations 
+#SBATCH --array=0-3        # CHANGE HERE TO MATCH SIZE OF CROSS PRODUCT: 0 Gene Embeddings x 2 preproc x 2 Splits = 4 combinations 
 
 
 hostname
@@ -15,10 +15,10 @@ MODEL_CONFIG="${CONFIG_BASE_DIR}/models/sclambda_normal.yaml"
 MODEL_NAME="sclambda_normal"
 
 ### CHANGE HERE TO SELECT ONLY THE RELEVANT ETL CONFIGS UNDER ${ETL_BASE_DIR} ###
-ETL_CONFIGS=("norm_log_drop_unmatched")
+ETL_CONFIGS=("norm_log_drop_unmatched" "HVG_norm_log_drop_unmatched")
 
 ### CHANGE HERE TO SELECT ONLY THE RELEVANT EMBEDDING CONFIGS UNDER ${EMB_BASE_DIR} ###
-EMB_CONFIGS=("pemb_GenePT" "pemb_llamaPMC7B")
+EMB_CONFIGS=("empty")
 
 ### CHANGE HERE TO ONLY SELECT ONE OF THE RANDOM SPLITS ###
 SPLITS=(0 1) # 2 splits (0) or (1)
