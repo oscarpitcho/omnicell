@@ -563,11 +563,6 @@ class PertData:
 
         """
         with timer(f"create_cell_graph_dataset call duration: {pert_category}"):
-
-            with timer(f"TEEST TIMER"):
-                for i in range(10):
-                    a = 0
-
             num_de_genes =  20        
             adata_ = split_adata[split_adata.obs['condition'] == pert_category]
 
@@ -624,9 +619,8 @@ class PertData:
                 temp = zip(Xs, ys)
                 for i, (X, y) in enumerate(temp):
                     cell_graph = None
-                    with timer(f"Iteration {i}/{len(Xs)} took: "):
-                        cell_graph = self.create_cell_graph(X.toarray(),
-                                            y.toarray(), de_idx, pert_category, pert_idx)
+                    cell_graph = self.create_cell_graph(X.toarray(),
+                                        y.toarray(), de_idx, pert_category, pert_idx)
                     cell_graphs.append(cell_graph)
 
             return cell_graphs
