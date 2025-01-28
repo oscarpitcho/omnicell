@@ -2,7 +2,7 @@
 #SBATCH -t 12:00:00
 #SBATCH -p ou_bcs_normal
 #SBATCH --gres=gpu:h100:1
-#SBATCH --mem=200GB
+#SBATCH --mem=500GB
 echo hostname
 
 source ~/.bashrc
