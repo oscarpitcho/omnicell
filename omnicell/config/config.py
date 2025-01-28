@@ -104,12 +104,14 @@ class Config:
                   model_yaml: str,
                   etl_yaml: str, 
                   datasplit_yaml: str,
+                  embed_yaml: Optional[str] = None,
                   eval_yaml: Optional[str] = None) -> 'Config':
         """Load config from separate YAML files."""
         config = cls(
             model_config=ModelConfig.from_yaml(model_yaml),
             etl_config=ETLConfig.from_yaml(etl_yaml),
             datasplit_config=DatasplitConfig.from_yaml(datasplit_yaml),
+            embedding_config=EmbeddingConfig.from_yaml(embed_yaml) if embed_yaml else None,
             eval_config=EvalConfig.from_yaml(eval_yaml) if eval_yaml else None
         )
         logger.info(f"Loaded config: {config}")

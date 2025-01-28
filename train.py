@@ -113,7 +113,9 @@ def main(*args):
     print("Running main")
     parser = argparse.ArgumentParser(description='Analysis settings.')
 
+
     parser.add_argument('--datasplit_config', type=str, default=None, help='Path to yaml config of the datasplit.')
+    parser.add_argument('--embedding_config', type=str, default=None, help='Path to yaml config file of the embeddings.')
     parser.add_argument('--etl_config', type=str, default=None, help='Path to yaml config file of the etl process.')
     parser.add_argument('--model_config', type=str, default=None, help='Path to yaml config file of the model.')
     parser.add_argument('--eval_config', type=str, default=None, help='Path to yaml config file of the evaluations, if none provided the model will only be trained.')
@@ -127,7 +129,11 @@ def main(*args):
     now = datetime.datetime.now()
     now = now.strftime("%Y-%m-%d_%H:%M:%S")
 
-    config = Config.from_yamls(args.model_config, args.etl_config, args.datasplit_config, args.eval_config)
+    config = Config.from_yamls(model_yaml = args.model_config,
+                               etl_yaml   = args.etl_config, 
+                               datasplit_yaml = args.datasplit_config,
+                               embed_yaml = args.embedding_config,
+                               eval_yaml  = args.eval_config)
 
     logfile_name = f'output_{args.slurm_id}_{args.slurm_array_task_id}_{config.model_config.name}_{config.etl_config.name}_{config.datasplit_config.name}.log'
 
@@ -157,7 +163,7 @@ def main(*args):
 
     logger.debug(f"Training data loaded, perts are: {adata.obs[PERT_KEY].unique()}")
 
-    model = get_model(config.model_config.name, config.model_config, loader, pert_rep_map, input_dim, device, pert_ids, gene_emb_dim)
+    model = get_model(config.model_config.name, config.model_config.parameters, loader, pert_rep_map, input_dim, device, pert_ids, gene_emb_dim)
 
     model_savepath = f"{config.get_train_path()}/training"
 
