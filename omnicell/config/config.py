@@ -119,43 +119,37 @@ class Config:
 
     @classmethod
     def from_dict(cls, config_dict: dict) -> 'Config':
-        """Create config from a dictionary."""
         return cls(
             model_config=ModelConfig(**config_dict['model_config']),
             etl_config=ETLConfig(**config_dict['etl_config']),
             datasplit_config=DatasplitConfig(**config_dict['datasplit_config']),
+            embedding_config=EmbeddingConfig(**config_dict['embedding_config']) if 'embedding_config' in config_dict else None,
             eval_config=EvalConfig(**config_dict['eval_config']) if 'eval_config' in config_dict else None
         )
     
 
-    def get_train_path(self) -> Path:
-        """Get path for training artifacts."""
-        return Path(
-            f"./models/{self.datasplit_config.dataset}"
-            f"/{self.etl_config.name}"
-            f"/{self.model_config.name}"
-            f"/{self.datasplit_config.name}"
-            f"/{self.get_train_hash()}"
-        ).resolve()
 
     def get_train_hash(self) -> str:
         """Get hash of training configuration."""
         config_dict = {
             'model_config': self.model_config.__dict__,
             'etl_config': self.etl_config.__dict__,
-            'datasplit_config': self.datasplit_config.__dict__
+            'datasplit_config': self.datasplit_config.__dict__,
+            'embedding_config': self.embedding_config.__dict__ if self.embedding_config is not None else None
+
         }
-        return hashlib.sha256(json.dumps(config_dict).encode()).hexdigest()[:8]
+        return hashlib.sha256(json.dumps(config_dict ,sort_keys=True).encode()).hexdigest()[:8]
 
     # [Rest of the methods remain the same, but use the new structured config objects]
     def get_train_path(self) -> Path:
         """Get the path for training artifacts."""
         datasplit_prefix = self._get_datasplit_prefix()
         datasplit_prefix_path = f"{datasplit_prefix}/" if datasplit_prefix else ""
+
         
         return Path(
             f"./models/{self.datasplit_config.dataset}"
-            f"/{self.embedding_config.name}"
+            f"{f'/{self.embedding_config.name}' if self.embedding_config is not None else ''}"
             f"/{self.etl_config.name}"
             f"/{self.model_config.name}"
             f"/{datasplit_prefix_path}{self.datasplit_config.name}"
@@ -173,10 +167,10 @@ class Config:
         
         return Path(
             f"./results/{self.datasplit_config.dataset}"
-            f"/{self.embedding_config.name}"
+            f"{f'/{self.embedding_config.name}' if self.embedding_config is not None else ''}"
             f"/{self.etl_config.name}"
             f"/{self.model_config.name}"
-            f"/{datasplit_prefix_path}{self.datasplit_config.name()}"
+            f"/{datasplit_prefix_path}{self.datasplit_config.name}"
             f"/{train_and_eval_hash}"
         ).resolve()
 
@@ -185,18 +179,13 @@ class Config:
         datasplit_name_parts = self.datasplit_config.name.split('-')
         return '-'.join(datasplit_name_parts[0:-1]) if len(datasplit_name_parts) > 1 else None
 
-    def get_train_hash(self) -> str:
-        """Get hash of training configuration."""
-        return hashlib.sha256(
-            json.dumps(self.get_training_config().to_dict()).encode()
-        ).hexdigest()[:8]
-    
+
     def get_eval_hash(self) -> str:
         """Get hash of evaluation configuration."""
         if not self.eval_config:
             raise ValueError("No evaluation config present")
         return hashlib.sha256(
-            json.dumps(self.eval_config.to_dict()).encode()
+            json.dumps(self.eval_config.__dict__).encode()
         ).hexdigest()[:8]
 
     def get_training_config(self) -> 'Config':
