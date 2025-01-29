@@ -159,7 +159,7 @@ def main(*args):
 
     model = get_model(config.get_model_name(), config.model_config, loader, pert_rep_map, input_dim, device, pert_ids, gene_emb_dim)
 
-    model_savepath = f"{config.get_train_path()}/training"
+    model_savepath = f"{config.get_train_path()}"
 
     if hasattr(model, 'save') and hasattr(model, 'load'):
         # Path depends on hash of config
@@ -168,7 +168,7 @@ def main(*args):
         
         else:
             logger.info("Model not trained, training model")
-            model.train(adata)
+            model.train(adata, model_savepath)
             logger.info(f"Training completed, saving model to {model_savepath}")
             os.makedirs(model_savepath, exist_ok=True)
 
