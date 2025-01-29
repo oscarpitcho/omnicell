@@ -113,7 +113,9 @@ def main(*args):
     print("Running main")
     parser = argparse.ArgumentParser(description='Analysis settings.')
 
+
     parser.add_argument('--datasplit_config', type=str, default=None, help='Path to yaml config of the datasplit.')
+    parser.add_argument('--embedding_config', type=str, default=None, help='Path to yaml config file of the embeddings.')
     parser.add_argument('--etl_config', type=str, default=None, help='Path to yaml config file of the etl process.')
     parser.add_argument('--model_config', type=str, default=None, help='Path to yaml config file of the model.')
     parser.add_argument('--eval_config', type=str, default=None, help='Path to yaml config file of the evaluations, if none provided the model will only be trained.')
@@ -127,9 +129,13 @@ def main(*args):
     now = datetime.datetime.now()
     now = now.strftime("%Y-%m-%d_%H:%M:%S")
 
-    config = Config.from_yamls(args.model_config, args.etl_config, args.datasplit_config, args.eval_config)
+    config = Config.from_yamls(model_yaml = args.model_config,
+                               etl_yaml   = args.etl_config, 
+                               datasplit_yaml = args.datasplit_config,
+                               embed_yaml = args.embedding_config,
+                               eval_yaml  = args.eval_config)
 
-    logfile_name = f'output_{args.slurm_id}_{args.slurm_array_task_id}_{config.get_model_name()}_{config.get_etl_config_name()}_{config.get_datasplit_config_name()}.log'
+    logfile_name = f'output_{args.slurm_id}_{args.slurm_array_task_id}_{config.model_config.name}_{config.etl_config.name}_{config.datasplit_config.name}.log'
 
     logging.basicConfig(
         filename=logfile_name, 
@@ -157,7 +163,7 @@ def main(*args):
 
     logger.debug(f"Training data loaded, perts are: {adata.obs[PERT_KEY].unique()}")
 
-    model = get_model(config.get_model_name(), config.model_config, loader, pert_rep_map, input_dim, device, pert_ids, gene_emb_dim)
+    model = get_model(config.model_config.name, config.model_config.parameters, loader, pert_rep_map, input_dim, device, pert_ids, gene_emb_dim)
 
     model_savepath = f"{config.get_train_path()}/training"
 
@@ -203,11 +209,23 @@ def main(*args):
 
 
             preds = model.make_predict(ctrl_data, pert_id, cell_id)
+
+            preds = preds
+            control = ctrl_data.X
+            ground_truth = gt_data.X
+
+            
+            #No log1p in the config --> we need to log normalize the results before saving them for evals to work
+            if not config.etl_config.log1p:
+                preds = np.log1p(preds)
+                control = np.log1p(control)
+                ground_truth = np.log1p(ground_truth)
          
-            #TODO: Make sure all results are log normalized before saving. So as to not break the evals --> sc.tl.rankgenes expects log normalized data
             preds = to_coo(preds)
             control  = to_coo(ctrl_data.X)
             ground_truth = to_coo(gt_data.X)
+
+
 
             #TODO: We only need to save one control file per cell, if we have several perts we can reuse the same control file
             scipy.sparse.save_npz(f"{results_path}/{prediction_filename(pert_id, cell_id)}-preds", preds)

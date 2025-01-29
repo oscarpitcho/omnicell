@@ -46,7 +46,7 @@ def generate_evaluation(dir, args):
 
     #TODO: Do we want to restructure the code to make this config handling centralized? --> Yes probably because this will get very brittle very quickly
     #TODO: Core issue --> The code is dependent on the underlying config structure, which is not good.
-    eval_targets = config.get_eval_targets()
+    eval_targets = config.eval_config.evaluation_targets
     
     for (cell, pert) in eval_targets:
 
@@ -195,7 +195,7 @@ def average_fold(fold_dir, min_occurences):
     
     config = Config.from_dict(config)
 
-    eval_targets = config.get_eval_targets()
+    eval_targets = config.eval_config.evaluation_targets
 
     degs_dicts  = []
     r2_mse_dicts = []
