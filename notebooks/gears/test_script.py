@@ -47,7 +47,8 @@ gears_model.model_initialize(hidden_size = 64)
 
 gears_model.tunable_parameters()
 
-gears_model.train(epochs = 1, lr = 1e-3)
+print(f"Training model")
+gears_model.train(epochs = 20, lr = 1e-3)
 
 
 gears_model.save_model('test_model')
