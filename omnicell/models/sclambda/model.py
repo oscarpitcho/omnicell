@@ -67,7 +67,7 @@ class ModelPredictor(object):
 
 
 
-    def train(self, adata: sc.AnnData):
+    def train(self, adata: sc.AnnData, model_savepath: Path):
             
             gene_emb_temp = adata.varm[GENE_EMBEDDING_KEY]
             self.p_dim = gene_emb_temp.shape[1]

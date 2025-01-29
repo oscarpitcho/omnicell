@@ -191,7 +191,7 @@ def main(*args):
                 yaml.dump(config.get_training_config().to_dict(), f, indent=2, default_flow_style=False)
     else:
         logger.info("Model does not support saving/loading, training from scratch")
-        model.train(adata)
+        model.train(adata, model_savepath)
         logger.info("Training completed")    
 
     # If we have an evaluation config, we are going to evaluate
