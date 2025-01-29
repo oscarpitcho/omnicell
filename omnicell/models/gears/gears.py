@@ -507,6 +507,9 @@ class GEARS:
 
         min_val = np.inf
         print_sys('Start Training...')
+        element = next(iter(train_loader))
+
+        print(f"Dataloader element: {element}")
 
         for epoch in range(epochs):
             self.model.train()

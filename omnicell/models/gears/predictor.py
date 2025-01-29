@@ -2,9 +2,12 @@ import scanpy as sc
 from pathlib import Path
 from omnicell.constants import *
 
+
 class GEARSPredictor():
 
     def __init__():
+        self.seen_perts = []
+        self.seen_cells = []
 
     
 
@@ -12,6 +15,8 @@ class GEARSPredictor():
     def train(adata: sc.AnnData, path: Path):
 
 
+
+        #Preprocessing columns for the model
         adata.var["gene_name"] = adata.var_names
         adata.obs["condition"] = adata.obs[PERT_KEY]
 

@@ -7,13 +7,15 @@ import scanpy as sc
 import torch
 import numpy as np
 
-dd = Catalogue.get_dataset_details('repogle_k562_essential_raw')
+DATASET_NAME = 'satija_IFNB_raw'
+dd = Catalogue.get_dataset_details(DATASET_NAME)
 adata = sc.read(dd.path)
 
 adata.obs["condition"] = adata.obs["gene"]
 perts = [p for p in adata.obs["condition"].unique() if p != dd.control]
 adata.obs["condition"] = adata.obs["condition"].replace({dd.control:"ctrl"})
 adata.obs["condition"] = adata.obs["condition"].replace({p:p+"+ctrl" for p in perts})
+adata.var["gene_name"] = adata.var_names
 
 
 print(f"Data loaded from {dd.path}")
@@ -28,10 +30,8 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 pert_data = PertData('./data') # specific saved folder
 print(f"Saving data in ./data")
 
-pert_data.new_data_process(dataset_name = 'repogle', adata = adata, skip_calc_de=True) # specific dataset name and adata object
+pert_data.new_data_process(dataset_name = DATASET_NAME, adata = adata, skip_calc_de=False) # specific dataset name and adata object
 print(f"Data processed and saved in {pert_data.data_path}")
-pert_data.load(data_path = './data/repogle') # load the processed data, the path is saved folder + dataset_name
-print(f"Data loaded from {pert_data.data_path}")
 pert_data.prepare_split(split = 'no_test', seed = 1) # get data split with seed
 print(f"Data split with seed 1")
 pert_data.get_dataloader(batch_size = 32, test_batch_size = 128) # prepare data loader

@@ -1,5 +1,4 @@
 from torch_geometric.data import Data
-import scipy
 import torch
 import numpy as np
 import pickle
@@ -15,17 +14,6 @@ sc.settings.verbosity = 0
 from .data_utils import get_DE_genes, get_dropout_non_zero_genes, DataSplitter
 from .utils import print_sys, zip_data_download_wrapper, dataverse_download,\
                   filter_pert_in_go, get_genes_from_perts, tar_data_download_wrapper
-
-
-import time
-from contextlib import contextmanager
-
-@contextmanager
-def timer(description):
-    start = time.time()
-    yield
-    elapsed_time = time.time() - start
-    print(f"{description}: {elapsed_time:.2f} seconds")
 
 class PertData:
     """
@@ -252,7 +240,6 @@ class PertData:
         if 'cell_type' not in adata.obs.columns.values:
             raise ValueError("Please specify cell type")
         
-        print(f"Starting new data processing for {dataset_name}")
         dataset_name = dataset_name.lower()
         self.dataset_name = dataset_name
         save_data_folder = os.path.join(self.data_path, dataset_name)
@@ -260,10 +247,7 @@ class PertData:
         if not os.path.exists(save_data_folder):
             os.mkdir(save_data_folder)
         self.dataset_path = save_data_folder
-
-        print(f"Getting DE Genes")
-        with timer(f"Got DE genes for {dataset_name}"):
-            self.adata = get_DE_genes(adata, skip_calc_de)
+        self.adata = get_DE_genes(adata, skip_calc_de)
         if not skip_calc_de:
             self.adata = get_dropout_non_zero_genes(self.adata)
         self.adata.write_h5ad(os.path.join(save_data_folder, 'perturb_processed.h5ad'))
@@ -275,12 +259,11 @@ class PertData:
         if not os.path.exists(pyg_path):
             os.mkdir(pyg_path)
         dataset_fname = os.path.join(pyg_path, 'cell_graphs.pkl')
-        print(f"Test")
-        print("Creating pyg object for each cell in the data...")
+        print_sys("Creating pyg object for each cell in the data...")
         self.create_dataset_file()
-        print("Saving new dataset pyg object at " + dataset_fname) 
+        print_sys("Saving new dataset pyg object at " + dataset_fname) 
         pickle.dump(self.dataset_processed, open(dataset_fname, "wb"))    
-        print("Done!")
+        print_sys("Done!")
         
     def prepare_split(self, split = 'simulation', 
                       seed = 1, 
@@ -353,7 +336,6 @@ class PertData:
             split_path = split_path[:-4] + '_' + test_perts + '.pkl'
         
         if os.path.exists(split_path):
-            print('here1')
             print_sys("Local copy of split is detected. Loading...")
             set2conditions = pickle.load(open(split_path, "rb"))
             if split == 'simulation':
@@ -542,16 +524,12 @@ class PertData:
         """
 
         feature_mat = torch.Tensor(X).T
-
-        #Changes in dimension due to performance optimizations
-        feature_mat = feature_mat.unsqueeze(1)
-        y = torch.Tensor(y).unsqueeze(0)
-
         if pert_idx is None:
             pert_idx = [-1]
 
+        print("Real shapes:", feature_mat.shape, feature_mat.dim(), torch.Tensor(y).shape, torch.Tensor(y).dim())
         return Data(x=feature_mat, pert_idx=pert_idx,
-                    y=y, de_idx=de_idx, pert=pert)
+                    y=torch.Tensor(y), de_idx=de_idx, pert=pert)
 
     def create_cell_graph_dataset(self, split_adata, pert_category,
                                   num_samples=1):
@@ -574,62 +552,68 @@ class PertData:
             List of cell graphs
 
         """
-        with timer(f"create_cell_graph_dataset call duration: {pert_category}"):
-            num_de_genes = 20
-            adata_ = split_adata[split_adata.obs['condition'] == pert_category]
-            
-            # Precompute DE genes information once
-            de = 'rank_genes_groups_cov_all' in adata_.uns
-            de_genes = adata_.uns.get('rank_genes_groups_cov_all', None)
-            
-            # Common preprocessing for both cases
-            def process_data(data):
-                """Convert sparse matrix to dense if needed"""
-                if scipy.sparse.issparse(data):
-                    return data.toarray()
-                return data
 
-            if pert_category != 'ctrl':
-                # Non-control case optimization
-                pert_idx = self.get_pert_idx(pert_category)
-                pert_de_category = adata_.obs['condition_name'][0]
-                
-                # Single vectorized control sampling
-                n_cells = adata_.shape[0]
-                ctrl_indices = np.random.randint(0, len(self.ctrl_adata), n_cells)
-                ctrl_data = process_data(self.ctrl_adata[ctrl_indices, :].X)
-                
-                # Direct array processing
-                Xs = list(ctrl_data)
-                ys = list(process_data(adata_.X))
+        num_de_genes = 20        
+        adata_ = split_adata[split_adata.obs['condition'] == pert_category]
+        if 'rank_genes_groups_cov_all' in adata_.uns:
+            de_genes = adata_.uns['rank_genes_groups_cov_all']
+            de = True
+        else:
+            de = False
+            num_de_genes = 1
+        Xs = []
+        ys = []
 
-                # DE gene handling
-                if de:
-                    de_genes_list = de_genes[pert_de_category][:num_de_genes]
-                    de_idx = np.where(adata_.var_names.isin(de_genes_list))[0]
-                else:
-                    de_idx = np.array([-1] * num_de_genes)
+        # When considering a non-control perturbation
+        if pert_category != 'ctrl':
+            # Get the indices of applied perturbation
+            pert_idx = self.get_pert_idx(pert_category)
+
+            # Store list of genes that are most differentially expressed for testing
+            pert_de_category = adata_.obs['condition_name'][0]
+            if de:
+                de_idx = np.where(adata_.var_names.isin(
+                np.array(de_genes[pert_de_category][:num_de_genes])))[0]
             else:
-                # Control case optimization
-                pert_idx = None
-                de_idx = np.array([-1] * num_de_genes)
-                control_data = process_data(adata_.X)
-                Xs = ys = list(control_data)
-
-            # Batch create cell graphs
-            with timer(f"Creating {len(Xs)} cell graphs for {pert_category}"):
-                cell_graphs = [self.create_cell_graph(X, y, de_idx, pert_category, pert_idx)
-                            for X, y in zip(Xs, ys)]
+                de_idx = [-1] * num_de_genes
+            for cell_z in adata_.X:
+                # Use samples from control as basal expression
+                ctrl_samples = self.ctrl_adata[np.random.randint(0,
+                                        len(self.ctrl_adata), num_samples), :]
 
 
-            return cell_graphs
+
+                for c in ctrl_samples.X:
+                    Xs.append(c)
+                    ys.append(cell_z)
+
+            print(f"Creating {len(Xs)} cell graphs for {pert_category}, Xs[0] shape {Xs[0].shape}, ys[0] shape {ys[0].shape}")
+
+
+        # When considering a control perturbation
+        else:
+            pert_idx = None
+            de_idx = [-1] * num_de_genes
+            for cell_z in adata_.X:
+                Xs.append(cell_z)
+                ys.append(cell_z)
+
+        # Create cell graphs
+        cell_graphs = []
+        for X, y in zip(Xs, ys):
+            cell_graphs.append(self.create_cell_graph(X.toarray(),
+                                y.toarray(), de_idx, pert_category, pert_idx))
+
+        print(f"Cell graph dataset for {pert_category} created, first element: {cell_graphs[0]}")
+        
+        return cell_graphs
 
     def create_dataset_file(self):
         """
         Create dataset file for each perturbation condition
         """
-        print("Creating dataset file...")
+        print_sys("Creating dataset file...")
         self.dataset_processed = {}
         for p in tqdm(self.adata.obs['condition'].unique()):
             self.dataset_processed[p] = self.create_cell_graph_dataset(self.adata, p)
-        print("Done!")
+        print_sys("Done!")
