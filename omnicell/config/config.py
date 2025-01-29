@@ -126,19 +126,21 @@ class Config:
             embedding_config=EmbeddingConfig(**config_dict['embedding_config']) if 'embedding_config' in config_dict else None,
             eval_config=EvalConfig(**config_dict['eval_config']) if 'eval_config' in config_dict else None
         )
+
+    def to_dict(self) -> dict:
+        return {
+            'model_config': self.model_config.__dict__,
+            'etl_config': self.etl_config.__dict__,
+            'datasplit_config': self.datasplit_config.__dict__,
+            'embedding_config': self.embedding_config.__dict__ if self.embedding_config is not None else None,
+            'eval_config': self.eval_config.__dict__ if self.eval_config is not None else None
+        }
     
 
 
     def get_train_hash(self) -> str:
         """Get hash of training configuration."""
-        config_dict = {
-            'model_config': self.model_config.__dict__,
-            'etl_config': self.etl_config.__dict__,
-            'datasplit_config': self.datasplit_config.__dict__,
-            'embedding_config': self.embedding_config.__dict__ if self.embedding_config is not None else None
-
-        }
-        return hashlib.sha256(json.dumps(config_dict ,sort_keys=True).encode()).hexdigest()[:8]
+        return hashlib.sha256(json.dumps(self.get_training_config().to_dict(), sort_keys=True).encode()).hexdigest()[:8]
 
     # [Rest of the methods remain the same, but use the new structured config objects]
     def get_train_path(self) -> Path:
