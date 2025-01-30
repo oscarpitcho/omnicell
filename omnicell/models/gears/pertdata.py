@@ -100,7 +100,7 @@ class PertData:
         self.train_gene_set_size = None
 
         if not os.path.exists(self.data_path):
-            os.mkdir(self.data_path)
+            os.makedirs(self.data_path, exist_ok=True)
         server_path = 'https://dataverse.harvard.edu/api/access/datafile/6153417'
         dataverse_download(server_path,
                            os.path.join(self.data_path, 'gene2go_all.pkl'))
@@ -206,7 +206,7 @@ class PertData:
         self.adata = self.adata[filter_go.index.values, :]
         pyg_path = os.path.join(data_path, 'data_pyg')
         if not os.path.exists(pyg_path):
-            os.mkdir(pyg_path)
+            os.makedirs(pyg_path, exist_ok=True)
         dataset_fname = os.path.join(pyg_path, 'cell_graphs.pkl')
                 
         if os.path.isfile(dataset_fname):
@@ -258,7 +258,7 @@ class PertData:
         save_data_folder = os.path.join(self.data_path, dataset_name)
         
         if not os.path.exists(save_data_folder):
-            os.mkdir(save_data_folder)
+            os.makedirs(save_data_folder, exist_ok=True)
         self.dataset_path = save_data_folder
 
         print(f"Getting DE Genes")
@@ -273,7 +273,7 @@ class PertData:
         self.gene_names = self.adata.var.gene_name
         pyg_path = os.path.join(save_data_folder, 'data_pyg')
         if not os.path.exists(pyg_path):
-            os.mkdir(pyg_path)
+            os.makedirs(pyg_path, exist_ok=True)
         dataset_fname = os.path.join(pyg_path, 'cell_graphs.pkl')
         print(f"Test")
         print("Creating pyg object for each cell in the data...")
@@ -344,7 +344,7 @@ class PertData:
         self.train_gene_set_size = train_gene_set_size
         split_folder = os.path.join(self.dataset_path, 'splits')
         if not os.path.exists(split_folder):
-            os.mkdir(split_folder)
+            os.makedirs(split_folder, exist_ok=True)
         split_file = self.dataset_name + '_' + split + '_' + str(seed) + '_' \
                                        +  str(train_gene_set_size) + '.pkl'
         split_path = os.path.join(split_folder, split_file)

@@ -289,7 +289,7 @@ class GEARS:
 
         """
         if not os.path.exists(path):
-            os.mkdir(path)
+            os.makedirs(path, exist_ok=True)
         
         if self.config is None:
             raise ValueError('No model is initialized...')

@@ -92,6 +92,7 @@ def get_model(model_name, config_model, loader, pert_rep_map, input_dim, device,
         from omnicell.models.mean_models.model import MeanPredictor
         logger.info("Mean model selected")
         model = MeanPredictor(config_model, pert_rep_map)
+        
     elif "control_predictor" in model_name:
         from omnicell.models.dummy_predictors.control_predictor import ControlPredictor
         logger.info("Control model selected")
@@ -170,7 +171,7 @@ def main(*args):
 
     model = get_model(config.model_config.name, config.model_config.parameters, loader, pert_rep_map, input_dim, device, pert_ids, gene_emb_dim)
 
-    model_savepath = f"{config.get_train_path()}"
+    model_savepath = Path(f"{config.get_train_path()}")
 
     if hasattr(model, 'save') and hasattr(model, 'load'):
         # Path depends on hash of config

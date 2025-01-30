@@ -72,14 +72,15 @@ class GEARSPredictor():
         self.seen_cells = adata.obs[CELL_KEY].unique()
         assert len(self.seen_cells) == 1, "Only one cell type is allowed in the dataset for model GEARS"
 
-        data_path = path / "data"
-        model_path = path / "model"
+        data_path = (path / "data").resolve()
+        model_path = (path / "model").resolve()
 
 
 
 
 
         adata.obs["condition"] = adata.obs[PERT_KEY]
+        adata.obs["cell_type"] = adata.obs[CELL_KEY]
         perts = [p for p in adata.obs["condition"].unique() if p != CONTROL_PERT]
         adata.obs["condition"] = adata.obs["condition"].replace({CONTROL_PERT:"ctrl"})
         adata.obs["condition"] = adata.obs["condition"].replace({p:p+"+ctrl" for p in perts})
@@ -87,7 +88,7 @@ class GEARSPredictor():
 
 
 
-        pert_data = PertData(data_path) # specific saved folder
+        pert_data = PertData(data_path.resolve()) # specific saved folder
 
         logger.debug(f"Preparing new data process with skip calc de: {self.model_config['skip_calc_de']}")
         pert_data.new_data_process(dataset_name = "gears", adata = adata, skip_calc_de=self.model_config['skip_calc_de']) # specific dataset name and adata object
