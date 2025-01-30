@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH -t 12:00:00
 #SBATCH -n 4
-#SBATCH --mem=200GB
+#SBATCH --mem=50GB
 #SBATCH -p newnodes
 #SBATCH --array=0-5        # 1 ETL x 3 Models x 2 Splits = 6 combinations
 
