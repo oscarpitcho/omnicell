@@ -1,4 +1,5 @@
 from torch_geometric.data import Data
+import scipy
 import torch
 import numpy as np
 import pickle
@@ -24,7 +25,7 @@ def timer(description):
     start = time.time()
     yield
     elapsed_time = time.time() - start
-    print_sys(f"{description}: {elapsed_time:.2f} seconds")
+    print(f"{description}: {elapsed_time:.2f} seconds")
 
 class PertData:
     """
@@ -99,7 +100,7 @@ class PertData:
         self.train_gene_set_size = None
 
         if not os.path.exists(self.data_path):
-            os.mkdir(self.data_path)
+            os.makedirs(self.data_path, exist_ok=True)
         server_path = 'https://dataverse.harvard.edu/api/access/datafile/6153417'
         dataverse_download(server_path,
                            os.path.join(self.data_path, 'gene2go_all.pkl'))
@@ -205,7 +206,7 @@ class PertData:
         self.adata = self.adata[filter_go.index.values, :]
         pyg_path = os.path.join(data_path, 'data_pyg')
         if not os.path.exists(pyg_path):
-            os.mkdir(pyg_path)
+            os.makedirs(pyg_path, exist_ok=True)
         dataset_fname = os.path.join(pyg_path, 'cell_graphs.pkl')
                 
         if os.path.isfile(dataset_fname):
@@ -251,14 +252,18 @@ class PertData:
         if 'cell_type' not in adata.obs.columns.values:
             raise ValueError("Please specify cell type")
         
+        print(f"Starting new data processing for {dataset_name}")
         dataset_name = dataset_name.lower()
         self.dataset_name = dataset_name
         save_data_folder = os.path.join(self.data_path, dataset_name)
         
         if not os.path.exists(save_data_folder):
-            os.mkdir(save_data_folder)
+            os.makedirs(save_data_folder, exist_ok=True)
         self.dataset_path = save_data_folder
-        self.adata = get_DE_genes(adata, skip_calc_de)
+
+        print(f"Getting DE Genes")
+        with timer(f"Got DE genes for {dataset_name}"):
+            self.adata = get_DE_genes(adata, skip_calc_de)
         if not skip_calc_de:
             self.adata = get_dropout_non_zero_genes(self.adata)
         self.adata.write_h5ad(os.path.join(save_data_folder, 'perturb_processed.h5ad'))
@@ -268,13 +273,14 @@ class PertData:
         self.gene_names = self.adata.var.gene_name
         pyg_path = os.path.join(save_data_folder, 'data_pyg')
         if not os.path.exists(pyg_path):
-            os.mkdir(pyg_path)
+            os.makedirs(pyg_path, exist_ok=True)
         dataset_fname = os.path.join(pyg_path, 'cell_graphs.pkl')
-        print_sys("Creating pyg object for each cell in the data...")
+        print(f"Test")
+        print("Creating pyg object for each cell in the data...")
         self.create_dataset_file()
-        print_sys("Saving new dataset pyg object at " + dataset_fname) 
+        print("Saving new dataset pyg object at " + dataset_fname) 
         pickle.dump(self.dataset_processed, open(dataset_fname, "wb"))    
-        print_sys("Done!")
+        print("Done!")
         
     def prepare_split(self, split = 'simulation', 
                       seed = 1, 
@@ -338,7 +344,7 @@ class PertData:
         self.train_gene_set_size = train_gene_set_size
         split_folder = os.path.join(self.dataset_path, 'splits')
         if not os.path.exists(split_folder):
-            os.mkdir(split_folder)
+            os.makedirs(split_folder, exist_ok=True)
         split_file = self.dataset_name + '_' + split + '_' + str(seed) + '_' \
                                        +  str(train_gene_set_size) + '.pkl'
         split_path = os.path.join(split_folder, split_file)
@@ -536,10 +542,16 @@ class PertData:
         """
 
         feature_mat = torch.Tensor(X).T
+
+        #Changes in dimension due to performance optimizations
+        feature_mat = feature_mat.unsqueeze(1)
+        y = torch.Tensor(y).unsqueeze(0)
+
         if pert_idx is None:
             pert_idx = [-1]
+
         return Data(x=feature_mat, pert_idx=pert_idx,
-                    y=torch.Tensor(y), de_idx=de_idx, pert=pert)
+                    y=y, de_idx=de_idx, pert=pert)
 
     def create_cell_graph_dataset(self, split_adata, pert_category,
                                   num_samples=1):
@@ -563,71 +575,52 @@ class PertData:
 
         """
         with timer(f"create_cell_graph_dataset call duration: {pert_category}"):
-
-            with timer(f"TEEST TIMER"):
-                for i in range(10):
-                    a = 0
-
-            num_de_genes =  20        
+            num_de_genes = 20
             adata_ = split_adata[split_adata.obs['condition'] == pert_category]
+            
+            # Precompute DE genes information once
+            de = 'rank_genes_groups_cov_all' in adata_.uns
+            de_genes = adata_.uns.get('rank_genes_groups_cov_all', None)
+            
+            # Common preprocessing for both cases
+            def process_data(data):
+                """Convert sparse matrix to dense if needed"""
+                if scipy.sparse.issparse(data):
+                    return data.toarray()
+                return data
 
-            print_sys(f"Adata shape: {adata_.shape}")
-            if 'rank_genes_groups_cov_all' in adata_.uns:
-                de_genes = adata_.uns['rank_genes_groups_cov_all']
-                de = True
-            else:
-                de = False
-                num_de_genes = 1
-            Xs = []
-            ys = []
-
-            # When considering a non-control perturbation
             if pert_category != 'ctrl':
-
-                # Get the indices of applied perturbation
+                # Non-control case optimization
                 pert_idx = self.get_pert_idx(pert_category)
-
-                # Store list of genes that are most differentially expressed for testing
                 pert_de_category = adata_.obs['condition_name'][0]
+                
+                # Single vectorized control sampling
+                n_cells = adata_.shape[0]
+                ctrl_indices = np.random.randint(0, len(self.ctrl_adata), n_cells)
+                ctrl_data = process_data(self.ctrl_adata[ctrl_indices, :].X)
+                
+                # Direct array processing
+                Xs = list(ctrl_data)
+                ys = list(process_data(adata_.X))
+
+                # DE gene handling
                 if de:
-                    de_idx = np.where(adata_.var_names.isin(
-                    np.array(de_genes[pert_de_category][:num_de_genes])))[0]
+                    de_genes_list = de_genes[pert_de_category][:num_de_genes]
+                    de_idx = np.where(adata_.var_names.isin(de_genes_list))[0]
                 else:
-                    de_idx = [-1] * num_de_genes
-                    
-                with timer(f"Duration for double loop in {pert_category}"):
-                    for cell_z in adata_.X:
-                        # Use samples from control as basal expression
-                        #num_samples = 1 by default
-                        ctrl_samples = self.ctrl_adata[np.random.randint(0,
-                                                len(self.ctrl_adata), num_samples), :]
-                        for c in ctrl_samples.X:
-                            Xs.append(c)
-                            ys.append(cell_z)
-
-            # When considering a control perturbation
+                    de_idx = np.array([-1] * num_de_genes)
             else:
+                # Control case optimization
                 pert_idx = None
-                de_idx = [-1] * num_de_genes
+                de_idx = np.array([-1] * num_de_genes)
+                control_data = process_data(adata_.X)
+                Xs = ys = list(control_data)
 
-                with timer(f"This is control pert iterating over all cells in {pert_category}"):
-                    #Iterating over all cells? 
-                    for cell_z in adata_.X:
-                        Xs.append(cell_z)
-                        ys.append(cell_z)
+            # Batch create cell graphs
+            with timer(f"Creating {len(Xs)} cell graphs for {pert_category}"):
+                cell_graphs = [self.create_cell_graph(X, y, de_idx, pert_category, pert_idx)
+                            for X, y in zip(Xs, ys)]
 
-            # Create cell graphs
-
-
-            cell_graphs = []
-            with timer(f"Creating cell graphs for {pert_category}, iterating over {len(Xs)} cells"):
-                temp = zip(Xs, ys)
-                for i, (X, y) in enumerate(temp):
-                    cell_graph = None
-                    with timer(f"Iteraration {i}/{len(temp)} took: "):
-                        cell_graph = self.create_cell_graph(X.toarray(),
-                                            y.toarray(), de_idx, pert_category, pert_idx)
-                    cell_graphs.append(cell_graph)
 
             return cell_graphs
 
@@ -635,8 +628,8 @@ class PertData:
         """
         Create dataset file for each perturbation condition
         """
-        print_sys("Creating dataset file...")
+        print("Creating dataset file...")
         self.dataset_processed = {}
         for p in tqdm(self.adata.obs['condition'].unique()):
             self.dataset_processed[p] = self.create_cell_graph_dataset(self.adata, p)
-        print_sys("Done!")
+        print("Done!")

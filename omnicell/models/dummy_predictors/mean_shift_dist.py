@@ -67,7 +67,7 @@ class MeanShiftDistributionPredictor():
         self.model = None
         self.total_adata = adata
 
-    def train(self, adata: sc.AnnData):
+    def train(self, adata: sc.AnnData, model_savepath: Path):
         """Does nothing because we are going to cheat"""
         pass
 
