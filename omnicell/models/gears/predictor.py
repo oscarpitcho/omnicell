@@ -90,8 +90,10 @@ class GEARSPredictor():
 
         pert_data = PertData(data_path.resolve()) # specific saved folder
 
-        logger.debug(f"Preparing new data process with skip calc de: {self.model_config['skip_calc_de']}")
-        pert_data.new_data_process(dataset_name = "gears", adata = adata, skip_calc_de=self.model_config['skip_calc_de']) # specific dataset name and adata object
+        logger.debug(f"Preparing new data process with skip calc de")
+
+        #C.f. Implementation Readme on why 
+        pert_data.new_data_process(dataset_name = "gears", adata = adata, skip_calc_de=True) # specific dataset name and adata object
         
         logger.debug(f"Preparing split with seed")
         pert_data.prepare_split(split = 'no_test', seed = 1) # get data split with seed
@@ -129,7 +131,7 @@ class GEARSPredictor():
     def make_predict(self, adata: sc.AnnData, pert_id: str, cell_type: str) -> np.ndarray:
 
         prediction_cell_types = adata.obs[CELL_KEY].unique()
-        assert prediction_cell_types == self.seen_cells, "The cell type in the prediction data is not the same as the training data, model GEARS does not support multiple cell types"
+        assert all(prediction_cell_types == self.seen_cells), "The cell type in the prediction data is not the same as the training data, model GEARS does not support multiple cell types"
 
 
         #GEARs returns bulk predictions, we transform those in single cell predictions
@@ -139,12 +141,14 @@ class GEARSPredictor():
 
         control_cells = adata[(adata.obs[PERT_KEY] == CONTROL_PERT) & (adata.obs[CELL_KEY] == cell_type)].X.toarray()
 
+        mean_control = control_cells.mean(axis=0)
+        mean_shift = bulk_pred - mean_control
 
         res = None
-        if self.model_config['ditribution_strategy'] == 'jason':
-            res = distribute_shift(control_cells, res)
+        if self.model_config['distribution_strategy'] == 'jason':
+            res = distribute_shift(control_cells, mean_shift)
         else: 
-            raise ValueError(f"Invalid distribution strategy: {self.model_config['ditribution_strategy']}")
+            raise ValueError(f"Invalid distribution strategy: {self.model_config['distribution_strategy']}")
 
 
         return res 

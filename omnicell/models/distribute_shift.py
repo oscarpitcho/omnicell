@@ -20,14 +20,12 @@ def sample_multinomial_batch(probs, counts, max_count=None, max_rejections=100):
     for i, (p, c) in enumerate(zip(probs.T, counts)):
         if c == 0 or p.sum() == 0:
             continue
-        # elif max_count is not None and c > max_count[:, i].sum():
-        #     print("counts",c, max_count[:, i].sum())
-        #     raise ValueError("counts are greater than max count", i)
+        elif max_count is not None and c > max_count[:, i].sum():
+            results[:, i] = max_count[:, i]
         
         s = np.random.multinomial(int(c), p)
 
         if max_count is not None:
-            # todo: rewrite this to be more efficient by only resampling the counts that are over the max count
             mc = max_count[:, i]
             over_max = s > mc
             num_rejections = 0

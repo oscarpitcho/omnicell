@@ -83,18 +83,18 @@ def compute_cell_type_means(adata, cell_type):
 
 class MeanPredictor():
 
-    def __init__(self, model_config: dict, pert_rep_map: dict):
+    def __init__(self, model_config: dict, pert_embedding: dict):
         self.model = None
         self.model_type = model_config['model_type']
         self.pca_pert_embeddings = model_config['pca_pert_embeddings']
         self.pca_pert_embeddings_components = model_config['pca_pert_embeddings_components']
-        self.pert_rep_map = pert_rep_map
+        self.pert_embedding = pert_embedding
 
     def train(self, adata: sc.AnnData, model_savepath: Path):
         if self.pca_pert_embeddings:
             pca = PCA(n_components=self.pca_pert_embeddings_components)
-            pert_emb_temp = pca.fit_transform(np.array(list(self.pert_rep_map.values())))
-            self.pert_rep_map = {pert : pert_emb_temp[i] for i, pert in enumerate(self.pert_rep_map.keys())}
+            pert_emb_temp = pca.fit_transform(np.array(list(self.pert_embedding.values())))
+            self.pert_embedding = {pert : pert_emb_temp[i] for i, pert in enumerate(self.pert_embedding.keys())}
 
         # Get unique cell types
         cell_types = adata.obs[CELL_KEY].unique()
@@ -110,7 +110,7 @@ class MeanPredictor():
             
             # Create feature matrix X and target matrix Y
             Y = np.array([pert_deltas_dict[pert] for pert in idxs])
-            X = np.array([self.pert_rep_map[g] for g in idxs])
+            X = np.array([self.pert_embedding[g] for g in idxs])
 
             # Store the embeddings
             Xs.append(X)

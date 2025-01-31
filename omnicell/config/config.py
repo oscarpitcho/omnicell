@@ -99,6 +99,7 @@ class Config:
     eval_config: Optional[EvalConfig] = None
 
 
+
     @classmethod
     def from_yamls(cls, 
                   model_yaml: str,
@@ -128,13 +129,19 @@ class Config:
         )
 
     def to_dict(self) -> dict:
-        return {
+        config_dict = {
             'model_config': self.model_config.__dict__,
             'etl_config': self.etl_config.__dict__,
             'datasplit_config': self.datasplit_config.__dict__,
-            'embedding_config': self.embedding_config.__dict__ if self.embedding_config is not None else None,
-            'eval_config': self.eval_config.__dict__ if self.eval_config is not None else None
         }
+        
+        if self.embedding_config is not None:
+            config_dict['embedding_config'] = self.embedding_config.__dict__
+            
+        if self.eval_config is not None:
+            config_dict['eval_config'] = self.eval_config.__dict__
+            
+        return config_dict
     
 
 

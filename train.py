@@ -26,11 +26,11 @@ logger = logging.getLogger(__name__)
 
 random.seed(42)
 
-def get_model(model_name, config_model, loader, pert_rep_map, input_dim, device, pert_ids, pert_emb_dim):
+def get_model(model_name, config_model, loader, pert_embedding, input_dim, device, pert_ids):
     
-    if pert_rep_map is not None:
-        pert_keys = list(pert_rep_map.keys())
-        pert_rep = np.array([pert_rep_map[k] for k in pert_keys])
+    if pert_embedding is not None:
+        pert_keys = list(pert_embedding.keys())
+        pert_rep = np.array([pert_embedding[k] for k in pert_keys])
         pert_map = {k: i for i, k in enumerate(pert_keys)}
     else:
         pert_rep = None
@@ -86,13 +86,13 @@ def get_model(model_name, config_model, loader, pert_rep_map, input_dim, device,
     elif "sclambda" in model_name:
         from omnicell.models.sclambda.model import ModelPredictor
         logger.info("SCLambda model selected")
-        model = ModelPredictor(input_dim, device, pert_emb_dim, **config_model)
+        model = ModelPredictor(input_dim, device, pert_embedding, **config_model)
 
     elif "mean_model" in model_name:
         from omnicell.models.mean_models.model import MeanPredictor
         logger.info("Mean model selected")
-        model = MeanPredictor(config_model, pert_rep_map)
-
+        model = MeanPredictor(config_model, pert_embedding)
+        
     elif "control_predictor" in model_name:
         from omnicell.models.dummy_predictors.control_predictor import ControlPredictor
         logger.info("Control model selected")
@@ -162,11 +162,12 @@ def main(*args):
 
     loader = DataLoader(config)
     
-    adata, pert_rep_map = loader.get_training_data()
+    adata, pert_embedding = loader.get_training_data()
         
     input_dim = adata.obsm['embedding'].shape[1]
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     pert_ids = adata.obs[PERT_KEY].unique()
+
     gene_emb_dim = adata.varm[GENE_EMBEDDING_KEY].shape[1] if GENE_EMBEDDING_KEY in adata.varm else None
 
     logger.info(f"Data loaded, # of cells: {adata.shape[0]}, # of features: {input_dim} # of perts: {len(pert_ids)}")
@@ -175,7 +176,7 @@ def main(*args):
 
     logger.debug(f"Training data loaded, perts are: {adata.obs[PERT_KEY].unique()}")
 
-    model = get_model(config.model_config.name, config.model_config.parameters, loader, pert_rep_map, input_dim, device, pert_ids, gene_emb_dim)
+    model = get_model(config.model_config.name, config.model_config.parameters, loader, pert_embedding, input_dim, device, pert_ids)
 
     model_savepath = f"{config.get_train_path()}/training"
 
