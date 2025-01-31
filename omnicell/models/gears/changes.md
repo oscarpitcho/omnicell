@@ -13,3 +13,14 @@ cell_graphs = []
                                 y.toarray(), de_idx, pert_category, pert_idx))
 ```
 
+- Making validation work with the MSE instead of on top DEG to eliminate extremely time consuming preprocessing:
+```python
+            #Changed validation to use MSE instead of DE MSE so that we can train without precomputing DEGS
+            if val_metrics['mse'] < min_val:
+                min_val = val_metrics['mse']
+                best_model = deepcopy(self.model)
+```
+
+- Removed pickling of processed cell graphs dataset in `new_data_process()`. This caused the whole code to hang and often crash. 
+- removed the usage of `dict_filter`, loss computed only on non 0 genes. This requires computing DEGs and per private communication with the author this is not that useful.
+
