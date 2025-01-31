@@ -162,12 +162,6 @@ def get_dataloader(
         control_cell_types = cell_types[control_idx]
         pert_cell_types = cell_types[pert_idx]
 
-        # print("pert_ids", pert_ids, pert_ids.shape)
-        # print("pert_ids_train", pert_ids_train, pert_ids_train.shape)
-
-        # print("cell_types", cell_types, cell_types.shape)
-        # print("control_cell_types", control_cell_types, control_cell_types.shape)
-        # print("pert_cell_types", pert_cell_types, pert_cell_types.shape)        
 
         if collate == 'ot':
              collate_fn = ot_collate
