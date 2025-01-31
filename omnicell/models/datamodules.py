@@ -33,16 +33,29 @@ class StratifiedBatchSampler(Sampler[List[int]]):
         stratum = np.unravel_index(linear_idx, self.ns.shape)
         return stratum
 
+    # def __iter__(self) -> Iterator[List[int]]:
+    #     # Implemented based on the benchmarking in https://github.com/pytorch/pytorch/pull/76951
+    #    while True:
+    #         stratum = self.get_random_stratum()
+    #         try:
+    #             batch_stratum = np.repeat(np.array(stratum)[None, :], self.batch_sizes[stratum], axis=0)
+    #             batch = np.random.choice(self.ns[stratum], self.batch_sizes[stratum], replace=False)
+    #             yield zip(batch_stratum, batch)
+    #         except StopIteration:
+    #             break
+
+
     def __iter__(self) -> Iterator[List[int]]:
-        # Implemented based on the benchmarking in https://github.com/pytorch/pytorch/pull/76951
+        # Calculate number of batches based on total samples and batch size
+        samples_remaining = np.sum(self.ns)
         while True:
-            stratum = self.get_random_stratum()
-            try:
-                batch_stratum = np.repeat(np.array(stratum)[None, :], self.batch_sizes[stratum], axis=0)
-                batch = np.random.choice(self.ns[stratum], self.batch_sizes[stratum], replace=False)
-                yield zip(batch_stratum, batch)
-            except StopIteration:
+            if samples_remaining < 0:
                 break
+            stratum = self.get_random_stratum()
+            batch_stratum = np.repeat(np.array(stratum)[None, :], self.batch_sizes[stratum], axis=0)
+            batch = np.random.choice(self.ns[stratum], self.batch_sizes[stratum], replace=False)
+            samples_remaining -= batch.shape[0]
+            yield zip(batch_stratum, batch)
 
     def __len__(self) -> int:
         # Can only be called if self.sampler has __len__ implemented
@@ -53,7 +66,7 @@ class StratifiedBatchSampler(Sampler[List[int]]):
 
 class SCFMDataset(torch.utils.data.Dataset):
     def __init__(
-        self, source, target, pert_ids, pert_map, source_strata, target_strata, size=int(1e4)
+        self, source, target, pert_ids, pert_map, source_strata, target_strata
     ):
         source, target = np.array(source), np.array(target)
         pert_ids = np.array(pert_ids) # , np.array(pert_mat)
@@ -62,7 +75,7 @@ class SCFMDataset(torch.utils.data.Dataset):
         assert source.shape[0] == source_strata.shape[0]
         assert target.shape[0] == target_strata.shape[0]
         
-        self.size = size
+        self.size = target.shape[0]
         self.source_strata = source_strata
         self.target_strata = target_strata
         self.strata = np.unique(source_strata)
@@ -71,20 +84,6 @@ class SCFMDataset(torch.utils.data.Dataset):
         
         self.unique_pert_ids = np.unique(pert_ids)
         
-        # self.source = [source[source_strata == stratum] for stratum in self.strata]
-        # self.target = [
-        #     [
-        #         target[target_strata == stratum][pert_ids[target_strata == stratum] == pert_id] 
-        #         for pert_id in self.pert_ids
-        #     ] for stratum in self.strata
-        # ]
-        # self.pert_ids = [
-        #     [
-        #         pert_ids[target_strata == stratum][pert_ids[target_strata == stratum] == pert_id] 
-        #         for pert_id in self.pert_ids
-        #     ] for stratum in self.strata
-        # ]
-
         print("Creating source indices")
         self.source_indices = {
             stratum: np.where(source_strata == stratum)[0] 
@@ -182,7 +181,7 @@ def get_dataloader(
         dset = SCFMDataset(
             control_train, pert_train, 
             pert_ids_train, pert_map, 
-            control_cell_types, pert_cell_types, size=X.shape[0]
+            control_cell_types, pert_cell_types
         )
         ns = np.array(
             [

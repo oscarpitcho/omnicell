@@ -73,23 +73,16 @@ class MeanShiftDistributionPredictor():
 
     def make_predict(self, adata: sc.AnnData, pert_id: str, cell_type: str) -> np.ndarray:
         
-
         adata_ctrl = self.total_adata[(self.total_adata.obs[PERT_KEY] == pert_id) & (self.total_adata.obs[CELL_KEY] == cell_type)]
         adata_pert = self.total_adata[(self.total_adata.obs[PERT_KEY] == pert_id) & (self.total_adata.obs[CELL_KEY] == cell_type)]
 
-
-
         mean_ctrl = adata_ctrl.X.mean(axis=0)
-
-
         mean_pert = adata_pert.X.mean(axis=0)
         
         mean_shift = mean_pert - mean_ctrl
         logger.debug(f"Mean shift shape: {mean_shift.shape}")
 
-
         preds = distribute_shift(adata_ctrl.X, mean_shift)
-
         return preds
 
          

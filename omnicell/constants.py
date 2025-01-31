@@ -18,7 +18,7 @@ if 'OMNICELL_ROOT' in os.environ:
     OMNICELL_ROOT = Path(os.environ['OMNICELL_ROOT'])
     logger.info(f"Using OMNICELL_ROOT from environment: {OMNICELL_ROOT}")
 else:
-    OMNICELL_ROOT = Path('.')
+    OMNICELL_ROOT = Path('/orcd/data/omarabu/001/njwfish/omnicell')
     logger.info(f"OMNICELL_ROOT not set, using current directory: {OMNICELL_ROOT.absolute()}")
 
 # Derived paths
