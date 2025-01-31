@@ -1,9 +1,10 @@
 #!/bin/bash
 #SBATCH -t 12:00:00
 #SBATCH -n 4
-#SBATCH --mem=50GB
-#SBATCH -p newnodes
-#SBATCH --array=0-5        # 1 ETL x 3 Models x 2 Splits = 6 combinations
+#SBATCH --mem=250GB
+#SBATCH --gres=gpu:h100:1  # 1 h100 GPU
+#SBATCH -p ou_bcs_normal
+#SBATCH --array=0-1        # 1 ETL x 1 Models x 2 Splits = 2 combinations
 
 hostname
 
@@ -16,8 +17,8 @@ DATASET="repogle_k562_essential_raw"
 SPLIT_BASE_DIR="${CONFIG_BASE_DIR}/splits/${DATASET}/random_splits/rs_accP_k562_ood_ss:ns_20_2_most_pert_0.1"
 
 # Define configs and splits
-ETL_CONFIGS=("no_preproc_drop_unmatched")
-MODELS=("nn_oracle" "mean_shift_dist" "control_predictor")
+ETL_CONFIGS=("norm_log_drop_unmatched")
+MODELS=("gears")
 SPLITS=(0 1)
 
 # Calculate indices

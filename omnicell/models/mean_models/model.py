@@ -11,6 +11,7 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.svm import SVR
 from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.decomposition import PCA
+from pathlib import Path
 
 from omnicell.models.distribute_shift import sample_pert, get_proportional_weighted_dist
 
@@ -89,7 +90,7 @@ class MeanPredictor():
         self.pca_pert_embeddings_components = model_config['pca_pert_embeddings_components']
         self.pert_rep_map = pert_rep_map
 
-    def train(self, adata: sc.AnnData):
+    def train(self, adata: sc.AnnData, model_savepath: Path):
         if self.pca_pert_embeddings:
             pca = PCA(n_components=self.pca_pert_embeddings_components)
             pert_emb_temp = pca.fit_transform(np.array(list(self.pert_rep_map.values())))

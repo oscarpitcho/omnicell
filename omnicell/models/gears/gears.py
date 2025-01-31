@@ -20,6 +20,8 @@ torch.manual_seed(0)
 import warnings
 warnings.filterwarnings("ignore")
 
+
+
 class GEARS:
     """
     GEARS base model class
@@ -287,7 +289,7 @@ class GEARS:
 
         """
         if not os.path.exists(path):
-            os.mkdir(path)
+            os.makedirs(path, exist_ok=True)
         
         if self.config is None:
             raise ValueError('No model is initialized...')
@@ -507,6 +509,9 @@ class GEARS:
 
         min_val = np.inf
         print_sys('Start Training...')
+        element = next(iter(train_loader))
+
+        print(f"Dataloader element: {element}")
 
         for epoch in range(epochs):
             self.model.train()

@@ -109,7 +109,12 @@ def get_model(model_name, config_model, loader, pert_rep_map, input_dim, device,
         from omnicell.models.scot.scot import SCOT
         logger.info("SCOT model selected")
         adata_cheat = loader.get_complete_training_dataset()
-        model = SCOT(adata_cheat, pert_rep_map, **config_model)
+        model = SCOT(adata_cheat, **config_model)
+
+    elif "gears" in model_name:
+        from omnicell.models.gears.predictor import GEARSPredictor
+        logger.info("GEARS model selected")
+        model = GEARSPredictor(device, config_model)
         
     else:
         raise ValueError(f'Unknown model name {model_name}')

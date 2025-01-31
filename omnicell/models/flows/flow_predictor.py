@@ -10,6 +10,7 @@ from omnicell.models.flows.arch import CMHA, CMLP, CFM, CFMC, CMLPC
 from omnicell.models.flows.flow_utils import compute_conditional_flow
 from pytorch_lightning.callbacks import TQDMProgressBar
 import pytorch_lightning as pl
+from pathlib import Path
 
 import logging
 
@@ -38,7 +39,7 @@ class FlowPredictor():
 
     #Should take care of saving the model under some results/model/checkpoints in 
     #BTW I think hidden dirs fuck with with the cluster, so don't call it .checkpoint
-    def train(self, adata):
+    def train(self, adata, model_savepath: Path):
 
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
