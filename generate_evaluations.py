@@ -60,11 +60,12 @@ def generate_evaluation(dir, args):
             control_fn = f"{prediction_filename(pert, cell)}-control.npz"
 
             r2_and_mse_fn = r2_mse_filename(pert, cell)
-            c_r_fn= c_r_filename(pert, cell)
+            #c_r_fn= c_r_filename(pert, cell)
             DEGs_overlap_fn = DEGs_overlap_filename(pert, cell)
             
-            results_exist = ((r2_and_mse_fn in listdir(dir)) & (c_r_fn in listdir(dir)) & (DEGs_overlap_fn in listdir(dir)))
+            results_exist = ((r2_and_mse_fn in listdir(dir)) & (DEGs_overlap_fn in listdir(dir)))
 
+            logger.debug(f"Checking wheter results already exists for {pert} and {cell} in {dir}: r2_and_mse: {r2_and_mse_fn in listdir(dir)}, DEGs_overlap: {DEGs_overlap_fn in listdir(dir)}")
             preds_exist = pred_fn in listdir(dir) and true_fn in listdir(dir) and control_fn in listdir(dir)
 
             if not preds_exist:
