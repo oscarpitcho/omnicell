@@ -17,7 +17,7 @@ SPLIT_BASE_DIR="${CONFIG_BASE_DIR}/splits/${DATASET}/random_splits/rs_accP_k562_
 
 # Define configs and splits
 ETL_CONFIGS=("no_preproc_drop_unmatched")
-MODELS=("nn_oracle" "mean_shift_dist" "control_predictor")
+MODELS=("nn_oracle" "mean_shift_dist" "control_predictor" "test")
 SPLITS=(0 1)
 
 # Calculate indices

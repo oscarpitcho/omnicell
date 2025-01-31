@@ -57,7 +57,7 @@ class OracleNNPredictor():
         closest_pert = max(DEG_overlaps, key=DEG_overlaps.get)
 
         
-        logger.info(f"Selected perturbation {closest_pert} as closest to {pert_id} in cell type {cell_type}")
+        logger.info(f"Selected perturbation {closest_pert} as closest to {pert_id} in cell type {cell_type}, with {DEG_overlaps[closest_pert]} overlapping DEGs")
 
         nn_population = self.total_adata[(self.total_adata.obs[PERT_KEY] == closest_pert) & (self.total_adata.obs[CELL_KEY] == cell_type)]
 
