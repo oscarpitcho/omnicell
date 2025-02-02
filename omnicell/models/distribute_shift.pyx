@@ -2,22 +2,30 @@
 # cython: wraparound=False
 # cython: nonecheck=False
 # cython: cdivision=True
+# cython: language_level=3
+
+# Add at the top of the file
+cdef extern from "omp.h":
+    int omp_get_thread_num() nogil
+    int omp_get_num_threads() nogil
 
 import numpy as np
 cimport numpy as np
 from libc.stdlib cimport malloc, free
 from libc.math cimport round
 from numpy.random import Generator, PCG64
+from cython.parallel cimport parallel, prange
+from openmp cimport omp_get_thread_num
+
 
 # Define C types for better performance
 ctypedef np.float32_t F32_t
 ctypedef np.float64_t F64_t
-ctypedef np.int64_t I64_t  # Changed to int64
-
+ctypedef np.int64_t I64_t
 
 def get_proportional_weighted_dist(X):
-    # Convert input to float32
-    X = np.asarray(X, dtype=np.float32)
+    # Convert input to float32 and ensure contiguous
+    X = np.ascontiguousarray(X, dtype=np.float32)
     
     cdef np.ndarray[F32_t, ndim=2] X_arr = X
     cdef int n_rows = X.shape[0]
@@ -26,6 +34,7 @@ def get_proportional_weighted_dist(X):
     cdef float col_sum
     cdef int i, j
     
+    # Process columns serially (parallel version was causing issues)
     for j in range(n_cols):
         col_sum = 0.0
         for i in range(n_rows):
@@ -34,49 +43,108 @@ def get_proportional_weighted_dist(X):
         if col_sum > 0:
             for i in range(n_rows):
                 weighted_dist[i, j] = X_arr[i, j] / col_sum
-                
+                    
     return weighted_dist
 
 def sample_multinomial_batch(np.ndarray[F32_t, ndim=2] probs,
                            np.ndarray[F32_t, ndim=1] counts,
                            np.ndarray[F32_t, ndim=2] max_count=None,
-                           int max_rejections=100):
+                           int max_rejections=100,
+                           int min_block_size=512,
+                           int num_threads=8):
+    # Ensure contiguous arrays
+    probs = np.ascontiguousarray(probs)
+    counts = np.ascontiguousarray(counts)
+    if max_count is not None:
+        max_count = np.ascontiguousarray(max_count)
+    
     cdef int n_rows = probs.shape[0]
     cdef int n_cols = probs.shape[1]
     cdef np.ndarray[F32_t, ndim=2] result = np.zeros((n_rows, n_cols), dtype=np.float32)
-    cdef np.ndarray[F64_t, ndim=1] p_tmp = np.zeros(n_rows, dtype=np.float64)
-    cdef np.ndarray[I64_t, ndim=1] sample = np.zeros(n_rows, dtype=np.int64)  # Changed to int64
-    
-    # Create random number generator
-    rng = Generator(PCG64())
-    
-    cdef int i, j, k
-    cdef F64_t p_sum
-    cdef float count
     cdef bint has_max_count = max_count is not None
     
-    for j in range(n_cols):
-        count = counts[j]
-        if count == 0:
+    # Create thread-local buffers
+    cdef np.ndarray[F64_t, ndim=2] p_tmp_all = np.zeros((num_threads, n_rows), dtype=np.float64)
+    cdef np.ndarray[I64_t, ndim=2] sample_all = np.zeros((num_threads, n_rows), dtype=np.int64)
+    
+    # Create RNGs outside parallel region
+    rng_list = [Generator(PCG64()) for _ in range(num_threads)]
+    
+    cdef int thread_id, start, end, block_size
+    
+    # Calculate block size based on number of columns and threads
+    block_size = max(min_block_size, (n_cols + num_threads - 1) // num_threads)
+    
+    # Process blocks of columns in parallel
+    if n_cols >= min_block_size * (num_threads - 1):
+        for start in prange(0, n_cols, block_size, nogil=True, num_threads=num_threads, schedule='guided'):
+            thread_id = omp_get_thread_num()
+            end = min(start + block_size, n_cols)
+            with gil:
+                _process_column_block(start, end, probs, counts, max_count, result,
+                                   p_tmp_all[thread_id],
+                                   sample_all[thread_id],
+                                   rng_list[thread_id],
+                                   max_rejections,
+                                   has_max_count)
+    else:
+        # Use single thread for small matrices
+        _process_column_block(0, n_cols, probs, counts, max_count, result,
+                            p_tmp_all[0],
+                            sample_all[0],
+                            rng_list[0],
+                            max_rejections,
+                            has_max_count)
+    
+    return result
+
+cdef _process_column_block(int start,
+                          int end,
+                          F32_t[:, :] probs,
+                          F32_t[:] counts,
+                          F32_t[:, :] max_count,
+                          F32_t[:, :] result,
+                          F64_t[:] p_tmp,
+                          I64_t[:] sample,
+                          object rng,
+                          int max_rejections,
+                          bint has_max_count):
+    """Process a block of columns together"""
+    cdef int n_rows = probs.shape[0]
+    cdef int i, j, k
+    cdef F64_t p_sum
+    cdef int n_count
+    cdef np.ndarray[I64_t, ndim=1] temp_sample
+    cdef np.ndarray[F64_t, ndim=1] p_tmp_arr
+    cdef np.ndarray[I64_t, ndim=1] sample_arr
+    cdef int remaining
+    
+    # Process each column in the block
+    for j in range(start, end):
+        n_count = int(round(counts[j]))
+        if n_count == 0:
             continue
             
-        # Copy probabilities for this column and convert to float64 for sampling
+        # Copy and normalize probabilities with float64 precision
         p_sum = 0.0
         for i in range(n_rows):
-            p_tmp[i] = float(probs[i, j])
+            p_tmp[i] = probs[i, j]
             p_sum += p_tmp[i]
             
         if p_sum == 0:
             continue
             
-        # Normalize probabilities
         for i in range(n_rows):
             p_tmp[i] /= p_sum
-            
-        # Sample from multinomial using numpy's generator
-        sample = rng.multinomial(n=int(count), pvals=p_tmp)
         
-        # Handle max_count constraints if present
+        # Create numpy arrays from memoryviews and sample
+        p_tmp_arr = np.asarray(p_tmp)
+        temp_sample = rng.multinomial(n=n_count, pvals=p_tmp_arr)
+        
+        # Copy values individually
+        for i in range(n_rows):
+            sample[i] = temp_sample[i]
+        
         if has_max_count:
             for k in range(max_rejections):
                 over_max = False
@@ -93,27 +161,38 @@ def sample_multinomial_batch(np.ndarray[F32_t, ndim=2] probs,
                 for i in range(n_rows):
                     if sample[i] > max_count[i, j]:
                         sample[i] = int(max_count[i, j])
-                    p_tmp[i] = float(probs[i, j]) if sample[i] < max_count[i, j] else 0
+                    p_tmp[i] = probs[i, j] if sample[i] < max_count[i, j] else 0
                     p_sum += p_tmp[i]
                     
                 if p_sum > 0:
                     for i in range(n_rows):
                         p_tmp[i] /= p_sum
                     
-                    remaining_count = int(count - np.sum(sample))
-                    if remaining_count > 0:
-                        sample += rng.multinomial(n=remaining_count, pvals=p_tmp)
+                    sample_arr = np.asarray(sample)
+                    remaining = n_count - int(np.sum(sample_arr))
+                    
+                    if remaining > 0:
+                        p_tmp_arr = np.asarray(p_tmp)
+                        temp_sample = rng.multinomial(n=remaining, pvals=p_tmp_arr)
+                        for i in range(n_rows):
+                            sample[i] += temp_sample[i]
         
         # Copy results back to float32
         for i in range(n_rows):
             result[i, j] = float(sample[i])
-    
-    return result
+
 
 def sample_pert(np.ndarray[F32_t, ndim=2] ctrl,
                 np.ndarray[F32_t, ndim=2] weighted_dist,
                 np.ndarray[F32_t, ndim=1] mean_shift,
-                int max_rejections=100):
+                int max_rejections=100,
+                int min_block_size=512,
+                int num_threads=1012):
+    # Ensure contiguous arrays
+    ctrl = np.ascontiguousarray(ctrl)
+    weighted_dist = np.ascontiguousarray(weighted_dist)
+    mean_shift = np.ascontiguousarray(mean_shift)
+    
     cdef int n_rows = ctrl.shape[0]
     cdef int n_cols = ctrl.shape[1]
     cdef np.ndarray[F32_t, ndim=1] count_shift = np.round(mean_shift * n_rows).astype(np.float32)
@@ -133,7 +212,9 @@ def sample_pert(np.ndarray[F32_t, ndim=2] ctrl,
         weighted_dist, 
         np.abs(count_shift), 
         max_count=max_count, 
-        max_rejections=max_rejections
+        max_rejections=max_rejections,
+        min_block_size=min_block_size,
+        num_threads=num_threads
     )
     
     sampled_pert = np.zeros((n_rows, n_cols), dtype=np.float32)
