@@ -18,10 +18,11 @@ def sample_multinomial_batch(probs, counts, max_count=None, max_rejections=100):
     """
     result = np.zeros_like(probs)
     for i, (p, c) in enumerate(zip(probs.T, counts)):
+        p = p.copy()
         if c == 0 or p.sum() == 0:
             continue
         elif max_count is not None and c > max_count[:, i].sum():
-            results[:, i] = max_count[:, i]
+            result[:, i] = max_count[:, i]
         
         s = np.random.multinomial(int(c), p)
 
