@@ -8,6 +8,8 @@
 cdef extern from "omp.h":
     int omp_get_thread_num() nogil
     int omp_get_num_threads() nogil
+    void omp_set_num_threads(int)
+    void omp_set_schedule(int, int)
 
 import numpy as np
 cimport numpy as np
@@ -23,44 +25,29 @@ ctypedef np.float32_t F32_t
 ctypedef np.float64_t F64_t
 ctypedef np.int64_t I64_t
 
-def get_proportional_weighted_dist(X):
-    # Convert input to float32 and ensure contiguous
-    X = np.ascontiguousarray(X, dtype=np.float32)
-    
-    cdef np.ndarray[F32_t, ndim=2] X_arr = X
-    cdef int n_rows = X.shape[0]
-    cdef int n_cols = X.shape[1]
-    cdef np.ndarray[F32_t, ndim=2] weighted_dist = np.zeros((n_rows, n_cols), dtype=np.float32)
-    cdef float col_sum
-    cdef int i, j
-    
-    # Process columns serially (parallel version was causing issues)
-    for j in range(n_cols):
-        col_sum = 0.0
-        for i in range(n_rows):
-            col_sum += X_arr[i, j]
-            
-        if col_sum > 0:
-            for i in range(n_rows):
-                weighted_dist[i, j] = X_arr[i, j] / col_sum
-                    
-    return weighted_dist
+cimport cython
+from cython cimport floating
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+@cython.initializedcheck(False)
 def sample_multinomial_batch(np.ndarray[F32_t, ndim=2] probs,
                            np.ndarray[F32_t, ndim=1] counts,
                            np.ndarray[F32_t, ndim=2] max_count=None,
                            int max_rejections=100,
-                           int min_block_size=512,
                            int num_threads=8):
-    # Ensure contiguous arrays
-    probs = np.ascontiguousarray(probs)
-    counts = np.ascontiguousarray(counts)
+    if num_threads > 1:
+        omp_set_num_threads(num_threads)
+    # Transpose input matrices
+    probs = np.ascontiguousarray(probs.T)  # Now [n_cols, n_rows]
     if max_count is not None:
-        max_count = np.ascontiguousarray(max_count)
+        max_count = np.ascontiguousarray(max_count.T)
+    counts = np.ascontiguousarray(counts)
     
-    cdef int n_rows = probs.shape[0]
-    cdef int n_cols = probs.shape[1]
-    cdef np.ndarray[F32_t, ndim=2] result = np.zeros((n_rows, n_cols), dtype=np.float32)
+    cdef int n_cols = probs.shape[0]  # Swapped dimensions
+    cdef int n_rows = probs.shape[1]
+    cdef np.ndarray[F32_t, ndim=2] result = np.zeros((n_cols, n_rows), dtype=np.float32)
     cdef bint has_max_count = max_count is not None
     
     # Create thread-local buffers
@@ -73,30 +60,35 @@ def sample_multinomial_batch(np.ndarray[F32_t, ndim=2] probs,
     cdef int thread_id, start, end, block_size
     
     # Calculate block size based on number of columns and threads
-    block_size = max(min_block_size, (n_cols + num_threads - 1) // num_threads)
+    
     
     # Process blocks of columns in parallel
-    if n_cols >= min_block_size * (num_threads - 1):
-        for start in prange(0, n_cols, block_size, nogil=True, num_threads=num_threads, schedule='guided'):
+    if num_threads > 1:
+        block_size = n_cols // num_threads + 1
+        for start in prange(0, n_cols, block_size, nogil=True, num_threads=num_threads, schedule='static'):
             thread_id = omp_get_thread_num()
             end = min(start + block_size, n_cols)
             with gil:
-                _process_column_block(start, end, probs, counts, max_count, result,
-                                   p_tmp_all[thread_id],
-                                   sample_all[thread_id],
-                                   rng_list[thread_id],
-                                   max_rejections,
-                                   has_max_count)
+                _process_column_block(
+                    start, end, probs, counts, max_count, result,
+                    p_tmp_all[thread_id],
+                    sample_all[thread_id],
+                    rng_list[thread_id],
+                    max_rejections,
+                    has_max_count
+                )
     else:
         # Use single thread for small matrices
-        _process_column_block(0, n_cols, probs, counts, max_count, result,
-                            p_tmp_all[0],
-                            sample_all[0],
-                            rng_list[0],
-                            max_rejections,
-                            has_max_count)
+        _process_column_block(
+            0, n_cols, probs, counts, max_count, result,
+            p_tmp_all[0],
+            sample_all[0],
+            rng_list[0],
+            max_rejections,
+            has_max_count
+        )
     
-    return result
+    return result.T  # Transpose back before returning
 
 cdef _process_column_block(int start,
                           int end,
@@ -110,7 +102,7 @@ cdef _process_column_block(int start,
                           int max_rejections,
                           bint has_max_count):
     """Process a block of columns together"""
-    cdef int n_rows = probs.shape[0]
+    cdef int n_rows = probs.shape[1]  # Note: dimensions swapped
     cdef int i, j, k
     cdef F64_t p_sum
     cdef int n_count
@@ -128,7 +120,7 @@ cdef _process_column_block(int start,
         # Copy and normalize probabilities with float64 precision
         p_sum = 0.0
         for i in range(n_rows):
-            p_tmp[i] = probs[i, j]
+            p_tmp[i] = probs[j, i]  # Note: indices swapped
             p_sum += p_tmp[i]
             
         if p_sum == 0:
@@ -149,7 +141,7 @@ cdef _process_column_block(int start,
             for k in range(max_rejections):
                 over_max = False
                 for i in range(n_rows):
-                    if sample[i] > max_count[i, j]:
+                    if sample[i] > max_count[j, i]:  # Note: indices swapped
                         over_max = True
                         break
                         
@@ -159,9 +151,9 @@ cdef _process_column_block(int start,
                 # Resample if needed
                 p_sum = 0.0
                 for i in range(n_rows):
-                    if sample[i] > max_count[i, j]:
-                        sample[i] = int(max_count[i, j])
-                    p_tmp[i] = probs[i, j] if sample[i] < max_count[i, j] else 0
+                    if sample[i] > max_count[j, i]:  # Note: indices swapped
+                        sample[i] = int(max_count[j, i])  # Note: indices swapped
+                    p_tmp[i] = probs[j, i] if sample[i] < max_count[j, i] else 0  # Note: indices swapped
                     p_sum += p_tmp[i]
                     
                 if p_sum > 0:
@@ -179,14 +171,13 @@ cdef _process_column_block(int start,
         
         # Copy results back to float32
         for i in range(n_rows):
-            result[i, j] = float(sample[i])
+            result[j, i] = float(sample[i])  # Note: indices swapped
 
 
 def sample_pert(np.ndarray[F32_t, ndim=2] ctrl,
                 np.ndarray[F32_t, ndim=2] weighted_dist,
                 np.ndarray[F32_t, ndim=1] mean_shift,
                 int max_rejections=100,
-                int min_block_size=512,
                 int num_threads=1012):
     # Ensure contiguous arrays
     ctrl = np.ascontiguousarray(ctrl)
@@ -213,7 +204,6 @@ def sample_pert(np.ndarray[F32_t, ndim=2] ctrl,
         np.abs(count_shift), 
         max_count=max_count, 
         max_rejections=max_rejections,
-        min_block_size=min_block_size,
         num_threads=num_threads
     )
     
@@ -226,3 +216,26 @@ def sample_pert(np.ndarray[F32_t, ndim=2] ctrl,
             sampled_pert[i, j] = max(0.0, ctrl[i, j] + sign * samples[i, j])
     
     return sampled_pert
+
+def get_proportional_weighted_dist(X):
+    # Convert input to float32 and ensure contiguous
+    X = np.ascontiguousarray(X, dtype=np.float32)
+    
+    cdef np.ndarray[F32_t, ndim=2] X_arr = X
+    cdef int n_rows = X.shape[0]
+    cdef int n_cols = X.shape[1]
+    cdef np.ndarray[F32_t, ndim=2] weighted_dist = np.zeros((n_rows, n_cols), dtype=np.float32)
+    cdef float col_sum
+    cdef int i, j
+    
+    # Process columns serially (parallel version was causing issues)
+    for j in range(n_cols):
+        col_sum = 0.0
+        for i in range(n_rows):
+            col_sum += X_arr[i, j]
+            
+        if col_sum > 0:
+            for i in range(n_rows):
+                weighted_dist[i, j] = X_arr[i, j] / col_sum
+                    
+    return weighted_dist
