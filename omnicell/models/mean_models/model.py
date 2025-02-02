@@ -123,7 +123,7 @@ class MeanPredictor():
         
     def make_predict(self, adata: sc.AnnData, pert_id: str, cell_type: str) -> np.ndarray:
         ctrl_cells = adata[(adata.obs[PERT_KEY] == CONTROL_PERT) & (adata.obs[CELL_KEY] == cell_type)].X.toarray()
-        X_new = np.array(self.pert_rep_map[pert_id].reshape(1, -1))
+        X_new = np.array(self.pert_embedding[pert_id].reshape(1, -1))
         mean_shift_pred = np.array(self.model.predict(X_new)).flatten()
         weighted_dist = get_proportional_weighted_dist(ctrl_cells)
         samples = sample_pert(ctrl_cells, weighted_dist, mean_shift_pred)
