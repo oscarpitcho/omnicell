@@ -7,7 +7,7 @@ from typing import Iterator, List
 import numpy as np
 import pandas as pd
 from omnicell.constants import CELL_KEY, CONTROL_PERT, PERT_KEY
-from omnicell.models.collate_fns import ot_collate, cfm_collate
+from omnicell.models.collate_fns import ot_collate, cfm_collate, collate
 from collections import defaultdict
 
 from pathlib import Path
@@ -116,8 +116,8 @@ class OnlinePairedStratifiedDataset(torch.utils.data.Dataset):
         stratum, pert = self.strata[stratum_idx], self.unique_pert_ids[pert_idx]
         sidx = np.random.choice(self.source[stratum].shape[0])
         return (
-            self.source[stratum][sidx],
-            self.target[stratum][pert][idx],
+            self.source[stratum][sidx].astype(np.float32),
+            self.target[stratum][pert][idx].astype(np.float32),
             self.pert_map[self.pert_ids[stratum][pert][idx]],
         )
 
@@ -207,8 +207,8 @@ class StreamingOnlinePairedStratifiedDataset(torch.utils.data.Dataset):
         sidx = np.random.choice(len(data['source'][stratum]))
         
         return (
-            data['source'][stratum][sidx],
-            data['synthetic_counterfactuals'][stratum][pert][idx],
+            data['source'][stratum][sidx].astype(np.float32),
+            data['synthetic_counterfactuals'][stratum][pert][idx].astype(np.float32),
             self.pert_map[pert]
         )
     
@@ -299,8 +299,8 @@ class StreamingOfflinePairedStratifiedDataset(torch.utils.data.Dataset):
         
         # Return numpy arrays, let DataLoader handle device transfer
         return (
-            data['source'][stratum][idx],
-            data['synthetic_counterfactuals'][stratum][pert][idx],
+            data['source'][stratum][idx].astype(np.float32),
+            data['synthetic_counterfactuals'][stratum][pert][idx].astype(np.float32),
             self.pert_map[pert]
         )
     
@@ -312,25 +312,11 @@ class StreamingOfflinePairedStratifiedDataset(torch.utils.data.Dataset):
 
 def get_dataloader(
         adata, pert_map, pert_ids, offline=True, file_stream=None,
-        batch_size=512, verbose=0, collate='ot', X=None
+        batch_size=512, verbose=0, collate=None, X=None
 ):
-        if X is None:
-            X = adata.X.toarray()
-            
-        # CONTROL_PERT = 'NT'
-        control_idx = adata.obs[PERT_KEY] == CONTROL_PERT
-        pert_idx = adata.obs[PERT_KEY] != CONTROL_PERT
-        cell_types = adata.obs[CELL_KEY].values
-
-
-        control_train = X[control_idx]
-        pert_train = X[pert_idx]
-        pert_ids_train =  pert_ids[pert_idx]
-        control_cell_types = cell_types[control_idx]
-        pert_cell_types = cell_types[pert_idx]
-
-
-        if collate == 'ot':
+        if collate is None:
+            collate_fn = collate
+        elif collate == 'ot':
              collate_fn = ot_collate
         elif collate == 'cfm':
             collate_fn = cfm_collate    
@@ -341,6 +327,9 @@ def get_dataloader(
 
         if file_stream:
             num_files = len(os.listdir(file_stream))
+            if collate is not None:
+                # TODO implement cfm collate for file streaming, should be easy to do
+                raise ValueError("OT collate not supported for file streaming right now")
             if offline:
                 dset = StreamingOfflinePairedStratifiedDataset(
                     data_dir=file_stream,
@@ -354,6 +343,19 @@ def get_dataloader(
                     num_files=num_files
                 )
         else:
+            if X is None:
+                X = adata.X.toarray()
+            
+            control_idx = adata.obs[PERT_KEY] == CONTROL_PERT
+            pert_idx = adata.obs[PERT_KEY] != CONTROL_PERT
+            cell_types = adata.obs[CELL_KEY].values
+
+
+            control_train = X[control_idx]
+            pert_train = X[pert_idx]
+            pert_ids_train =  pert_ids[pert_idx]
+            control_cell_types = cell_types[control_idx]
+            pert_cell_types = cell_types[pert_idx]
             if offline:
                 raise ValueError("Offline pairing requires file streaming")
             else:

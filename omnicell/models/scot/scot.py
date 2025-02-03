@@ -127,7 +127,7 @@ class SCOT(torch.nn.Module):
 
         weighted_dist = self.forward(ctrl, shift_vec)
         pred_pert = (ctrl + (weighted_dist * shift_vec))
-        loss =  sliced_wasserstein_distance(pred_pert, pert, n_projections=n_projections) 
+        loss = sliced_wasserstein_distance(pred_pert, pert, n_projections=n_projections) 
         loss -=negative_penalty * ((pred_pert < 0) * pred_pert).sum() / (batch_size * self.total_genes)
         return loss
     
@@ -156,8 +156,8 @@ class SCOT(torch.nn.Module):
         return preds
     
     def train(self, adata):
-        dset, ns, dl = get_dataloader(
-            adata, pert_ids=np.array(adata.obs[PERT_KEY].values), pert_map=self.pert_rep_map, collate='ot'
+        dset, dl = get_dataloader(
+            adata, pert_ids=np.array(adata.obs[PERT_KEY].values), pert_map=self.pert_rep_map
         )
         optimizer = torch.optim.Adam(self.parameters(), lr=2e-4)
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
