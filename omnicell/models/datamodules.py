@@ -108,6 +108,30 @@ class StratifiedDataset(torch.utils.data.Dataset):
             self.pert_map[self.pert_ids[stratum][pert][idx]],
         )
 
+def get_identity_features(adata, cell_type_features=True):
+    perts = pd.get_dummies(adata.obs[PERT_KEY]).values.astype(float)
+    cell_types = pd.get_dummies(adata.obs[CELL_KEY]).values
+    if cell_type_features:
+        combo = pd.get_dummies(adata.obs[CELL_KEY].astype(str) + adata.obs[PERT_KEY].astype(str)).values
+        idx = (combo!=0).argmax(axis=0)
+        pert_mat = np.hstack([cell_types, perts])[idx, :].astype('float32')
+    else:
+        combo = perts
+        idx = (combo!=0).argmax(axis=0)
+        pert_mat = perts[idx, :].astype('float32')
+    
+    pert_ids = combo.argmax(axis=1)
+    cell_types = cell_types.argmax(axis=1)
+    return pert_ids, pert_mat, cell_types
+
+
+
+#Strip, all arguments to be shifted to the config with configs for the leader and follower
+
+
+#TODO: ONE FUNCTION get_dataloader_(), 
+
+
 def get_dataloader(
         adata, pert_map, pert_ids, batch_size=512, verbose=0, collate='ot', X=None
 ):
