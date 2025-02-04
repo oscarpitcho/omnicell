@@ -109,7 +109,7 @@ def get_model(model_name, config_model, loader, pert_embedding, input_dim, devic
         from omnicell.models.scot.scot import SCOT
         logger.info("SCOT model selected")
         adata_cheat = loader.get_complete_training_dataset()
-        model = SCOT(adata_cheat, **config_model)
+        model = SCOT(adata_cheat, pert_embedding, **config_model)
 
     elif "gears" in model_name:
         from omnicell.models.gears.predictor import GEARSPredictor
@@ -178,7 +178,7 @@ def main(*args):
 
     model = get_model(config.model_config.name, config.model_config.parameters, loader, pert_embedding, input_dim, device, pert_ids)
 
-    model_savepath = f"{config.get_train_path()}/training"
+    model_savepath = Path(f"{config.get_train_path()}/training")
 
     if hasattr(model, 'save') and hasattr(model, 'load'):
         # Path depends on hash of config
@@ -187,7 +187,7 @@ def main(*args):
         
         else:
             logger.info("Model not trained, training model")
-            model.train(adata)
+            model.train(adata, model_savepath)
             logger.info(f"Training completed, saving model to {model_savepath}")
             os.makedirs(model_savepath, exist_ok=True)
 
@@ -199,7 +199,7 @@ def main(*args):
                 yaml.dump(config.get_training_config().to_dict(), f, indent=2, default_flow_style=False)
     else:
         logger.info("Model does not support saving/loading, training from scratch")
-        model.train(adata)
+        model.train(adata, model_savepath)
         logger.info("Training completed")    
 
     # If we have an evaluation config, we are going to evaluate
@@ -235,8 +235,8 @@ def main(*args):
                 ground_truth = np.log1p(ground_truth)
          
             preds = to_coo(preds)
-            control  = to_coo(ctrl_data.X)
-            ground_truth = to_coo(gt_data.X)
+            control  = to_coo(control)
+            ground_truth = to_coo(ground_truth)
 
 
 
