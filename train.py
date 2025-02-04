@@ -109,7 +109,7 @@ def get_model(model_name, config_model, loader, pert_embedding, input_dim, devic
         from omnicell.models.scot.scot import SCOT
         logger.info("SCOT model selected")
         adata_cheat = loader.get_complete_training_dataset()
-        model = SCOT(adata_cheat, **config_model)
+        model = SCOT(adata_cheat, pert_embedding, **config_model)
 
     elif "gears" in model_name:
         from omnicell.models.gears.predictor import GEARSPredictor
@@ -178,7 +178,7 @@ def main(*args):
 
     model = get_model(config.model_config.name, config.model_config.parameters, loader, pert_embedding, input_dim, device, pert_ids)
 
-    model_savepath = f"{config.get_train_path()}/training"
+    model_savepath = Path(f"{config.get_train_path()}/training")
 
     if hasattr(model, 'save') and hasattr(model, 'load'):
         # Path depends on hash of config

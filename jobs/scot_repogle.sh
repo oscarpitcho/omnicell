@@ -1,9 +1,10 @@
 #!/bin/bash
 #SBATCH -t 12:00:00
 #SBATCH -n 4
-#SBATCH --mem=50GB
-#SBATCH -p newnodes
-#SBATCH --array=0-5        # 1 ETL x 3 Models x 2 Splits = 6 combinations
+#SBATCH --mem=250GB
+#SBATCH --gres=gpu:h100:1  # 1 h100 GPU
+#SBATCH -p ou_bcs_low
+#SBATCH --array=0-1        # 1 ETL x 1 Models x 2 Splits = 2 combinations
 
 hostname
 
@@ -17,7 +18,7 @@ SPLIT_BASE_DIR="${CONFIG_BASE_DIR}/splits/${DATASET}/random_splits/rs_accP_k562_
 
 # Define configs and splits
 ETL_CONFIGS=("norm_log_drop_unmatched")
-MODELS=("nn_oracle" "control_predictor" "test")
+MODELS=("scot")
 SPLITS=(0 1)
 
 # Calculate indices
@@ -28,7 +29,7 @@ split_idx=$((SLURM_ARRAY_TASK_ID % total_splits))
 # Get current config, model and split
 ETL_CONFIG="${ETL_BASE_DIR}/${ETL_CONFIGS[0]}.yaml"
 MODEL_NAME="${MODELS[$model_idx]}"
-MODEL_CONFIG="${MODEL_BASE_DIR}/${MODEL_NAME}.yaml"
+MODEL_CONFIG="${MODEL_BASE_DIR}/${MODEL_NAME}/${MODEL_NAME}.yaml"
 SPLIT_DIR="split_${split_idx}"
 
 source ~/.bashrc

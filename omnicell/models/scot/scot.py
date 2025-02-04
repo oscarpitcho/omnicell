@@ -81,11 +81,11 @@ class CellEmbedding(torch.nn.Module):
         return x
 
 class SCOT(torch.nn.Module):
-    def __init__(self, adata, pert_rep_map, cell_embed_dim, gene_embed_dim, hidden_dim, max_epochs=10):
+    def __init__(self, adata, pert_embedding, cell_embed_dim, gene_embed_dim, hidden_dim, max_epochs=10):
         super(SCOT, self).__init__()
         self.total_adata = adata
         self.total_genes = adata.shape[1]
-        self.pert_rep_map = pert_rep_map
+        self.pert_embedding = pert_embedding
         self.cell_embedder = CellEmbedding(self.total_genes, hidden_dim, cell_embed_dim)
         self.gene_embedder = torch.nn.Embedding(self.total_genes, gene_embed_dim)
         self.gnn = FCGNN(gene_embed_dim + cell_embed_dim + 3, hidden_dim, 1)
@@ -155,16 +155,15 @@ class SCOT(torch.nn.Module):
         preds = np.concatenate(preds, axis=0)
         return preds
     
-    def train(self, adata):
+    def train(self, adata, model_savepath):
         dset, ns, dl = get_dataloader(
-            adata, pert_ids=np.array(adata.obs[PERT_KEY].values), pert_map=self.pert_rep_map, collate='ot'
+            adata, pert_ids=np.array(adata.obs[PERT_KEY].values), pert_map=self.pert_embedding, collate='ot'
         )
         optimizer = torch.optim.Adam(self.parameters(), lr=2e-4)
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.to(device)
 
         from tqdm.notebook import tqdm
-        pbar = tqdm(total=len(dl), desc='Training')
 
         num_epochs = self.max_epochs
         for epoch in range(num_epochs):
@@ -177,14 +176,12 @@ class SCOT(torch.nn.Module):
                 
                 losses.append(loss.item())
                 # Update progress bar with loss
-                pbar.set_postfix({'loss': f'{np.mean(losses[-100:]):.4f}'})
-                pbar.update(1)
+
                 
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
 
-        pbar.close()
 
 
 
