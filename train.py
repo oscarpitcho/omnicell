@@ -235,8 +235,8 @@ def main(*args):
                 ground_truth = np.log1p(ground_truth)
          
             preds = to_coo(preds)
-            control  = to_coo(ctrl_data.X)
-            ground_truth = to_coo(gt_data.X)
+            control  = to_coo(control)
+            ground_truth = to_coo(ground_truth)
 
 
 
