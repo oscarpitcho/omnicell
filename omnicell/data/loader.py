@@ -171,9 +171,6 @@ class DataLoader:
 
             logger.info(f"Removed {number_perts_before - number_perts_after_column_matching} perturbations that were not in the dataset columns and {number_perts_after_column_matching - number_perts_after_embedding_matching} perturbations that did not have an embedding for a total of {number_perts_before - number_perts_after_embedding_matching} perturbations removed out of an initial {number_perts_before} perturbations")
         
-
-
-
         
         adata.obsm["embedding"] = adata.X.toarray().astype('float32')
         # Set gene names
@@ -247,7 +244,6 @@ class DataLoader:
         #We still return the pert embedding here to not break code that relies on it
         pert_embedding = adata.uns[PERT_EMBEDDING_KEY]
         return adata_train, pert_embedding
-
 
     def get_complete_training_dataset(self) -> sc.AnnData:
         """

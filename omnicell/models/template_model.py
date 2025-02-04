@@ -12,7 +12,7 @@ class TemplateModel():
 
 
 
-    def train(self, adata: sc.AnnData):
+    def train(self, adata: sc.AnnData, path: Path):
         """
         Training method of the model, takes andata without the evaluation data + Pairing and does whatever it needs
         to do such that the model is "trained" and ready to make predictions
