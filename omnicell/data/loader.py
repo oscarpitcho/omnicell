@@ -2,7 +2,7 @@ import scanpy as sc
 from typing import Optional, List, Tuple
 from dataclasses import dataclass, field
 from omnicell.config.config import Config, ModelConfig
-from omnicell.constants import PERT_KEY, CELL_KEY, CONTROL_PERT, PERT_EMBEDDING_KEY
+from omnicell.constants import PERT_KEY, CELL_KEY, CONTROL_PERT, PERT_EMBEDDING_KEY, SYNTHETIC_DATA_PATHS_KEY
 from omnicell.data.catalogue import DatasetDetails, Catalogue
 import torch
 import logging
@@ -220,18 +220,23 @@ class DataLoader:
 
 
             #We verify that this exact config exists for our dataset
-
-
-
             if synthetic_data_config.get_synthetic_config_name() not in self.training_dataset_details.synthetic_versions:
                 raise ValueError(f"Could not find a config with name {synthetic_data_config.get_synthetic_config_name()} for dataset {self.training_dataset_details.name}, please check that the synthetic data was generated with the same config.")
 
             #We load the synthetic data
-            synthetic_data_path = f"{dataset_details.folder_path}/synthetic_data"
+            synthetic_data_path = f"{dataset_details.folder_path}/synthetic_data/{synthetic_data_config.get_synthetic_config_name()}"
 
-            #We append all the files that match in the right folder.
+            synthetic_data_files = os.listdir(synthetic_data_path)
 
+            for file in synthetic_data_files:
+                adata = sc.read_h5ad(f"{synthetic_data_path}/{file}")
+                adata = self.preprocess_data(adata, training=True)
 
+            #We get the paths of all the files in this folder
+            synthetic_data_paths = [Path(f"{synthetic_data_path}/{file}").resolve() for file in synthetic_data_files]
+
+            #We add them to the adata
+            adata.uns[SYNTHETIC_DATA_PATHS_KEY] = synthetic_data_paths
 
         return adata
 
