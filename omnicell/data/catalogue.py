@@ -37,6 +37,7 @@ class DatasetDetails:
     pert_embeddings: List[str] = field(default_factory=list)
     cell_embeddings: List[str] = field(default_factory=list)
     gene_embeddings: List[str] = field(default_factory=list)
+    synthetic_versions: List[str] = field(default_factory=list)
 
 
     def to_dict(self):

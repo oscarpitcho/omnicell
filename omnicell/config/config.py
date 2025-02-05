@@ -8,7 +8,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-@dataclass
+@dataclass(frozen=True)
 class ModelConfig:
     """Configuration for the model."""
     name: str
@@ -22,10 +22,10 @@ class ModelConfig:
             return cls(name=name, parameters=data)
 
 
-@dataclass
+@dataclass(frozen=True)
 class ETLConfig:
 
-    @dataclass
+    @dataclass(frozen=True)
     class SyntheticConfig:
         """Defines a config for the synthetic data generation process."""
         model_config_path: str
@@ -45,7 +45,7 @@ class ETLConfig:
         with open(path) as f:
             return cls(**yaml.safe_load(f))
 
-@dataclass
+@dataclass(frozen=True)
 class EmbeddingConfig:
     """Configuration for all embeddings attached to the the dataset."""
     gene_embedding: Optional[str] = None
@@ -72,7 +72,7 @@ class EmbeddingConfig:
 
         return '_'.join(name_parts)
 
-@dataclass
+@dataclass(frozen=True)
 class DatasplitConfig:
     """Configuration for data splitting."""
     name: str
@@ -86,7 +86,7 @@ class DatasplitConfig:
         with open(path) as f:
             return cls(**yaml.safe_load(f))
 
-@dataclass
+@dataclass(frozen=True)
 class EvalConfig:
     """Configuration for evaluation."""
     name: str
@@ -98,7 +98,7 @@ class EvalConfig:
         with open(path) as f:
             return cls(**yaml.safe_load(f))
 
-@dataclass
+@dataclass(frozen=True)     
 class Config:
     """Configuration for a model or task."""
     model_config: ModelConfig

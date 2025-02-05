@@ -11,7 +11,7 @@ import json
 import pandas as pd
 from pathlib import Path
 import os
-
+import hashlib
 
 logger = logging.getLogger(__name__)
 
@@ -204,25 +204,33 @@ class DataLoader:
         #Synthetic config is specified
         if self.config.etl_config.synthetic is not None:
             model_config_path = self.config.etl_config.synthetic.model_config_path
-            model_config = ModelConfig.from_yaml(Path(model_config_path).resolve())
+            synthetic_model_config = ModelConfig.from_yaml(Path(model_config_path).resolve())
 
             #Fetch the training config for the synthetic data, ETL and Split config should be the same, modulo the synthetic part
+            synthetic_data_config = self.config.etl_config.copy()
+            synthetic_data_config.synthetic = None
 
-            data_ETL_config = ...
-            data_split_config = ...
+            synthetic_datasplit_config = self.config.datasplit_config.copy()
 
-            training_ETL_config = self.config.etl_config.copy()
-            training_ETL_config.synthetic = None
 
-            training_data_config = self.config.datasplit_config
+            #Config that should have been used to generate the synthetic data
+            synthetic_data_config = Config(model_config=synthetic_model_config,
+                                            etl_config=synthetic_data_config,
+                                            datasplit_config=synthetic_datasplit_config)
 
-            if data_ETL_config != training_ETL_config:
-                raise ValueError("ETL config used to generate synthetic data and in the training run should be the same.")
 
-            if data_split_config != training_data_config:
-                raise ValueError("Data split config used to generate synthetic data and in the training run should be the same.")
+            #We verify that this exact config exists for our dataset
+            hash_synthetic_data_config = hashlib.sha256(json.dumps(synthetic_data_config.to_dict(), sort_keys=True).encode()).hexdigest()[:8]
 
-                
+
+            if hash_synthetic_data_config not in self.training_dataset_details.synthetic_versions:
+                raise ValueError(f"Could not find a config with hash {hash_synthetic_data_config} for dataset {self.training_dataset_details.name}, please check that the synthetic data was generated with the same config.")
+
+            #We load the synthetic data
+            synthetic_data_path = f"{dataset_details.folder_path}/synthetic_data"
+
+            #We append all the files that match in the right folder.
+
 
 
         return adata
