@@ -1,7 +1,7 @@
 import scanpy as sc
 from typing import Optional, List, Tuple
 from dataclasses import dataclass, field
-from omnicell.config.config import Config
+from omnicell.config.config import Config, ModelConfig
 from omnicell.constants import PERT_KEY, CELL_KEY, CONTROL_PERT, PERT_EMBEDDING_KEY
 from omnicell.data.catalogue import DatasetDetails, Catalogue
 import torch
@@ -9,7 +9,7 @@ import logging
 import numpy as np
 import json
 import pandas as pd
-
+from pathlib import Path
 import os
 
 
@@ -194,9 +194,36 @@ class DataLoader:
             else:
                 raise ValueError(f"Metric space {self.config.embedding_config.metric_space} not found in metric spaces available for dataset {dataset_details.name}")
 
+
+        #Precomputed DEGs eg for NN Oracle
         if dataset_details.precomputed_DEGs:
             DEGs = json.load(open(f"{dataset_details.folder_path}/DEGs.json"))
             adata.uns["DEGs"] = DEGs
+
+
+        #Synthetic config is specified
+        if self.config.etl_config.synthetic is not None:
+            model_config_path = self.config.etl_config.synthetic.model_config_path
+            model_config = ModelConfig.from_yaml(Path(model_config_path).resolve())
+
+            #Fetch the training config for the synthetic data, ETL and Split config should be the same, modulo the synthetic part
+
+            data_ETL_config = ...
+            data_split_config = ...
+
+            training_ETL_config = self.config.etl_config.copy()
+            training_ETL_config.synthetic = None
+
+            training_data_config = self.config.datasplit_config
+
+            if data_ETL_config != training_ETL_config:
+                raise ValueError("ETL config used to generate synthetic data and in the training run should be the same.")
+
+            if data_split_config != training_data_config:
+                raise ValueError("Data split config used to generate synthetic data and in the training run should be the same.")
+
+                
+
 
         return adata
 

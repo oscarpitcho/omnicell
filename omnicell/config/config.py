@@ -24,12 +24,21 @@ class ModelConfig:
 
 @dataclass
 class ETLConfig:
+
+    @dataclass
+    class SyntheticConfig:
+        """Defines a config for the synthetic data generation process."""
+        model_config_path: str
+        batch_size: str
+        collate_fn: str
+        
     """Configuration for ETL process."""
     name: str
     count_norm: bool = False
     log1p: bool = False
     drop_unmatched_perts: bool = False
     HVG: bool = False
+    synthetic: Optional[SyntheticConfig] = None
 
     @classmethod
     def from_yaml(cls, path: str) -> 'ETLConfig':
