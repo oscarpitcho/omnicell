@@ -22,7 +22,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger(__name__)
 
 # Configure paths
-MODEL_CONFIG = ModelConfig.from_yaml("/orcd/data/omarabu/001/njwfish/omnicell/configs/models/autoencoder.yaml")
+MODEL_CONFIG = ModelConfig.from_yaml("/home/jason497/omnicell/configs/models/autoencoder.yaml")
 ETL_CONFIG = ETLConfig(name = "no_preprocessing", log1p = False, drop_unmatched_perts = True)
 EMBEDDING_CONFIG = EmbeddingConfig(pert_embedding='GenePT')
 
@@ -202,7 +202,6 @@ for (cell, pert) in eval_dict:
     )
     print((cell,pert))
     print(DEGs_overlaps)
-    continue
 
     r2_and_mse = get_eval(
         control,
