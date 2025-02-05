@@ -12,11 +12,8 @@ from collections import defaultdict
 
 class StratifiedBatchSampler(Sampler[List[int]]):
     def __init__(
-        self, ns, batch_size: int
+        self, ns, batch_size: int, samples_per_epoch: int = None
     ) -> None:
-        # Since collections.abc.Iterable does not check for `__getitem__`, which
-        # is one way for an object to be an iterable, we don't do an `isinstance`
-        # check here.
         if not isinstance(batch_size, int) or isinstance(batch_size, bool) or \
                 batch_size <= 0:
             raise ValueError(f"batch_size should be a positive integer value, but got batch_size={batch_size}")
@@ -27,27 +24,19 @@ class StratifiedBatchSampler(Sampler[List[int]]):
         print("Strata probs", np.sort(self.probs))
         self.batch_size = batch_size
         self.batch_sizes = np.minimum(ns, batch_size)
+        if samples_per_epoch is not None:
+            self.samples_per_epoch = samples_per_epoch
+        else:
+            self.samples_per_epoch = np.sum(self.ns)
     
     def get_random_stratum(self):
         linear_idx = np.random.choice(self.num_strata, p=self.probs)
         stratum = np.unravel_index(linear_idx, self.ns.shape)
         return stratum
 
-    # def __iter__(self) -> Iterator[List[int]]:
-    #     # Implemented based on the benchmarking in https://github.com/pytorch/pytorch/pull/76951
-    #    while True:
-    #         stratum = self.get_random_stratum()
-    #         try:
-    #             batch_stratum = np.repeat(np.array(stratum)[None, :], self.batch_sizes[stratum], axis=0)
-    #             batch = np.random.choice(self.ns[stratum], self.batch_sizes[stratum], replace=False)
-    #             yield zip(batch_stratum, batch)
-    #         except StopIteration:
-    #             break
-
-
     def __iter__(self) -> Iterator[List[int]]:
         # Calculate number of batches based on total samples and batch size
-        samples_remaining = np.sum(self.ns)
+        samples_remaining = self.samples_per_epoch
         while True:
             if samples_remaining < 0:
                 break
@@ -58,10 +47,6 @@ class StratifiedBatchSampler(Sampler[List[int]]):
             yield zip(batch_stratum, batch)
 
     def __len__(self) -> int:
-        # Can only be called if self.sampler has __len__ implemented
-        # We cannot enforce this condition, so we turn off typechecking for the
-        # implementation below.
-        # Somewhat related: see NOTE [ Lack of Default `__len__` in Python Abstract Base Classes ]
         return np.sum(self.ns) // self.batch_size
 
 class SCFMDataset(torch.utils.data.Dataset):
