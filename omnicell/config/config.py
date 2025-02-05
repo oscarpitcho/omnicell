@@ -174,6 +174,17 @@ class Config:
             f"/{self.get_train_hash()}"
         ).resolve()
 
+
+    def get_synthetic_config_name(self) -> str:
+        """Get the name of the synthetic config associated with this config."""
+
+                
+        #TODO: Centralize this logic
+        synthetic_config_name = f"{self.model_config.name}_{self.etl_config.name}"
+        hash_synthetic_data_config = hashlib.sha256(json.dumps(self.to_dict(), sort_keys=True).encode()).hexdigest()[:8]
+
+        return f"{synthetic_config_name}_{hash_synthetic_data_config}"
+
     def get_eval_path(self) -> Path:
         """Get the path for evaluation artifacts."""
         datasplit_prefix = self._get_datasplit_prefix()

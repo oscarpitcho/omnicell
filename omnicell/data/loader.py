@@ -220,11 +220,11 @@ class DataLoader:
 
 
             #We verify that this exact config exists for our dataset
-            hash_synthetic_data_config = hashlib.sha256(json.dumps(synthetic_data_config.to_dict(), sort_keys=True).encode()).hexdigest()[:8]
 
 
-            if hash_synthetic_data_config not in self.training_dataset_details.synthetic_versions:
-                raise ValueError(f"Could not find a config with hash {hash_synthetic_data_config} for dataset {self.training_dataset_details.name}, please check that the synthetic data was generated with the same config.")
+
+            if synthetic_data_config.get_synthetic_config_name() not in self.training_dataset_details.synthetic_versions:
+                raise ValueError(f"Could not find a config with name {synthetic_data_config.get_synthetic_config_name()} for dataset {self.training_dataset_details.name}, please check that the synthetic data was generated with the same config.")
 
             #We load the synthetic data
             synthetic_data_path = f"{dataset_details.folder_path}/synthetic_data"
