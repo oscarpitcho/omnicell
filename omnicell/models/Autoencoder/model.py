@@ -9,7 +9,6 @@ import torch.optim as optim
 import scanpy as sc
 import anndata
 
-#####MY STUFF
 
 import pandas as pd
 from scipy.sparse import issparse
@@ -276,9 +275,7 @@ class autoencoder(nn.Module):
         
         print_interval = 5000
         
-        ##############################################
-        # Example hyperparams for demonstration
-        ##############################################
+
         KNN_K = 10
         KNN_EMB_LOSS_WEIGHT = 1e-2
         REBUILD_EVERY = 1
@@ -387,9 +384,6 @@ class autoencoder(nn.Module):
                     start_time= time.time()
 
     def make_predict(self, adata: sc.AnnData, pert_id: str, cell_type: str) -> np.ndarray:
-        """
-        Example "prediction" function that also ensures consistent device usage.
-        """
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.to(device)  # ensure model is on device
 
