@@ -116,6 +116,11 @@ def get_model(model_name, config_model, loader, pert_embedding, input_dim, devic
         logger.info("GEARS model selected")
         model = GEARSPredictor(device, config_model)
         
+    elif "autoencoder" in model_name:
+        from omnicell.models.Autoencoder.model import autoencoder
+        logger.info("Autoencoder model selected")
+        model = autoencoder(config_model, input_dim)
+        
     else:
         raise ValueError(f'Unknown model name {model_name}')
     
