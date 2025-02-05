@@ -53,4 +53,10 @@ class TemplateModel():
         pass
         
 
+    def generate_synthetic_counterfactuals(self, args: dict) -> dict:
+        """
+        Generates synthetic counterfactuals for the given arguments
+        """
+        pass
+
 

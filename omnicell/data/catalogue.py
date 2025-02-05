@@ -129,7 +129,18 @@ class Catalogue:
         else:
             raise ValueError(f"Dataset {dataset_name} not found in catalogue")
 
+
+    @staticmethod
+    def register_new_synthetic_version(dataset_name, synthetic_version):
+        catalogue = Catalogue._get_catalogue()
+        if dataset_name in catalogue:
+            catalogue[dataset_name].synthetic_versions.append(synthetic_version)
+            Catalogue._save(catalogue)
+        else:
+            raise ValueError(f"Dataset {dataset_name} not found in catalogue")
+
             
+
     """Flushes the content of the catalogue to disk, pushing any changes that have been made"""
     @staticmethod
     def _save(catalogue: dict):

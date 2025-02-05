@@ -8,7 +8,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-@dataclass(frozen=True)
+@dataclass()
 class ModelConfig:
     """Configuration for the model."""
     name: str
@@ -22,10 +22,10 @@ class ModelConfig:
             return cls(name=name, parameters=data)
 
 
-@dataclass(frozen=True)
+@dataclass()
 class ETLConfig:
 
-    @dataclass(frozen=True)
+    @dataclass()
     class SyntheticConfig:
         """Defines a config for the synthetic data generation process."""
         model_config_path: str
@@ -45,7 +45,7 @@ class ETLConfig:
         with open(path) as f:
             return cls(**yaml.safe_load(f))
 
-@dataclass(frozen=True)
+@dataclass()
 class EmbeddingConfig:
     """Configuration for all embeddings attached to the the dataset."""
     gene_embedding: Optional[str] = None
@@ -72,7 +72,7 @@ class EmbeddingConfig:
 
         return '_'.join(name_parts)
 
-@dataclass(frozen=True)
+@dataclass()
 class DatasplitConfig:
     """Configuration for data splitting."""
     name: str
@@ -86,7 +86,7 @@ class DatasplitConfig:
         with open(path) as f:
             return cls(**yaml.safe_load(f))
 
-@dataclass(frozen=True)
+@dataclass()
 class EvalConfig:
     """Configuration for evaluation."""
     name: str
@@ -98,7 +98,7 @@ class EvalConfig:
         with open(path) as f:
             return cls(**yaml.safe_load(f))
 
-@dataclass(frozen=True)     
+@dataclass()     
 class Config:
     """Configuration for a model or task."""
     model_config: ModelConfig
@@ -175,12 +175,19 @@ class Config:
         ).resolve()
 
 
-    def get_synthetic_config_name(self) -> str:
-        """Get the name of the synthetic config associated with this config."""
+    def get_synthetic_config_ID(self) -> str:
+        """Get a unique, human readable ID of the config used to generate the synthetic data associated with this config."""
 
-                
-        #TODO: Centralize this logic
         synthetic_config_name = f"{self.model_config.name}_{self.etl_config.name}"
+
+        #We select relevant parts of the config:
+        synthetic_config = self.copy()
+        
+        #Only keep model, ETL (no synthetic), and datasplit
+        synthetic_config.eval_config = None
+        synthetic_config.embedding_config = None
+        synthetic_config.etl_config.synthetic = None
+
         hash_synthetic_data_config = hashlib.sha256(json.dumps(self.to_dict(), sort_keys=True).encode()).hexdigest()[:8]
 
         return f"{synthetic_config_name}_{hash_synthetic_data_config}"

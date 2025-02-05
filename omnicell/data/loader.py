@@ -220,17 +220,13 @@ class DataLoader:
 
 
             #We verify that this exact config exists for our dataset
-            if synthetic_data_config.get_synthetic_config_name() not in self.training_dataset_details.synthetic_versions:
-                raise ValueError(f"Could not find a config with name {synthetic_data_config.get_synthetic_config_name()} for dataset {self.training_dataset_details.name}, please check that the synthetic data was generated with the same config.")
+            if synthetic_data_config.get_synthetic_config_ID() not in self.training_dataset_details.synthetic_versions:
+                raise ValueError(f"Could not find a config with name {synthetic_data_config.get_synthetic_config_ID()} for dataset {self.training_dataset_details.name}, please check that the synthetic data was generated with the same config.")
 
             #We load the synthetic data
-            synthetic_data_path = f"{dataset_details.folder_path}/synthetic_data/{synthetic_data_config.get_synthetic_config_name()}"
+            synthetic_data_path = f"{dataset_details.folder_path}/synthetic_data/{synthetic_data_config.get_synthetic_config_ID()}"
 
             synthetic_data_files = os.listdir(synthetic_data_path)
-
-            for file in synthetic_data_files:
-                adata = sc.read_h5ad(f"{synthetic_data_path}/{file}")
-                adata = self.preprocess_data(adata, training=True)
 
             #We get the paths of all the files in this folder
             synthetic_data_paths = [Path(f"{synthetic_data_path}/{file}").resolve() for file in synthetic_data_files]
