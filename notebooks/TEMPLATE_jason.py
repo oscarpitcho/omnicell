@@ -219,30 +219,4 @@ for (cell, pert) in eval_dict:
     results_dict[(cell, pert)] = (r2_and_mse, DEGs_overlaps)
 
 
-######################################################
-#  In[6]: Print a Summary of the Overlap for One Pair
-######################################################
-
-for (cell, pert) in results_dict:
-    r2_and_mse, DEGs_overlaps = results_dict[(cell, pert)]
-    print(f"Cell: {cell}, Pert: {pert}")
-    # You can print or inspect r2_and_mse if needed
-    # print(f'R2 and MSE: {r2_and_mse}')
-    print(f"DEGs Overlaps: {DEGs_overlaps}")
-    print("-" * 100)
-
-
-################################################
-#  In[7]: Example of Inspecting r2_and_mse Dict
-################################################
-
-# If you only iterated over one cell-pert pair, the dictionary has one key.
-# Suppose we just check the first (cell, pert) from results_dict:
-if len(results_dict) > 0:
-    first_key = list(results_dict.keys())[0]
-    r2_and_mse, _ = results_dict[first_key]
-    r2_and_mse
-    # This just shows how you'd inspect or print it:
-    # print("r2_and_mse = ", r2_and_mse)
-
-# End of script
+print(results_dict)
