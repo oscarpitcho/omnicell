@@ -11,6 +11,8 @@ from omnicell.processing.utils import to_dense
 from omnicell.models.distribute_shift import sample_pert
 from omnicell.models.datamodules import get_dataloader
 
+import logging
+logger = logging.getLogger(__name__)
 
 def sliced_wasserstein_distance(X1, X2, n_projections=100, p=2):
     """
@@ -156,8 +158,8 @@ class SCOT(torch.nn.Module):
         return preds
     
     def train(self, adata, model_savepath):
-        dset, ns, dl = get_dataloader(
-            adata, pert_ids=np.array(adata.obs[PERT_KEY].values), pert_map=self.pert_embedding, collate='ot'
+        dset,  dl = get_dataloader(
+            adata, pert_ids=np.array(adata.obs[PERT_KEY].values), offline=False, pert_map=self.pert_embedding, collate='ot'
         )
         optimizer = torch.optim.Adam(self.parameters(), lr=2e-4)
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -165,7 +167,9 @@ class SCOT(torch.nn.Module):
 
 
         num_epochs = self.max_epochs
+        logger.info(f"Training for {num_epochs} epochs")
         for epoch in range(num_epochs):
+
             losses = []
             for i, (ctrl, pert, pert_id) in enumerate(dl):
                 # generate random indices for ctrl and pert
@@ -180,6 +184,8 @@ class SCOT(torch.nn.Module):
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
+
+            logger.info(f"Epoch {epoch + 1}/{num_epochs} - Loss: {losses[-1]}")
 
 
 
