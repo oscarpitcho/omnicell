@@ -271,7 +271,7 @@ class autoencoder(nn.Module):
         
         optimizer = optim.Adam(self.parameters(), lr=1e-3)
         start_epoch = 0
-        num_epochs = 10
+        num_epochs = 20
         
         print_interval = 5000
         
