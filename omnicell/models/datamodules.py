@@ -56,7 +56,7 @@ class OnlinePairedStratifiedDataset(torch.utils.data.Dataset):
     def __init__(
         self, source, target, pert_ids, pert_map, source_strata, target_strata
     ):
-        source, target = np.array(source), np.array(target)
+        source, target = np.array(source).astype(np.float32), np.array(target).astype(np.float32)
         pert_ids = np.array(pert_ids)
         
         assert target.shape[0] == pert_ids.shape[0]
@@ -116,8 +116,8 @@ class OnlinePairedStratifiedDataset(torch.utils.data.Dataset):
         stratum, pert = self.strata[stratum_idx], self.unique_pert_ids[pert_idx]
         sidx = np.random.choice(self.source[stratum].shape[0])
         return (
-            self.source[stratum][sidx].astype(np.float32),
-            self.target[stratum][pert][idx].astype(np.float32),
+            self.source[stratum][sidx],
+            self.target[stratum][pert][idx],
             self.pert_map[self.pert_ids[stratum][pert][idx]],
         )
 

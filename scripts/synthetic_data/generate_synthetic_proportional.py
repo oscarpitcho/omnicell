@@ -5,6 +5,7 @@ import yaml
 from pathlib import Path
 import logging
 import numpy as np
+
 from omnicell.constants import GENE_EMBEDDING_KEY, PERT_KEY, CELL_KEY, CONTROL_PERT, DATA_CATALOGUE_PATH
 from omnicell.data.utils import prediction_filename
 from omnicell.processing.utils import to_dense, to_coo
@@ -22,6 +23,7 @@ logger = logging.getLogger(__name__)
 
 
 def main():
+    print("Starting synthetic data generation...")
     parser = argparse.ArgumentParser(description='Analysis settings.')
     parser.add_argument('--dataset', type=str, help='Name of the dataset')
     parser.add_argument('--model_config', type=str, default='ood', help='Mode of the split config')
@@ -39,10 +41,13 @@ def main():
                                etl_yaml   = args.etl_config, 
                                datasplit_yaml = args.datasplit_config)
 
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    print(f"Using device: {device}")
-
+    synthetic_data_name = config.get_synthetic_config_ID()
     dataset_details = Catalogue.get_dataset_details(args.dataset)
+
+    
+    if synthetic_data_name in dataset_details.synthetic_versions:
+        print(f"Synthetic data with name {synthetic_data_name} already exists for dataset {args.dataset}, skipping.")
+        return
 
     model = ProportionalSCOT(None)
     # Initialize data loader and load training data
@@ -53,7 +58,6 @@ def main():
     dset, dl = get_dataloader(adata, pert_ids=np.array(adata.obs[PERT_KEY].values), offline=False, pert_map=pert_rep_map, collate='ot')
 
 
-    synthetic_data_name = config.get_synthetic_config_ID()
     datapath = f"{dataset_details.folder_path}/synthetic_data/{synthetic_data_name}"
 
 
@@ -71,12 +75,11 @@ def main():
 
 
 
-
-
     Catalogue.register_new_synthetic_version(args.dataset, config.get_synthetic_config_ID())
         
     
-
+if __name__ == "__main__":
+    main()
                             
 
 

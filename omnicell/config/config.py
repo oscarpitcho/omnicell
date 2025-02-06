@@ -3,6 +3,7 @@ from typing import List, Tuple, Optional, Dict, Any
 from pathlib import Path
 import yaml
 import json
+import copy
 import hashlib
 import logging
 
@@ -181,7 +182,8 @@ class Config:
         synthetic_config_name = f"{self.model_config.name}_{self.etl_config.name}"
 
         #We select relevant parts of the config:
-        synthetic_config = self.copy()
+        synthetic_config = copy.deepcopy(self)
+        
         
         #Only keep model, ETL (no synthetic), and datasplit
         synthetic_config.eval_config = None

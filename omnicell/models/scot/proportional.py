@@ -37,9 +37,10 @@ class ProportionalSCOT():
         logger.debug(f"Mean shift shape: {mean_shift.shape}")
 
         weighted_dist = get_proportional_weighted_dist(X_ctrl)
-        weighted_dist = weighted_dist.astype(np.float64)
+        weighted_dist = weighted_dist.astype(np.float32)
         s = weighted_dist.sum(axis=0)
         weighted_dist[:, s > 0] /= s[s > 0]
+
         
         preds = sample_pert(X_ctrl, weighted_dist, mean_shift, max_rejections=100)
         return preds
@@ -51,46 +52,46 @@ class ProportionalSCOT():
         source_batch = {} 
         synthetic_counterfactual_batch = {}
 
-            source_batch[stratum] = X_ctrl = dset.source[stratum][i:i+batch_size]
-            synthetic_counterfactual_batch[stratum] = {}
+        source_batch[stratum] = X_ctrl = dset.source[stratum][i:i+batch_size]
+        synthetic_counterfactual_batch[stratum] = {}
 
-            mean_ctrl = X_ctrl.mean(axis=0)
-            
-            # Time the weighted dist calculation
-            dist_start = time.time()
-            weighted_dist = get_proportional_weighted_dist(X_ctrl)
-            weighted_dist = weighted_dist.astype(np.float64)
-            s = weighted_dist.sum(axis=0)
-            weighted_dist[:, s > 0] /= s[s > 0]
-            
-            dist_time = time.time() - dist_start
-            logger.info(f"Weighted dist calculation took: {dist_time:.2f}s")
+        mean_ctrl = X_ctrl.mean(axis=0)
+        
+        # Time the weighted dist calculation
+        dist_start = time.time()
+        weighted_dist = get_proportional_weighted_dist(X_ctrl)
+        weighted_dist = weighted_dist.astype(np.float32)
+        s = weighted_dist.sum(axis=0)
+        weighted_dist[:, s > 0] /= s[s > 0]
+        
+        dist_time = time.time() - dist_start
+        logger.info(f"Weighted dist calculation took: {dist_time:.2f}s")
 
-            for j, pert in enumerate(dset.unique_pert_ids):
-                if j % 10 == 0:
-                    pert_start = time.time()
-                    logger.info(f"{j} / {len(dset.unique_pert_ids)}")
-                
-                X_pert = dset.target[stratum][pert]
-                mean_pert = X_pert.mean(axis=0)
-                mean_shift = mean_pert - mean_ctrl
-                
-                # Time the sample_pert call
-                preds = sample_pert(
-                    X_ctrl, 
-                    weighted_dist, 
-                    mean_shift, 
-                    max_rejections=100, 
-                    # num_threads=2
-                )
-                
-                synthetic_counterfactual_batch[stratum][pert] = preds.astype(np.int16)
-                
-                if (j + 1) % 10 == 0:
-                    pert_time = time.time() - pert_start
-                    logger.info(f"Perturbation {j} took: {pert_time:.2f}s")
+        for j, pert in enumerate(dset.unique_pert_ids):
+            if j % 10 == 0:
+                pert_start = time.time()
+                logger.info(f"{j} / {len(dset.unique_pert_ids)}")
             
-        # Save timing data along with results
+            X_pert = dset.target[stratum][pert]
+            mean_pert = X_pert.mean(axis=0)
+            mean_shift = mean_pert - mean_ctrl
+            
+            # Time the sample_pert call
+            preds = sample_pert(
+                X_ctrl, 
+                weighted_dist, 
+                mean_shift, 
+                max_rejections=100, 
+                # num_threads=2
+            )
+            
+            synthetic_counterfactual_batch[stratum][pert] = preds.astype(np.int16)
+            
+            if (j + 1) % 10 == 0:
+                pert_time = time.time() - pert_start
+                logger.info(f"Perturbation {j} took: {pert_time:.2f}s")
+        
+    # Save timing data along with results
         data_dict = {
             'synthetic_counterfactuals': synthetic_counterfactual_batch,
             'source': source_batch,

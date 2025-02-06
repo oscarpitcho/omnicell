@@ -163,7 +163,6 @@ class SCOT(torch.nn.Module):
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.to(device)
 
-        from tqdm.notebook import tqdm
 
         num_epochs = self.max_epochs
         for epoch in range(num_epochs):
