@@ -311,7 +311,7 @@ class StreamingOfflinePairedStratifiedDataset(torch.utils.data.Dataset):
 
 
 def get_dataloader(
-        adata, pert_map, pert_ids, offline=True, file_stream=None,
+        adata, pert_map, pert_ids, offline=False, file_stream=None,
         batch_size=512, verbose=0, collate=None, X=None
 ):
         if collate is None:
