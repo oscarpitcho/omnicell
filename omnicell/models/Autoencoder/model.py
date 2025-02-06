@@ -170,8 +170,8 @@ class autoencoder(nn.Module):
         self,
         model_config: dict,
         num_genes: int,
-        enc_dim_cell: int = 1000,
-        enc_dim_pert: int = 40,
+        enc_dim_cell: int = 340,
+        enc_dim_pert: int = 80,
         hidden_enc_1: int = 3402,
         hidden_dec_1: int = 340
     ):
@@ -269,9 +269,9 @@ class autoencoder(nn.Module):
         # Make sure the model and its embeddings are on that device
         self.to(device)
         
-        optimizer = optim.Adam(self.parameters(), lr=5e-4)
+        optimizer = optim.Adam(self.parameters(), lr=1e-3)
         start_epoch = 0
-        num_epochs = 1
+        num_epochs = 2
         
         print_interval = 5000
         
