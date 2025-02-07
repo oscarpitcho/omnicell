@@ -5,7 +5,7 @@ import torch
 import numpy as np
 import pickle 
 
-from omnicell.models.datamodules import get_dataloader
+from omnicell.models.utils.datamodules import get_dataloader
 
 from omnicell.models.cell_emb.cell_emb import *
 from omnicell.models.flows.flow_utils import compute_conditional_flow

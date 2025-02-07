@@ -4,7 +4,7 @@ import torch
 
 import numpy as np
 
-from omnicell.models.datamodules import get_dataloader
+from omnicell.models.utils.datamodules import get_dataloader
 
 from omnicell.models.flows.arch import CMHA, CMLP, CFM, CFMC, CMLPC
 from omnicell.models.flows.flow_utils import compute_conditional_flow

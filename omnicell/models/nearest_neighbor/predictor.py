@@ -8,7 +8,7 @@ import logging
 from typing import Optional, Tuple, Dict
 import pickle
 from torch import pca_lowrank 
-from omnicell.models.metric_fns import distance_metrics
+from omnicell.models.utils.metric_fns import distance_metrics
 from pathlib import Path
 
 

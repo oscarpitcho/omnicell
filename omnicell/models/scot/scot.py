@@ -9,7 +9,7 @@ from torch_geometric.data import Data
 from omnicell.constants import *
 from omnicell.processing.utils import to_dense
 from omnicell.models.distribute_shift import sample_pert
-from omnicell.models.datamodules import get_dataloader
+from omnicell.models.utils.datamodules import get_dataloader
 
 from omnicell.models.scot.sampling_utils import batch_pert_sampling
 

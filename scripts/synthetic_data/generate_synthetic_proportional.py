@@ -15,7 +15,7 @@ from omnicell.data.catalogue import Catalogue
 
 import torch
 import pickle
-from omnicell.models.datamodules import get_dataloader
+from omnicell.models.utils.datamodules import get_dataloader
 import logging 
 
 from omnicell.models.selector import load_model
