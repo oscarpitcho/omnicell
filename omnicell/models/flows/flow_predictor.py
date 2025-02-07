@@ -19,13 +19,17 @@ from omnicell.constants import CELL_KEY, CONTROL_PERT, PERT_KEY
 logger = logging.getLogger(__name__)
 
 class FlowPredictor():
-    def __init__(self, config, input_size, pert_rep, pert_map):
+    def __init__(self, config, input_size, pert_embedding):
         self.model_config = config['model'] if config['model'] is not None else {}
         self.trainig_config = config['training'] if config['training'] is not None else {}
 
+
+        pert_keys = list(pert_embedding.keys())
+        pert_rep = np.array([pert_embedding[k] for k in pert_keys])
+        self.pert_map = {k: i for i, k in enumerate(pert_keys)}
+
         self.max_epochs = self.trainig_config['max_epochs']
 
-        self.pert_map = {k: pert_rep[pert_map[k]] for k in pert_map}
         # self.pert_rep = pert_rep
 
         
