@@ -9,6 +9,7 @@ import torch.optim as optim
 import scanpy as sc
 import anndata
 from collections import deque
+import copy
 
 import pandas as pd
 from scipy.sparse import issparse
