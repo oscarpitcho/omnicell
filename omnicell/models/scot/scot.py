@@ -138,6 +138,7 @@ class SCOT(torch.nn.Module):
         _, dl = get_dataloader(
             adata, pert_ids=np.array(adata.obs[PERT_KEY].values), offline=False, pert_map=self.pert_embedding, collate='ot'
         )
+        
         optimizer = torch.optim.Adam(self.parameters(), lr=2e-4)
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.to(device)
