@@ -64,11 +64,14 @@ def get_eval(ctrl_adata, true_adata, pred_adata, DEGs, DEG_vals, pval_threshold,
     pred_mean = pred_X.mean(axis = 0)
     pred_var = pred_X.var(axis = 0)
     
-    true_corr_mtx = np.corrcoef(true_X, rowvar=False).flatten()
     true_cov_mtx = np.cov(true_X, rowvar=False).flatten()
-        
-    pred_corr_mtx = np.corrcoef(pred_X, rowvar=False).flatten()
     pred_cov_mtx = np.cov(pred_X, rowvar=False).flatten()
+
+    pred_corr_mtx = np.corrcoef(pred_X, rowvar=False).flatten()
+    true_corr_mtx = np.corrcoef(true_X, rowvar=False).flatten()
+
+    true_corr_mtx[np.isnan(true_corr_mtx)] = 0
+    pred_corr_mtx[np.isnan(pred_corr_mtx)] = 0
 
     true_sub_diff = true_mean - ctrl_mean
     pred_sub_diff = pred_mean - ctrl_mean
@@ -156,13 +159,16 @@ def get_eval(ctrl_adata, true_adata, pred_adata, DEGs, DEG_vals, pval_threshold,
 
             true_var = to_dense(true_X[:,top_DEGs]).var(axis = 0)
             true_corr_mtx = np.corrcoef(to_dense(true_X[:,top_DEGs]), rowvar=False).flatten()
+            true_corr_mtx[np.isnan(true_corr_mtx)] = 0
             true_cov_mtx = np.cov(to_dense(true_X[:,top_DEGs]), rowvar=False).flatten()
+
 
             pred_mean = to_dense(pred_X[:,top_DEGs]).mean(axis = 0)
             logger.debug(f"Shape of true_mean shape: {true_mean.shape}, ctrl_mean shape: {ctrl_mean.shape}, pred_mean shape: {pred_mean.shape}")
 
             pred_var = to_dense(pred_X[:,top_DEGs]).var(axis = 0)
             pred_corr_mtx = np.corrcoef(to_dense(pred_X[:,top_DEGs]), rowvar=False).flatten()
+            pred_corr_mtx[np.isnan(pred_corr_mtx)] = 0
             pred_cov_mtx = np.cov(to_dense(pred_X[:,top_DEGs]), rowvar=False).flatten()
 
             logger.debug(f"Shape of true_var shape: {true_var.shape}, pred_var shape: {pred_var.shape}")
