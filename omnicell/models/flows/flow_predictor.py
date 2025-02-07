@@ -77,9 +77,8 @@ class FlowPredictor():
     
 
     def make_predict(self, adata: sc.AnnData, pert_id: str, cell_type: str) -> np.ndarray:
-        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         cell_types = adata.obs[CELL_KEY].values
-        control_eval = adata[cell_types == cell_type].obsm['embedding']
+        control_eval = adata[cell_types == cell_type].X
         traj = compute_conditional_flow(
             self.model, 
             control_eval, 

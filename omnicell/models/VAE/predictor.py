@@ -42,7 +42,7 @@ class VAEPredictor():
 
     #Note this model needs the entire data or sth like that. 
     #The mean operations are computed on the entire dataset.
-    def train(self, adata):
+    def train(self, adata, **kwargs):
 
         self.cell_ids = adata.obs[CELL_KEY].unique()
         device = self.device

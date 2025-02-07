@@ -81,7 +81,7 @@ def main(*args):
     logger.info(f"Running experiment on {device}")
 
 
-    model = load_model(config.model_config.name, config.model_config.parameters, loader, pert_embedding, input_dim, device, pert_ids)
+    model = load_model(config.model_config, loader, pert_embedding, input_dim, device, pert_ids)
 
     model_savepath = Path(f"{config.get_train_path()}/training")
 

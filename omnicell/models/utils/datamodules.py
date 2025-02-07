@@ -343,8 +343,7 @@ def get_dataloader(
                     num_files=num_files
                 )
         else:
-            if X is None:
-                X = adata.X.toarray()
+            X = adata.X
             
             control_idx = adata.obs[PERT_KEY] == CONTROL_PERT
             pert_idx = adata.obs[PERT_KEY] != CONTROL_PERT
