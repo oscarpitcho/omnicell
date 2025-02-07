@@ -27,6 +27,7 @@ def batch_pert_sampling(model, ctrl, pert, max_rejections=100):
     preds = []
     for ctrl_data_batch in np.array_split(ctrl, n_batches):
         pred = sample_pert_from_model(model, ctrl_data_batch, pert, max_rejections, device)
+        
         preds.append(pred)
 
     preds = np.concatenate(preds, axis=0)
