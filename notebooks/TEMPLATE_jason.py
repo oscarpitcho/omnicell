@@ -172,9 +172,9 @@ for (cell, pert) in eval_dict:
     control = sc.AnnData(X=ctrl_data.copy())
     
 
-    #sc.pp.normalize_total(control, target_sum=1e5)
-    #sc.pp.normalize_total(true_pert, target_sum=1e5)
-    #sc.pp.normalize_total(pred_pert_adat, target_sum=1e5)
+    sc.pp.normalize_total(control, target_sum=1e5)
+    sc.pp.normalize_total(true_pert, target_sum=1e5)
+    sc.pp.normalize_total(pred_pert_adat, target_sum=1e5)
     
     sc.pp.log1p(control)
     sc.pp.log1p(true_pert)
