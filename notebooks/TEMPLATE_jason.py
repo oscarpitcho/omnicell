@@ -26,10 +26,10 @@ MODEL_CONFIG = ModelConfig.from_yaml("/home/jason497/omnicell/configs/models/aut
 ETL_CONFIG = ETLConfig(name = "no_preprocessing", log1p = False, drop_unmatched_perts = True)
 EMBEDDING_CONFIG = EmbeddingConfig(pert_embedding='GenePT')
 
-#SPLIT_CONFIG = DatasplitConfig.from_yaml("/orcd/data/omarabu/001/njwfish/omnicell/configs/splits/repogle_k562_essential_raw/random_splits/rs_accP_k562_ood_ss:ns_20_2_most_pert_0.1/split_0/split_config.yaml")
-SPLIT_CONFIG = DatasplitConfig.from_yaml("/orcd/data/omarabu/001/njwfish/omnicell/configs/splits/repogle_k562_essential_raw/random_splits/rs_accP_k562_ood_ss:ns_20_2_most_pert_0.1/split_1/split_config.yaml")
-#EVAL_CONFIG = EvalConfig.from_yaml("/orcd/data/omarabu/001/njwfish/omnicell/configs/splits/repogle_k562_essential_raw/random_splits/rs_accP_k562_ood_ss:ns_20_2_most_pert_0.1/split_1/eval_config.yaml")  # Set this if you want to run evaluations
-EVAL_CONFIG = EvalConfig.from_yaml("/orcd/data/omarabu/001/njwfish/omnicell/configs/splits/repogle_k562_essential_raw/random_splits/rs_accP_k562_ood_ss:ns_20_2_most_pert_0.1/split_1/eval_config.yaml")
+SPLIT_CONFIG = DatasplitConfig.from_yaml("/orcd/data/omarabu/001/njwfish/omnicell/configs/splits/repogle_k562_essential_raw/random_splits/rs_accP_k562_ood_ss:ns_20_2_most_pert_0.1/split_0/split_config.yaml")
+#SPLIT_CONFIG = DatasplitConfig.from_yaml("/orcd/data/omarabu/001/njwfish/omnicell/configs/splits/repogle_k562_essential_raw/random_splits/rs_accP_k562_ood_ss:ns_20_2_most_pert_0.1/split_1/split_config.yaml")
+EVAL_CONFIG = EvalConfig.from_yaml("/orcd/data/omarabu/001/njwfish/omnicell/configs/splits/repogle_k562_essential_raw/random_splits/rs_accP_k562_ood_ss:ns_20_2_most_pert_0.1/split_1/eval_config.yaml")  # Set this if you want to run evaluations
+#EVAL_CONFIG = EvalConfig.from_yaml("/orcd/data/omarabu/001/njwfish/omnicell/configs/splits/repogle_k562_essential_raw/random_splits/rs_accP_k562_ood_ss:ns_20_2_most_pert_0.1/split_1/eval_config.yaml")
 
 # Load configurations
 config = Config(model_config=MODEL_CONFIG,
@@ -172,9 +172,9 @@ for (cell, pert) in eval_dict:
     control = sc.AnnData(X=ctrl_data.copy())
     
 
-    sc.pp.normalize_total(control, target_sum=1e5)
-    sc.pp.normalize_total(true_pert, target_sum=1e5)
-    sc.pp.normalize_total(pred_pert_adat, target_sum=1e5)
+    #sc.pp.normalize_total(control, target_sum=1e5)
+    #sc.pp.normalize_total(true_pert, target_sum=1e5)
+    #sc.pp.normalize_total(pred_pert_adat, target_sum=1e5)
     
     sc.pp.log1p(control)
     sc.pp.log1p(true_pert)
