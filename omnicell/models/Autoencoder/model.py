@@ -1,4 +1,3 @@
-
 import os
 import numpy as np
 import torch
@@ -8,8 +7,7 @@ from torch.utils.data import Dataset, DataLoader, random_split
 import torch.optim as optim
 import scanpy as sc
 import anndata
-from collections import deque
-import copy
+
 
 import pandas as pd
 from scipy.sparse import issparse
@@ -198,13 +196,10 @@ class autoencoder(nn.Module):
         self.head_ctrl    = nn.Linear(hidden_dec_1, 1)
         self.head_delta   = nn.Linear(hidden_dec_1, 1)
 
-        # Rolling buffer for the last 3 epoch weights
-        self.last_three_states = deque(maxlen=3)
-
     def forward(self, x_ctrl_log, whichpert_idx, multiplier):
         """
         Inputs:
-          x_ctrl_log:    (b, G)
+          x_ctrl_log: (b, G)
           whichpert_idx: (b,)
         Returns:
           pred_ctrl:  (b, G)
@@ -246,10 +241,8 @@ class autoencoder(nn.Module):
           - pred_delta vs. (true_pert - true_ctrl)
         """
         true_delta = true_pert - true_ctrl
-
         diff_sq_ctrl = (pred_ctrl - true_ctrl)**2
         diff_sq_ctrl_masked = diff_sq_ctrl[mask]
-
         diff_sq_delta = (pred_delta - true_delta)**2
         diff_sq_delta_masked = diff_sq_delta[mask]
     
@@ -269,9 +262,10 @@ class autoencoder(nn.Module):
     def train(self, dl):
         """
         Custom training loop that moves model & data to the same device.
-        We'll store the last 3 epoch states in self.last_three_states
         """
+        # Choose device
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        # Make sure the model and its embeddings are on that device
         self.to(device)
         
         optimizer = optim.Adam(self.parameters(), lr=1e-3)
@@ -280,6 +274,7 @@ class autoencoder(nn.Module):
         
         print_interval = 5000
         
+
         KNN_K = 10
         KNN_EMB_LOSS_WEIGHT = 1e-2
         REBUILD_EVERY = 1
@@ -297,17 +292,22 @@ class autoencoder(nn.Module):
         start_time= time.time()
 
         for epoch in range(start_epoch, num_epochs):
+        
             ##############################################
             # Rebuild adjacency (knn_list) + neighbor_idx
             # Also sample negative pairs
             ##############################################
             if epoch % REBUILD_EVERY == 0:
+                # emb_mat will already be on GPU if self.to(device) was called
                 emb_mat = self.shared_embedding.weight  # shape [num_genes+1, enc_dim_pert]
                 N = emb_mat.size(0)
                 
+                # Build k-NN adjacency (assumes these utility funcs can handle CPU/GPU as needed)
                 knn_list = build_knn_indices(emb_mat, k=KNN_K)
+                # move to device
                 neighbor_idx = build_neighbor_idx(knn_list).to(emb_mat.device)
-
+        
+                # Sample negative pairs
                 i_neg_t, j_neg_t = sample_negatives(knn_list, N, num_neg=NEG_PAIRS)
                 neg_i = i_neg_t.to(emb_mat.device)
                 neg_j = j_neg_t.to(emb_mat.device)
@@ -316,11 +316,15 @@ class autoencoder(nn.Module):
             num_samples = 0
         
             for batch_idx, (x_ctrl_batch_in, x_pert_batch_in, whichpert_batch_in) in enumerate(iter(dl)):
+
+
                 # Move input tensors to the same device
-                x_ctrl_batch    = torch.log1p(torch.clone(x_ctrl_batch_in)).to(device)
-                x_pert_batch    = torch.log1p(torch.clone(x_pert_batch_in)).to(device)
-                whichpert_batch = torch.clone(whichpert_batch_in).to(device)
+                x_ctrl_batch    = torch.log1p(torch.clone(x_ctrl_batch_in))
+                x_pert_batch    = torch.log1p(torch.clone(x_pert_batch_in))
                 
+                x_ctrl_batch    = x_ctrl_batch.to(device)
+                x_pert_batch    = x_pert_batch.to(device)
+                whichpert_batch = torch.clone(whichpert_batch_in).to(device)
                 mask_batch      = (x_ctrl_batch > 0).to(device)
         
                 optimizer.zero_grad()
@@ -335,14 +339,18 @@ class autoencoder(nn.Module):
                     mask_batch
                 )
         
+                ##############################################
                 # Vectorized Pull Loss on embedding
+                ##############################################
                 if neighbor_idx is not None:
-                    emb_mat = self.shared_embedding.weight
+                    emb_mat = self.shared_embedding.weight  # shape [N, d]
                     loss_knn = knn_pull_loss_vec(emb_mat, neighbor_idx)
                 else:
                     loss_knn = 0.0
         
+                ##############################################
                 # Negative Sampling Push Loss
+                ##############################################
                 loss_neg = 0.0
                 if neg_i is not None and neg_j is not None:
                     emb_mat = self.shared_embedding.weight
@@ -374,98 +382,43 @@ class autoencoder(nn.Module):
                     num_samples= 0
                     start_time= time.time()
 
-            # --- End of an epoch ---
-            # Store this epoch's state in the rolling buffer (max 3)
-            self.last_three_states.append(copy.deepcopy(self.state_dict()))
-
     def make_predict(self, adata: sc.AnnData, pert_id: str, cell_type: str) -> np.ndarray:
-        """
-        Ensemble inference over the last 3 stored states.
-        We'll average the forward pass from each stored state.
-        """
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.to(device)  # ensure the model is on device
+        self.to(device)  # ensure model is on device
 
-        # Extract control cells of the specified type
+        # Extract control cells
         ctrl_cells = adata[
             (adata.obs[PERT_KEY] == CONTROL_PERT) & (adata.obs[CELL_KEY] == cell_type)
-        ].X.toarray().copy()  # shape (N, G)
-        ctrl_cells_tensor = torch.from_numpy(ctrl_cells).float().to(device)
-        ctrl_cells_log = torch.log1p(ctrl_cells_tensor)
-
-        # We assume gene names are stored in adata.var[GENE_VAR_KEY]
-        whichpert_idx = np.where(adata.var[GENE_VAR_KEY] == pert_id)[0][0]
+        ].X.toarray().copy()
+        ctrl_cells = torch.from_numpy(ctrl_cells).float().to(device)
+        ctrl_cells = torch.log1p(ctrl_cells)
 
         # Build the whichpert index on device
-        whichpert = torch.tensor([whichpert_idx] * ctrl_cells_log.shape[0], 
-                                 dtype=torch.long, device=device)
-        
+        whichpert_idx = np.where(adata.var[GENE_VAR_KEY] == pert_id)[0][0]
+        whichpert = torch.tensor([whichpert_idx] * ctrl_cells.shape[0], dtype=torch.long, device=device)
         batch_size = 32
-        n_samples, n_genes = ctrl_cells_log.size()
-
-        # We'll accumulate predictions from each stored epoch
-        ensemble_pred = torch.zeros((n_samples, n_genes), device=device)
-
-        # Save the current state so we can restore it afterward
-        # (especially if the user wants to keep using the final model as-is).
-        original_state = copy.deepcopy(self.state_dict())
-
-        ###############################################################################
-        #  For each stored state, load it, run inference on the entire dataset in mini-
-        #  batches, and sum up the predictions. At the end, we’ll average them.
-        ###############################################################################
-        num_states = len(self.last_three_states)
-        if num_states == 0:
-            # If we never trained or haven't stored anything, just do a single pass with current
-            num_states = 1
-            self_states = [original_state]
-        else:
-            self_states = self.last_three_states  # the deque of up to 3 states
-
-        # We'll run inference for each of the stored states
-        for state_dict_epoch in self_states:
-            # Load the weights from that epoch
-            self.load_state_dict(state_dict_epoch)
-
-            pred_ctrl_list = []
-            pred_delta_list = []
-
-            with torch.no_grad():
-                # Loop over the dataset in mini-batches.
-                for i in range(0, n_samples, batch_size):
-                    batch_ctrl_cells = ctrl_cells_log[i : i + batch_size]
-                    batch_whichpert  = whichpert[i : i + batch_size]
-
-                    batch_pred_ctrl, batch_pred_delta = self.forward(
-                        batch_ctrl_cells, batch_whichpert, multiplier=1
-                    )
-                    pred_ctrl_list.append(batch_pred_ctrl)
-                    pred_delta_list.append(batch_pred_delta)
-
-            # Concatenate all the batch outputs along the batch dimension.
-            pred_ctrl_all  = torch.cat(pred_ctrl_list, dim=0)
-            pred_delta_all = torch.cat(pred_delta_list, dim=0)
-
-            # Combine to get "predicted perturbed" = ctrl + delta, but only for observed (ctrl>0)
-            masko = (ctrl_cells_log > 0).float()
-            pred_perturbed = pred_ctrl_all + pred_delta_all
-            pred_perturbed = masko * pred_perturbed  # zero out where ctrl was zero
-
-            # Accumulate in ensemble_pred
-            ensemble_pred += pred_perturbed
-
-        # We have the sum of predictions from the states; average them
-        ensemble_pred = ensemble_pred / num_states
-
-        # Restore the original (latest) model weights if needed
-        self.load_state_dict(original_state)
-
-        # Exponential transform back out of log space
-        final_pred = torch.expm1(ensemble_pred)
-        # Round on CPU
-        final_pred_cpu = torch.round(final_pred.cpu().detach())
-
-        return final_pred_cpu.numpy()
-
-
-    
+        pred_ctrl_list = []
+        pred_delta_list = []
+        
+        with torch.no_grad():
+            # Loop over the dataset in mini-batches.
+            for i in range(0, ctrl_cells.size(0), batch_size):
+                # Slice the inputs for the current batch.
+                batch_ctrl_cells = torch.clone(ctrl_cells[i:i+batch_size])
+                batch_whichpert = torch.clone(whichpert[i:i+batch_size])  # Remove or adjust if not batched
+        
+                # Forward pass for the batch
+                batch_pred_ctrl, batch_pred_delta = self.forward(batch_ctrl_cells, batch_whichpert, multiplier=1)
+                
+                # Store the batch predictions
+                pred_ctrl_list.append(torch.clone(batch_pred_ctrl))
+                pred_delta_list.append(torch.clone(batch_pred_delta))
+        
+        # Concatenate all the batch outputs along the batch dimension.
+        pred_ctrl = torch.cat(pred_ctrl_list, dim=0)
+        pred_delta = torch.cat(pred_delta_list, dim=0)
+        masko = ctrl_cells>0
+        pred = ctrl_cells + pred_delta
+        pred = masko*pred
+        # If you want outputs back on CPU as a NumPy array:
+        return np.round(np.expm1(pred.cpu().detach().numpy()))
