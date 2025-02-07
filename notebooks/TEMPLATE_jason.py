@@ -209,7 +209,7 @@ for (cell, pert) in eval_dict:
         control,
         true_pert,
         pred_pert_adat,
-        true_DEGs_df,
+        control,
         [100, 50, 20],
         pval_threshold,
         log_fold_change_threshold
