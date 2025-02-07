@@ -265,7 +265,7 @@ class autoencoder(nn.Module):
         loss_total = 0.9*loss_ctrl + 0.1*loss_delta
         return loss_total, loss_ctrl.item(), loss_delta.item()
 
-    def train_model(self, dl):
+    def train(self, dl):
         """
         Custom training loop that moves model & data to the same device.
         We'll store the last 3 epoch states in self.last_three_states
