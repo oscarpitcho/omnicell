@@ -37,6 +37,7 @@ class DatasetDetails:
     pert_embeddings: List[str] = field(default_factory=list)
     cell_embeddings: List[str] = field(default_factory=list)
     gene_embeddings: List[str] = field(default_factory=list)
+    synthetic_versions: List[str] = field(default_factory=list)
 
 
     def to_dict(self):
@@ -128,7 +129,18 @@ class Catalogue:
         else:
             raise ValueError(f"Dataset {dataset_name} not found in catalogue")
 
+
+    @staticmethod
+    def register_new_synthetic_version(dataset_name, synthetic_version):
+        catalogue = Catalogue._get_catalogue()
+        if dataset_name in catalogue:
+            catalogue[dataset_name].synthetic_versions.append(synthetic_version)
+            Catalogue._save(catalogue)
+        else:
+            raise ValueError(f"Dataset {dataset_name} not found in catalogue")
+
             
+
     """Flushes the content of the catalogue to disk, pushing any changes that have been made"""
     @staticmethod
     def _save(catalogue: dict):

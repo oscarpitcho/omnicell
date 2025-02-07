@@ -9,8 +9,12 @@ from torch_geometric.data import Data
 from omnicell.constants import *
 from omnicell.processing.utils import to_dense
 from omnicell.models.distribute_shift import sample_pert
-from omnicell.models.datamodules import get_dataloader
+from omnicell.models.utils.datamodules import get_dataloader
 
+from omnicell.models.scot.sampling_utils import batch_pert_sampling
+
+import logging
+logger = logging.getLogger(__name__)
 
 def sliced_wasserstein_distance(X1, X2, n_projections=100, p=2):
     """
@@ -111,7 +115,6 @@ class SCOT(torch.nn.Module):
         shift = torch.tile(shift_vec[None, :, None], (num_cells, 1, 1))
 
         num_cells = torch.tile(num_cells, (num_cells, num_genes, 1))
-        # print(ctrl.shape, cell_embed.shape, gene_embed.shape, shift.shape, num_cells.shape)
 
         ctrl_and_embed = torch.cat([ctrl[:, :, None], cell_embed, gene_embed, shift, num_cells], dim=2)
         output = torch.vmap(self.gnn, in_dims=1)(ctrl_and_embed)
@@ -127,46 +130,23 @@ class SCOT(torch.nn.Module):
 
         weighted_dist = self.forward(ctrl, shift_vec)
         pred_pert = (ctrl + (weighted_dist * shift_vec))
-        loss =  sliced_wasserstein_distance(pred_pert, pert, n_projections=n_projections) 
+        loss = sliced_wasserstein_distance(pred_pert, pert, n_projections=n_projections) 
         loss -=negative_penalty * ((pred_pert < 0) * pred_pert).sum() / (batch_size * self.total_genes)
         return loss
     
-    def sample_pert(self, ctrl, pert, max_rejections=100):
-        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        n_batches = ctrl.shape[0] / pert.shape[0]
-        preds = []
-        for ctrl_data_batch in np.array_split(ctrl, n_batches):
-            mean_shift = pert.mean(axis=0) - ctrl_data_batch.mean(axis=0)
-            shift_vec = np.round(mean_shift * ctrl_data_batch.shape[0])
-            ctrl_data_batch = torch.tensor(ctrl_data_batch).to(device)
-            shift_vec_batch = torch.tensor(shift_vec).to(device)
-            # no grad
-            with torch.no_grad():
-                weighted_dist = self.forward(ctrl_data_batch, shift_vec_batch).cpu()
-            weighted_dist = weighted_dist.numpy().astype(np.float64)
-            weighted_dist /= weighted_dist.sum(axis=0)
-            preds.append(
-                sample_pert(
-                    ctrl_data_batch.cpu().numpy(), weighted_dist, mean_shift, 
-                    max_rejections=max_rejections
-                )
-            )
-
-        preds = np.concatenate(preds, axis=0)
-        return preds
-    
     def train(self, adata, model_savepath):
-        dset, ns, dl = get_dataloader(
-            adata, pert_ids=np.array(adata.obs[PERT_KEY].values), pert_map=self.pert_embedding, collate='ot'
+        _, dl = get_dataloader(
+            adata, pert_ids=np.array(adata.obs[PERT_KEY].values), offline=False, pert_map=self.pert_embedding, collate='ot'
         )
+
         optimizer = torch.optim.Adam(self.parameters(), lr=2e-4)
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.to(device)
 
-        from tqdm.notebook import tqdm
-
         num_epochs = self.max_epochs
+        logger.info(f"Training for {num_epochs} epochs")
         for epoch in range(num_epochs):
+
             losses = []
             for i, (ctrl, pert, pert_id) in enumerate(dl):
                 # generate random indices for ctrl and pert
@@ -177,16 +157,15 @@ class SCOT(torch.nn.Module):
                 losses.append(loss.item())
                 # Update progress bar with loss
 
-                
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
 
-
+            logger.info(f"Epoch {epoch + 1}/{num_epochs} - Loss: {np.mean(losses)}")
 
 
     def make_predict(self, adata: sc.AnnData, pert_id: str, cell_type: str) -> np.ndarray:
-        X_ctrl = to_dense(self.total_adata[(self.total_adata.obs[PERT_KEY] == CONTROL_PERT) & (self.total_adata.obs[CELL_KEY] == cell_type)].X.toarray())
-        X_pert = to_dense(self.total_adata[(self.total_adata.obs[PERT_KEY] == pert_id) & (self.total_adata.obs[CELL_KEY] == cell_type)].X.toarray())
+        X_ctrl = self.total_adata[(self.total_adata.obs[PERT_KEY] == CONTROL_PERT) & (self.total_adata.obs[CELL_KEY] == cell_type)].X
+        X_pert = self.total_adata[(self.total_adata.obs[PERT_KEY] == pert_id) & (self.total_adata.obs[CELL_KEY] == cell_type)].X
 
-        return self.sample_pert(X_ctrl, X_pert)
+        return batch_pert_sampling(self, X_ctrl, X_pert)

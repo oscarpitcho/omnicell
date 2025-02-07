@@ -1,17 +1,17 @@
 import scanpy as sc
 from typing import Optional, List, Tuple
 from dataclasses import dataclass, field
-from omnicell.config.config import Config
-from omnicell.constants import PERT_KEY, CELL_KEY, CONTROL_PERT, PERT_EMBEDDING_KEY
+from omnicell.config.config import Config, ModelConfig
+from omnicell.constants import PERT_KEY, CELL_KEY, CONTROL_PERT, PERT_EMBEDDING_KEY, SYNTHETIC_DATA_PATHS_KEY
 from omnicell.data.catalogue import DatasetDetails, Catalogue
 import torch
 import logging
 import numpy as np
 import json
 import pandas as pd
-
+from pathlib import Path
 import os
-
+import hashlib
 
 logger = logging.getLogger(__name__)
 
@@ -171,11 +171,8 @@ class DataLoader:
 
             logger.info(f"Removed {number_perts_before - number_perts_after_column_matching} perturbations that were not in the dataset columns and {number_perts_after_column_matching - number_perts_after_embedding_matching} perturbations that did not have an embedding for a total of {number_perts_before - number_perts_after_embedding_matching} perturbations removed out of an initial {number_perts_before} perturbations")
         
-
-
-
         
-        adata.obsm["embedding"] = adata.X.toarray().astype('float32')
+        adata.X = adata.X.toarray().astype('float32')
         # Set gene names
         if dataset_details.var_names_key:
             adata.var_names = adata.var[dataset_details.var_names_key]
@@ -197,9 +194,45 @@ class DataLoader:
             else:
                 raise ValueError(f"Metric space {self.config.embedding_config.metric_space} not found in metric spaces available for dataset {dataset_details.name}")
 
+
+        #Precomputed DEGs eg for NN Oracle
         if dataset_details.precomputed_DEGs:
             DEGs = json.load(open(f"{dataset_details.folder_path}/DEGs.json"))
             adata.uns["DEGs"] = DEGs
+
+
+        #Synthetic config is specified
+        if self.config.etl_config.synthetic is not None:
+            model_config_path = self.config.etl_config.synthetic.model_config_path
+            synthetic_model_config = ModelConfig.from_yaml(Path(model_config_path).resolve())
+
+            #Fetch the training config for the synthetic data, ETL and Split config should be the same, modulo the synthetic part
+            synthetic_data_config = self.config.etl_config.copy()
+            synthetic_data_config.synthetic = None
+
+            synthetic_datasplit_config = self.config.datasplit_config.copy()
+
+
+            #Config that should have been used to generate the synthetic data
+            synthetic_data_config = Config(model_config=synthetic_model_config,
+                                            etl_config=synthetic_data_config,
+                                            datasplit_config=synthetic_datasplit_config)
+
+
+            #We verify that this exact config exists for our dataset
+            if synthetic_data_config.get_synthetic_config_ID() not in self.training_dataset_details.synthetic_versions:
+                raise ValueError(f"Could not find a config with name {synthetic_data_config.get_synthetic_config_ID()} for dataset {self.training_dataset_details.name}, please check that the synthetic data was generated with the same config.")
+
+            #We load the synthetic data
+            synthetic_data_path = f"{dataset_details.folder_path}/synthetic_data/{synthetic_data_config.get_synthetic_config_ID()}"
+
+            synthetic_data_files = os.listdir(synthetic_data_path)
+
+            #We get the paths of all the files in this folder
+            synthetic_data_paths = [Path(f"{synthetic_data_path}/{file}").resolve() for file in synthetic_data_files]
+
+            #We add them to the adata
+            adata.uns[SYNTHETIC_DATA_PATHS_KEY] = synthetic_data_paths
 
         return adata
 
@@ -247,7 +280,6 @@ class DataLoader:
         #We still return the pert embedding here to not break code that relies on it
         pert_embedding = adata.uns[PERT_EMBEDDING_KEY]
         return adata_train, pert_embedding
-
 
     def get_complete_training_dataset(self) -> sc.AnnData:
         """

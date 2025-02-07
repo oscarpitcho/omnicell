@@ -3,12 +3,13 @@ from typing import List, Tuple, Optional, Dict, Any
 from pathlib import Path
 import yaml
 import json
+import copy
 import hashlib
 import logging
 
 logger = logging.getLogger(__name__)
 
-@dataclass
+@dataclass()
 class ModelConfig:
     """Configuration for the model."""
     name: str
@@ -22,21 +23,30 @@ class ModelConfig:
             return cls(name=name, parameters=data)
 
 
-@dataclass
+@dataclass()
 class ETLConfig:
+
+    @dataclass()
+    class SyntheticConfig:
+        """Defines a config for the synthetic data generation process."""
+        model_config_path: str
+        batch_size: str
+        collate_fn: str
+        
     """Configuration for ETL process."""
     name: str
     count_norm: bool = False
     log1p: bool = False
     drop_unmatched_perts: bool = False
     HVG: bool = False
+    synthetic: Optional[SyntheticConfig] = None
 
     @classmethod
     def from_yaml(cls, path: str) -> 'ETLConfig':
         with open(path) as f:
             return cls(**yaml.safe_load(f))
 
-@dataclass
+@dataclass()
 class EmbeddingConfig:
     """Configuration for all embeddings attached to the the dataset."""
     gene_embedding: Optional[str] = None
@@ -63,7 +73,7 @@ class EmbeddingConfig:
 
         return '_'.join(name_parts)
 
-@dataclass
+@dataclass()
 class DatasplitConfig:
     """Configuration for data splitting."""
     name: str
@@ -77,7 +87,7 @@ class DatasplitConfig:
         with open(path) as f:
             return cls(**yaml.safe_load(f))
 
-@dataclass
+@dataclass()
 class EvalConfig:
     """Configuration for evaluation."""
     name: str
@@ -89,7 +99,7 @@ class EvalConfig:
         with open(path) as f:
             return cls(**yaml.safe_load(f))
 
-@dataclass
+@dataclass()     
 class Config:
     """Configuration for a model or task."""
     model_config: ModelConfig
@@ -164,6 +174,25 @@ class Config:
             f"/{datasplit_prefix_path}{self.datasplit_config.name}"
             f"/{self.get_train_hash()}"
         ).resolve()
+
+
+    def get_synthetic_config_ID(self) -> str:
+        """Get a unique, human readable ID of the config used to generate the synthetic data associated with this config."""
+
+        synthetic_config_name = f"{self.model_config.name}_{self.etl_config.name}"
+
+        #We select relevant parts of the config:
+        synthetic_config = copy.deepcopy(self)
+        
+        
+        #Only keep model, ETL (no synthetic), and datasplit
+        synthetic_config.eval_config = None
+        synthetic_config.embedding_config = None
+        synthetic_config.etl_config.synthetic = None
+
+        hash_synthetic_data_config = hashlib.sha256(json.dumps(self.to_dict(), sort_keys=True).encode()).hexdigest()[:8]
+
+        return f"{synthetic_config_name}_{hash_synthetic_data_config}"
 
     def get_eval_path(self) -> Path:
         """Get the path for evaluation artifacts."""
