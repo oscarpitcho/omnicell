@@ -420,5 +420,8 @@ class autoencoder(nn.Module):
         masko = ctrl_cells>0
         pred = ctrl_cells + pred_delta
         pred = masko*pred
+        pred = np.expm1(pred.cpu().detach().numpy())
+        pred[pred<0] = 0
+        pred = np.round(pred)
         # If you want outputs back on CPU as a NumPy array:
-        return np.round(np.expm1(pred.cpu().detach().numpy()))
+        return pred
