@@ -122,7 +122,7 @@ dl = torch.utils.data.DataLoader(
 #  In[2]: Initialize the Model
 #################################
 
-model = get_model(config.model_config.parameters, dl, pert_rep_map, input_dim, device, pert_ids)
+model = get_model(config.model_config, dl, pert_rep_map, input_dim, device, pert_ids)
 
 ###############################################
 #  In[3]: Train the Model on the Training Data
