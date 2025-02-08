@@ -165,7 +165,6 @@ for (cell, pert) in eval_dict:
     ctrl_data, gt_data, pred_pert = eval_dict[(cell, pert)]
     
     
-    pred_pert[pred_pert<=0] = 0
 
     pred_pert_adat = sc.AnnData(X=pred_pert.copy())
     true_pert = sc.AnnData(X=gt_data.copy())
