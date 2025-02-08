@@ -12,6 +12,7 @@ import pandas as pd
 from pathlib import Path
 import os
 import hashlib
+import anndata
 
 logger = logging.getLogger(__name__)
 
