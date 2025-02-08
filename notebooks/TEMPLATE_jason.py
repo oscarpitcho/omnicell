@@ -72,7 +72,7 @@ import numpy as np
 
 npz = np.load("/orcd/data/omarabu/001/Omnicell_datasets/repogle_k562_essential_raw/proportional_scot/synthetic_counterfactuals_0.pkl", allow_pickle=True)
 
-from omnicell.processing.datamodules import StratifiedBatchSampler
+from omnicell.models.datamodules import StratifiedBatchSampler
 
 class PairedStratifiedDataset(torch.utils.data.Dataset):
     def __init__(
