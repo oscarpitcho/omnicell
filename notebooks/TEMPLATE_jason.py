@@ -15,7 +15,7 @@ from pathlib import Path
 from omnicell.config.config import Config, ETLConfig, ModelConfig, DatasplitConfig, EvalConfig, EmbeddingConfig
 from omnicell.data.loader import DataLoader
 from omnicell.constants import PERT_KEY, GENE_EMBEDDING_KEY, CONTROL_PERT
-from train import get_model
+from omnicell.models.selector import load_model as get_model
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
