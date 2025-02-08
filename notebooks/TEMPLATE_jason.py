@@ -55,7 +55,7 @@ loader = DataLoader(config)
 adata, pert_rep_map = loader.get_training_data()
 
 # Get dimensions and perturbation IDs
-input_dim = adata.obsm['embedding'].shape[1]
+input_dim = adata.shape[1]
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 pert_ids = adata.obs[PERT_KEY].unique()
 gene_emb_dim = adata.varm[GENE_EMBEDDING_KEY].shape[1] if GENE_EMBEDDING_KEY in adata.varm else None
