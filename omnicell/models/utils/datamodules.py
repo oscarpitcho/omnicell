@@ -54,7 +54,7 @@ class StratifiedBatchSampler(Sampler[List[int]]):
 
 class OnlinePairedStratifiedDataset(torch.utils.data.Dataset):
     def __init__(
-        self, source, target, pert_ids, pert_map, source_strata, target_strata
+        self, source, target, pert_ids, pert_embedding, source_strata, target_strata
     ):
         source, target = np.array(source).astype(np.float32), np.array(target).astype(np.float32)
         pert_ids = np.array(pert_ids)
@@ -95,7 +95,7 @@ class OnlinePairedStratifiedDataset(torch.utils.data.Dataset):
             for pert in self.unique_pert_ids:
                 self.target[stratum][pert] = target[(target_strata == stratum) & (pert_ids == pert)]
                 self.pert_ids[stratum][pert] = pert_ids[(target_strata == stratum) & (pert_ids == pert)]
-        self.pert_map = pert_map
+        self.pert_embedding = pert_embedding
 
         # Compute ns_2d for stratification
         self.ns = np.array([
@@ -118,23 +118,23 @@ class OnlinePairedStratifiedDataset(torch.utils.data.Dataset):
         return (
             self.source[stratum][sidx],
             self.target[stratum][pert][idx],
-            self.pert_map[self.pert_ids[stratum][pert][idx]],
+            self.pert_embedding[self.pert_ids[stratum][pert][idx]],
         )
 
 class StreamingOnlinePairedStratifiedDataset(torch.utils.data.Dataset):
     def __init__(
-        self, data_dir, pert_map, num_files, device=None
+        self, data_dir, pert_embedding, num_files, device=None
     ):
         """Dataset that maintains online pairing structure but streams from files.
         
         Args:
             data_dir: Directory containing the pkl files
-            pert_map: Dictionary mapping perturbation IDs to embeddings
+            pert_embedding: Dictionary mapping perturbation IDs to embeddings
             num_files: Total number of files to cycle through
             device: torch device (defaults to cuda if available)
         """
         self.data_dir = Path(data_dir)
-        self.pert_map = pert_map
+        self.pert_embedding = pert_embedding
         self.num_files = num_files
         self.device = device or torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         
@@ -209,7 +209,7 @@ class StreamingOnlinePairedStratifiedDataset(torch.utils.data.Dataset):
         return (
             data['source'][stratum][sidx].astype(np.float32),
             data['synthetic_counterfactuals'][stratum][pert][idx].astype(np.float32),
-            self.pert_map[pert]
+            self.pert_embedding[pert]
         )
     
     def on_epoch_end(self):
@@ -221,7 +221,7 @@ class StreamingOfflinePairedStratifiedDataset(torch.utils.data.Dataset):
     def __init__(
             self,
             data_dir,  # Directory containing the pkl files
-            pert_map,
+            pert_embedding,
             num_files,  # Total number of files
             device=None
     ):
@@ -233,7 +233,7 @@ class StreamingOfflinePairedStratifiedDataset(torch.utils.data.Dataset):
         
         """
         self.data_dir = Path(data_dir)
-        self.pert_map = pert_map
+        self.pert_embedding = pert_embedding
         self.device = device or torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.num_files = num_files
         
@@ -301,7 +301,7 @@ class StreamingOfflinePairedStratifiedDataset(torch.utils.data.Dataset):
         return (
             data['source'][stratum][idx].astype(np.float32),
             data['synthetic_counterfactuals'][stratum][pert][idx].astype(np.float32),
-            self.pert_map[pert]
+            self.pert_embedding[pert]
         )
     
     def on_epoch_end(self):
@@ -311,7 +311,7 @@ class StreamingOfflinePairedStratifiedDataset(torch.utils.data.Dataset):
 
 
 def get_dataloader(
-        adata, pert_map, pert_ids, offline=False, file_stream=None,
+        adata, pert_embedding, pert_ids, offline=False, file_stream=None,
         batch_size=512, verbose=0, collate=None, X=None
 ):
         if collate is None:
@@ -333,13 +333,13 @@ def get_dataloader(
             if offline:
                 dset = StreamingOfflinePairedStratifiedDataset(
                     data_dir=file_stream,
-                    pert_map=pert_map,
+                    pert_embedding=pert_embedding,
                     num_files=num_files
                 )
             else:
                 dset = StreamingOnlinePairedStratifiedDataset(
                     data_dir=file_stream,
-                    pert_map=pert_map,
+                    pert_embedding=pert_embedding,
                     num_files=num_files
                 )
         else:
@@ -360,7 +360,7 @@ def get_dataloader(
             else:
                 dset = OnlinePairedStratifiedDataset(
                     control_train, pert_train, 
-                    pert_ids_train, pert_map, 
+                    pert_ids_train, pert_embedding, 
                     control_cell_types, pert_cell_types
                 )
         

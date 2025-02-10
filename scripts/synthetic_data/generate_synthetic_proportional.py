@@ -52,7 +52,6 @@ def main():
 
     # Initialize data loader and load training data
     loader = DataLoader(config)
-    adata, pert_rep_map = loader.get_training_data()
 
     adata, pert_embedding = loader.get_training_data()
         
@@ -63,7 +62,7 @@ def main():
 
     model = load_model(config.model_config, loader, pert_embedding, input_dim, device, pert_ids)
 
-    dset, dl = get_dataloader(adata, pert_ids=np.array(adata.obs[PERT_KEY].values), offline=False, pert_map=pert_rep_map, collate='ot')
+    dset, dl = get_dataloader(adata, pert_ids=np.array(adata.obs[PERT_KEY].values), offline=False, pert_embedding=pert_embedding, collate='ot')
 
 
     datapath = f"{dataset_details.folder_path}/synthetic_data/{synthetic_data_name}"
