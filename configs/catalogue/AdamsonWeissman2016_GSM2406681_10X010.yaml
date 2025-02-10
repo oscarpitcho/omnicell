@@ -2,7 +2,7 @@ HVG: False
 cell_embeddings: []
 cell_key: cell_type
 control: non-targeting
-count_normalized: False
+count_normalized: false
 description: Downloaded from scPerturb website
 folder_path: /orcd/archive/abugoot/001/Projects/neelroy/Adamson2016
 gene_embeddings: []
