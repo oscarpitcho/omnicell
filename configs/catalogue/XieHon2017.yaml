@@ -1,6 +1,6 @@
 HVG: false
 cell_embeddings: []
-cell_key: cell_type
+cell_key: disease
 control: non-targeting
 count_normalized: false
 description: Downloaded from scPerturb website
@@ -10,5 +10,5 @@ log1p_transformed: false
 path: /orcd/archive/abugoot/001/Projects/neelroy/XieHon2017/XieHon2017.h5ad
 pert_embeddings: []
 pert_key: gene
-precomputed_DEGs: true
+precomputed_DEGs: false
 var_names_key: null
