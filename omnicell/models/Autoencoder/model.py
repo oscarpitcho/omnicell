@@ -270,7 +270,7 @@ class autoencoder(nn.Module):
         
         optimizer = optim.Adam(self.parameters(), lr=1e-3)
         start_epoch = 0
-        num_epochs = 5
+        num_epochs = 10
         
         print_interval = 5000
         
@@ -421,7 +421,7 @@ class autoencoder(nn.Module):
         pred = ctrl_cells + pred_delta
         pred = masko*pred
         pred = np.expm1(pred.cpu().detach().numpy())
-        pred[pred<0] = 0
+        pred[pred<=0] = 0
         pred = np.round(pred)
         # If you want outputs back on CPU as a NumPy array:
         return pred

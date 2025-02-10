@@ -12,6 +12,7 @@ import pandas as pd
 from pathlib import Path
 import os
 import hashlib
+import anndata
 
 logger = logging.getLogger(__name__)
 
@@ -172,7 +173,11 @@ class DataLoader:
             logger.info(f"Removed {number_perts_before - number_perts_after_column_matching} perturbations that were not in the dataset columns and {number_perts_after_column_matching - number_perts_after_embedding_matching} perturbations that did not have an embedding for a total of {number_perts_before - number_perts_after_embedding_matching} perturbations removed out of an initial {number_perts_before} perturbations")
         
         
-        adata.X = adata.X.toarray().astype('float32')
+        #adata.X = adata.X.toarray().astype('float32')
+        #above is old code to comvert to float array, below is new code added by Jason for greater compatibility, revert if problematic
+        new_X = adata.X.toarray().astype('float32')
+        adata = anndata.AnnData(X=new_X, obs=adata.obs, var=adata.var, uns=adata.uns, obsm=adata.obsm)
+      
         # Set gene names
         if dataset_details.var_names_key:
             adata.var_names = adata.var[dataset_details.var_names_key]

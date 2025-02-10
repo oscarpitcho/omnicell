@@ -15,7 +15,7 @@ from pathlib import Path
 from omnicell.config.config import Config, ETLConfig, ModelConfig, DatasplitConfig, EvalConfig, EmbeddingConfig
 from omnicell.data.loader import DataLoader
 from omnicell.constants import PERT_KEY, GENE_EMBEDDING_KEY, CONTROL_PERT
-from train import get_model
+from omnicell.models.selector import load_model as get_model
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -28,7 +28,7 @@ EMBEDDING_CONFIG = EmbeddingConfig(pert_embedding='GenePT')
 
 SPLIT_CONFIG = DatasplitConfig.from_yaml("/orcd/data/omarabu/001/njwfish/omnicell/configs/splits/repogle_k562_essential_raw/random_splits/rs_accP_k562_ood_ss:ns_20_2_most_pert_0.1/split_0/split_config.yaml")
 #SPLIT_CONFIG = DatasplitConfig.from_yaml("/orcd/data/omarabu/001/njwfish/omnicell/configs/splits/repogle_k562_essential_raw/random_splits/rs_accP_k562_ood_ss:ns_20_2_most_pert_0.1/split_1/split_config.yaml")
-EVAL_CONFIG = EvalConfig.from_yaml("/orcd/data/omarabu/001/njwfish/omnicell/configs/splits/repogle_k562_essential_raw/random_splits/rs_accP_k562_ood_ss:ns_20_2_most_pert_0.1/split_1/eval_config.yaml")  # Set this if you want to run evaluations
+EVAL_CONFIG = EvalConfig.from_yaml("/orcd/data/omarabu/001/njwfish/omnicell/configs/splits/repogle_k562_essential_raw/random_splits/rs_accP_k562_ood_ss:ns_20_2_most_pert_0.1/split_0/eval_config.yaml")  # Set this if you want to run evaluations
 #EVAL_CONFIG = EvalConfig.from_yaml("/orcd/data/omarabu/001/njwfish/omnicell/configs/splits/repogle_k562_essential_raw/random_splits/rs_accP_k562_ood_ss:ns_20_2_most_pert_0.1/split_1/eval_config.yaml")
 
 # Load configurations
@@ -55,7 +55,7 @@ loader = DataLoader(config)
 adata, pert_rep_map = loader.get_training_data()
 
 # Get dimensions and perturbation IDs
-input_dim = adata.obsm['embedding'].shape[1]
+input_dim = adata.shape[1]
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 pert_ids = adata.obs[PERT_KEY].unique()
 gene_emb_dim = adata.varm[GENE_EMBEDDING_KEY].shape[1] if GENE_EMBEDDING_KEY in adata.varm else None
@@ -70,7 +70,56 @@ pert_rep_map_idxs = {pert: pert_list.index(pert) for pert in adata.obs[PERT_KEY]
 
 import numpy as np
 
+def sum_in_pairs(arr, idx):
+    """
+    Given an array of shape (512, n_features) and a random permutation idx
+    of length 512, return a new array of shape (256, n_features),
+    where each row i is the sum of arr[idx[2*i]] and arr[idx[2*i+1]].
+    
+    Note: If arr is int16, you may want to cast to a larger type
+    (e.g. int32 or float32) to avoid integer overflow.
+    """
+    summed = arr[idx[0::2]] + arr[idx[1::2]]
+    return summed
+
+def create_2x_summed_dict(npz):
+    """
+    Given the original dictionary `npz`, create a new dictionary
+    where each (512, n_features) array is summed into (256, n_features)
+    using random pairing. The same pairing is used for source and 
+    all perturbation arrays.
+
+    This function also copies 'unique_pert_ids' and 'strata' over intact.
+    """
+    # 1) Generate a single random permutation of 512
+    idx = np.random.permutation(512)
+    
+    # 2) Build the new dictionary structure
+    new_npz = {}
+    
+    # 2a) Handle the "source" data
+    if 'source' in npz:
+        new_npz['source'] = {}
+        for cell_type, arr in npz['source'].items():
+            new_npz['source'][cell_type] = sum_in_pairs(arr, idx)
+    
+    # 2b) Handle the "synthetic_counterfactuals"
+    if 'synthetic_counterfactuals' in npz:
+        new_npz['synthetic_counterfactuals'] = {}
+        for cell_type, gene_dict in npz['synthetic_counterfactuals'].items():
+            new_npz['synthetic_counterfactuals'][cell_type] = {}
+            for gene_name, arr in gene_dict.items():
+                new_npz['synthetic_counterfactuals'][cell_type][gene_name] = sum_in_pairs(arr, idx)
+    
+    # 3) Copy 'unique_pert_ids' and 'strata' if they exist
+    for key in ['unique_pert_ids', 'strata']:
+        if key in npz:
+            new_npz[key] = npz[key]
+    
+    return new_npz
+
 npz = np.load("/orcd/data/omarabu/001/Omnicell_datasets/repogle_k562_essential_raw/proportional_scot/synthetic_counterfactuals_0.pkl", allow_pickle=True)
+npz = create_2x_summed_dict(npz)
 
 from omnicell.models.datamodules import StratifiedBatchSampler
 
@@ -122,7 +171,7 @@ dl = torch.utils.data.DataLoader(
 #  In[2]: Initialize the Model
 #################################
 
-model = get_model(config.model_config.name, config.model_config.parameters, dl, pert_rep_map, input_dim, device, pert_ids)
+model = get_model(config.model_config, dl, pert_rep_map, input_dim, device, pert_ids)
 
 ###############################################
 #  In[3]: Train the Model on the Training Data
@@ -165,7 +214,6 @@ for (cell, pert) in eval_dict:
     ctrl_data, gt_data, pred_pert = eval_dict[(cell, pert)]
     
     
-    pred_pert[pred_pert<=0] = 0
 
     pred_pert_adat = sc.AnnData(X=pred_pert.copy())
     true_pert = sc.AnnData(X=gt_data.copy())
