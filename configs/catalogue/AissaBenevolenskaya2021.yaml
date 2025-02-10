@@ -10,5 +10,5 @@ log1p_transformed: false
 path: /orcd/archive/abugoot/001/Projects/neelroy/AissaBenevolenskaya2021/AissaBenevolenskaya2021.h5ad
 pert_embeddings: []
 pert_key: gene
-precomputed_DEGs: true
+precomputed_DEGs: false
 var_names_key: null
