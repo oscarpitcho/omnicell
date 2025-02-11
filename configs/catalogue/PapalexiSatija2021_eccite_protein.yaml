@@ -11,4 +11,4 @@ path: /orcd/data/omarabu/001/neelroy/PapalexiSatija2021/PapalexiSatija2021_eccit
 pert_embeddings: []
 pert_key: perturbation
 precomputed_DEGs: false
-var_names_key: gene_symbol
+var_names_key: protein
