@@ -1,14 +1,14 @@
 HVG: false
 cell_embeddings: []
-cell_key: cell_type
+cell_key: celltype
 control: non-targeting
 count_normalized: false
 description: Downloaded from scPerturb website
-folder_path: /orcd/archive/abugoot/001/Projects/neelroy/Adamson2016
+folder_path: /orcd/data/omarabu/001/neelroy/Adamson2016
 gene_embeddings: []
 log1p_transformed: false
-path: /orcd/archive/abugoot/001/Projects/neelroy/Adamson2016/AdamsonWeissman2016_GSM2406677_10X005.h5ad
+path: /orcd/data/omarabu/001/neelroy/Adamson2016/AdamsonWeissman2016_GSM2406677_10X005.h5ad
 pert_embeddings: []
-pert_key: gene
+pert_key: perturbation
 precomputed_DEGs: false
-var_names_key: null
+var_names_key: gene_symbol

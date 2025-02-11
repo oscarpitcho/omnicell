@@ -1,14 +1,14 @@
 HVG: false
 cell_embeddings: []
-cell_key: cell_type
+cell_key: celltype
 control: non-targeting
 count_normalized: false
 description: Downloaded from scPerturb website
-folder_path: /orcd/archive/abugoot/001/Projects/neelroy/SchraivogelSteinmetz2020
+folder_path: /orcd/data/omarabu/001/neelroy/SchraivogelSteinmetz2020
 gene_embeddings: []
 log1p_transformed: false
-path: /orcd/archive/abugoot/001/Projects/neelroy/SchraivogelSteinmetz2020/SchraivogelSteinmetz2020_TAP_SCREEN__chromosome_8_screen.h5ad
+path: /orcd/data/omarabu/001/neelroy/SchraivogelSteinmetz2020/SchraivogelSteinmetz2020_TAP_SCREEN__chromosome_8_screen.h5ad
 pert_embeddings: []
-pert_key: gene
-precomputed_DEGs: true
-var_names_key: null
+pert_key: perturbation
+precomputed_DEGs: false
+var_names_key: gene_symbol
