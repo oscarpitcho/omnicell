@@ -4,10 +4,10 @@ cell_key: celltype
 control: non-targeting
 count_normalized: false
 description: Downloaded from scPerturb website
-folder_path: /orcd/data/omarabu/001/neelroy/GasperiniShendure2019
+folder_path: /orcd/data/omarabu/001/Omnicell_datasets/GasperiniShendure2019/highMOI
 gene_embeddings: []
 log1p_transformed: false
-path: /orcd/data/omarabu/001/neelroy/GasperiniShendure2019/GasperiniShendure2019_highMOI.h5ad
+path: /orcd/data/omarabu/001/Omnicell_datasets/GasperiniShendure2019/highMOI/GasperiniShendure2019_highMOI.h5ad
 pert_embeddings: []
 pert_key: perturbation
 precomputed_DEGs: false

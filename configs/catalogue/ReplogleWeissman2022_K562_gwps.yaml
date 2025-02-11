@@ -4,10 +4,10 @@ cell_key: cell_line
 control: non-targeting
 count_normalized: false
 description: Downloaded from scPerturb website
-folder_path: /orcd/data/omarabu/001/neelroy/ReplogleWeissman2022
+folder_path: /orcd/data/omarabu/001/Omnicell_datasets/ReplogleWeissman2022/K562_gwps
 gene_embeddings: []
 log1p_transformed: false
-path: /orcd/data/omarabu/001/neelroy/ReplogleWeissman2022/ReplogleWeissman2022_K562_gwps.h5ad
+path: /orcd/data/omarabu/001/Omnicell_datasets/ReplogleWeissman2022/K562_gwps/ReplogleWeissman2022_K562_gwps.h5ad
 pert_embeddings: []
 pert_key: perturbation
 precomputed_DEGs: false

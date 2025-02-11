@@ -4,10 +4,10 @@ cell_key: celltype
 control: non-targeting
 count_normalized: false
 description: Downloaded from scPerturb website
-folder_path: /orcd/data/omarabu/001/neelroy/GehringPachter2019
+folder_path: /orcd/data/omarabu/001/Omnicell_datasets/GehringPachter2019
 gene_embeddings: []
 log1p_transformed: false
-path: /orcd/data/omarabu/001/neelroy/GehringPachter2019/GehringPachter2019.h5ad
+path: /orcd/data/omarabu/001/Omnicell_datasets/GehringPachter2019/GehringPachter2019.h5ad
 pert_embeddings: []
 pert_key: perturbation
 precomputed_DEGs: false

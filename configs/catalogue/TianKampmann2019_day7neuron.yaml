@@ -4,10 +4,10 @@ cell_key: celltype
 control: non-targeting
 count_normalized: false
 description: Downloaded from scPerturb website
-folder_path: /orcd/data/omarabu/001/neelroy/TianKampmann2019
+folder_path: /orcd/data/omarabu/001/Omnicell_datasets/TianKampmann2019/day7neuron
 gene_embeddings: []
 log1p_transformed: false
-path: /orcd/data/omarabu/001/neelroy/TianKampmann2019/TianKampmann2019_day7neuron.h5ad
+path: /orcd/data/omarabu/001/Omnicell_datasets/TianKampmann2019/day7neuron/TianKampmann2019_day7neuron.h5ad
 pert_embeddings: []
 pert_key: perturbation
 precomputed_DEGs: false

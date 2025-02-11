@@ -4,10 +4,10 @@ cell_key: cell_line
 control: non-targeting
 count_normalized: false
 description: Downloaded from scPerturb website
-folder_path: /orcd/data/omarabu/001/neelroy/XieHon2017
+folder_path: /orcd/data/omarabu/001/Omnicell_datasets/XieHon2017
 gene_embeddings: []
 log1p_transformed: false
-path: /orcd/data/omarabu/001/neelroy/XieHon2017/XieHon2017.h5ad
+path: /orcd/data/omarabu/001/Omnicell_datasets/XieHon2017/XieHon2017.h5ad
 pert_embeddings: []
 pert_key: perturbation
 precomputed_DEGs: false

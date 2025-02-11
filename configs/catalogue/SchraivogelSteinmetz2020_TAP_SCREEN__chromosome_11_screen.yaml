@@ -4,10 +4,10 @@ cell_key: celltype
 control: non-targeting
 count_normalized: false
 description: Downloaded from scPerturb website
-folder_path: /orcd/data/omarabu/001/neelroy/SchraivogelSteinmetz2020
+folder_path: /orcd/data/omarabu/001/neelroy/SchraivogelSteinmetz2020/TAP_SCREEN__chromosome_11_screen
 gene_embeddings: []
 log1p_transformed: false
-path: /orcd/data/omarabu/001/neelroy/SchraivogelSteinmetz2020/SchraivogelSteinmetz2020_TAP_SCREEN__chromosome_11_screen.h5ad
+path: /orcd/data/omarabu/001/neelroy/SchraivogelSteinmetz2020/TAP_SCREEN__chromosome_11_screen/SchraivogelSteinmetz2020_TAP_SCREEN__chromosome_11_screen.h5ad
 pert_embeddings: []
 pert_key: perturbation
 precomputed_DEGs: false

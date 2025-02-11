@@ -4,10 +4,10 @@ cell_key: celltype
 control: non-targeting
 count_normalized: false
 description: Downloaded from scPerturb website
-folder_path: /orcd/data/omarabu/001/neelroy/TianKampmann2021
+folder_path: /orcd/data/omarabu/001/Omnicell_datasets/TianKampmann2021/CRISPRa
 gene_embeddings: []
 log1p_transformed: false
-path: /orcd/data/omarabu/001/neelroy/TianKampmann2021/TianKampmann2021_CRISPRa.h5ad
+path: /orcd/data/omarabu/001/Omnicell_datasets/TianKampmann2021/CRISPRa/TianKampmann2021_CRISPRa.h5ad
 pert_embeddings: []
 pert_key: perturbation
 precomputed_DEGs: false
