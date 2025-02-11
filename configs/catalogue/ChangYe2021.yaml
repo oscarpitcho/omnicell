@@ -1,6 +1,6 @@
 HVG: false
 cell_embeddings: []
-cell_key: cell_line
+cell_key: sample
 control: non-targeting
 count_normalized: false
 description: Downloaded from scPerturb website
