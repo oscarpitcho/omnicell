@@ -1,6 +1,6 @@
 HVG: false
 cell_embeddings: []
-cell_key: disease
+cell_key: null
 control: non-targeting
 count_normalized: false
 description: Downloaded from scPerturb website
