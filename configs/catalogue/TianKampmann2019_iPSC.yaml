@@ -4,11 +4,11 @@ cell_key: cell_type
 control: non-targeting
 count_normalized: false
 description: Downloaded from scPerturb website
-folder_path: /orcd/archive/abugoot/001/Projects/neelroy/TianKampmann2019
+folder_path: /orcd/data/omarabu/001/neelroy/TianKampmann2019
 gene_embeddings: []
 log1p_transformed: false
-path: /orcd/archive/abugoot/001/Projects/neelroy/TianKampmann2019/TianKampmann2019_iPSC.h5ad
+path: /orcd/data/omarabu/001/neelroy/TianKampmann2019/TianKampmann2019_iPSC.h5ad
 pert_embeddings: []
 pert_key: gene
-precomputed_DEGs: true
+precomputed_DEGs: false
 var_names_key: null
