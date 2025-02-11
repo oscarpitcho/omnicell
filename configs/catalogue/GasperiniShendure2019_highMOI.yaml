@@ -11,4 +11,4 @@ path: /orcd/data/omarabu/001/neelroy/GasperiniShendure2019/GasperiniShendure2019
 pert_embeddings: []
 pert_key: perturbation
 precomputed_DEGs: false
-var_names_key: null
+var_names_key: gene_symbol
