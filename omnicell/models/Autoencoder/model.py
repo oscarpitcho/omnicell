@@ -268,9 +268,9 @@ class autoencoder(nn.Module):
         # Make sure the model and its embeddings are on that device
         self.to(device)
         
-        optimizer = optim.Adam(self.parameters(), lr=1e-3)
+        optimizer = optim.Adam(self.parameters(), lr=5e-4)
         start_epoch = 0
-        num_epochs = 10
+        num_epochs = 1
         
         print_interval = 5000
         
