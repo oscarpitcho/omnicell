@@ -1,14 +1,14 @@
 HVG: false
 cell_embeddings: []
-cell_key: cell_type
+cell_key: celltype
 control: non-targeting
 count_normalized: false
 description: Downloaded from scPerturb website
-folder_path: /orcd/archive/abugoot/001/Projects/neelroy/PapalexiSatija2021
+folder_path: /orcd/data/omarabu/001/neelroy/PapalexiSatija2021
 gene_embeddings: []
 log1p_transformed: false
-path: /orcd/archive/abugoot/001/Projects/neelroy/PapalexiSatija2021/PapalexiSatija2021_eccite_protein.h5ad
+path: /orcd/data/omarabu/001/neelroy/PapalexiSatija2021/PapalexiSatija2021_eccite_protein.h5ad
 pert_embeddings: []
-pert_key: gene
-precomputed_DEGs: true
-var_names_key: null
+pert_key: perturbation
+precomputed_DEGs: false
+var_names_key: gene_symbol
