@@ -1,5 +1,5 @@
 HVG: false
-cell_embeddings: []
+cell_embeddings: ['clone_matrix']
 cell_key: cell_type
 control: non-targeting
 count_normalized: false
@@ -9,6 +9,6 @@ gene_embeddings: []
 log1p_transformed: false
 path: /orcd/data/omarabu/001/neelroy/WeinrebKlein2020/WeinrebKlein2020.h5ad
 pert_embeddings: []
-pert_key: gene
+pert_key: perturbation
 precomputed_DEGs: false
-var_names_key: null
+var_names_key: gene_symbol
