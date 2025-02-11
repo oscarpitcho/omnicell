@@ -1,5 +1,5 @@
 HVG: false
-cell_embeddings: []
+cell_embeddings: ['barcodes']
 cell_key: cell_line
 control: non-targeting
 count_normalized: false
