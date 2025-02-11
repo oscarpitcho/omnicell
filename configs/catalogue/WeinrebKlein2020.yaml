@@ -1,6 +1,6 @@
 HVG: false
 cell_embeddings: ['clone_matrix']
-cell_key: cell_type
+cell_key: celltype
 control: non-targeting
 count_normalized: false
 description: Downloaded from scPerturb website
