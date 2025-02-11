@@ -2,7 +2,7 @@
 #SBATCH -t 12:00:00
 #SBATCH --ntasks-per-node=1
 #SBATCH -p newnodes
-#SBATCH --mem=50GB
+#SBATCH --mem=1GB
 #SBATCH --array=0-19 #20 jobs 
 echo hostname
 
@@ -11,7 +11,7 @@ echo "Starting job $SLURM_ARRAY_TASK_ID"
 conda activate omnicell
 echo "Activated conda environment"
 
-DATASET="PapalexiSatija2021_eccite_RNA"
+DATASET="DatlingerBock2021"
 TOTAL_JOBS=20
 
 echo "Running python script"

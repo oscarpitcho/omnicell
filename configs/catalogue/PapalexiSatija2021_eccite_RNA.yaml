@@ -1,7 +1,7 @@
 HVG: false
 cell_embeddings: []
-cell_key: celltype
-control: non-targeting
+cell_key: cell_line
+control: control
 count_normalized: false
 description: Downloaded from scPerturb website
 folder_path: /orcd/data/omarabu/001/Omnicell_datasets/PapalexiSatija2021/RNA

@@ -1,7 +1,7 @@
 HVG: false
 cell_embeddings: []
 cell_key: celltype
-control: non-targeting
+control: control
 count_normalized: false
 description: Downloaded from scPerturb website
 folder_path: /orcd/data/omarabu/001/Omnicell_datasets/DatlingerBock2017
@@ -11,4 +11,4 @@ path: /orcd/data/omarabu/001/Omnicell_datasets/DatlingerBock2017/DatlingerBock20
 pert_embeddings: []
 pert_key: perturbation
 precomputed_DEGs: false
-var_names_key: gene_symbol
+var_names_key: null
