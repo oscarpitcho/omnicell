@@ -69,20 +69,17 @@ def generate_plots(all_data, args):
     df = pd.DataFrame(plot_rows)
     
     if args.mode.lower() == 'deg':
-        # In DEG mode, create one subplot per metric because the y-axis scaling may differ.
         num_metrics = len(args.metric)
-        fig, axes = plt.subplots(1, num_metrics, figsize=(6 * num_metrics, 6))
-        #fig, axes = plt.subplots(num_metrics, 1, figsize=(10, 6 * num_metrics), squeeze=False)
+        fig, axes = plt.subplots(1, num_metrics, figsize=(6 * num_metrics, 6)) #fig, axes = plt.subplots(num_metrics, 1, figsize=(10, 6 * num_metrics), squeeze=False)
         axes = axes.flatten() # Flatten the axes array for iteration.
         
         for i, metric_key in enumerate(args.metric):
             ax = axes[i]
-            # Filter the DataFrame for this metric.
             df_metric = df[df['Metric'] == metric_key]
             if df_metric.empty:
                 print(f"[!] No data available for metric: {metric_key}")
                 continue
-            # Here we use the model names on the x-axis.
+
             sns.boxplot(x='Metric', y='Value', hue='Model', data=df_metric, ax=ax, palette="husl")
             ax.set_title(metric_key, fontsize=14)
             ax.set_xlabel("Metric", fontsize=12)
@@ -106,7 +103,6 @@ def generate_plots(all_data, args):
 if __name__ == '__main__':
     args = parse_arguments()
     
-    # Ensure the number of experiment result directories matches the number of model names.
     if len(args.experiments_results) != len(args.model_names):
         raise ValueError("[X] Number of experiment result paths must match number of model names")
 
