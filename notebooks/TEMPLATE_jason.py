@@ -121,7 +121,7 @@ def create_2x_summed_dict(npz):
 npz = np.load("/orcd/data/omarabu/001/Omnicell_datasets/repogle_k562_essential_raw/proportional_scot/synthetic_counterfactuals_0.pkl", allow_pickle=True)
 npz = create_2x_summed_dict(npz)
 
-from omnicell.models.datamodules import StratifiedBatchSampler
+from omnicell.models.utils.datamodules import StratifiedBatchSampler
 
 class PairedStratifiedDataset(torch.utils.data.Dataset):
     def __init__(
