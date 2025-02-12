@@ -24,7 +24,6 @@ from omnicell.models.scot.sampling_utils import generate_batched_counterfactuals
 logger = logging.getLogger(__name__)
 
 
-
 def main():
     print("Starting synthetic data generation...")
     parser = argparse.ArgumentParser(description='Analysis settings.')
@@ -62,17 +61,12 @@ def main():
 
     model = load_model(config.model_config, loader, pert_embedding, input_dim, device, pert_ids)
 
-    dset, dl = get_dataloader(adata, pert_ids=np.array(adata.obs[PERT_KEY].values), offline=False, pert_embedding=pert_embedding, collate='ot')
-
-
     datapath = f"{dataset_details.folder_path}/synthetic_data/{synthetic_data_name}"
 
 
-    #We generate the synthetic data
-    for i, data_dict in enumerate(generate_batched_counterfactuals(model, dset)):
+    for i, data_dict in enumerate(model.generate_synthetic(adata=adata)):
         with open(f'{datapath}/synthetic_counterfactuals_{i}.pkl', 'wb') as f:
             pickle.dump(data_dict, f)
-    
     
     #We dump the config
     with open(f'{datapath}/config.yaml', 'w') as f:
