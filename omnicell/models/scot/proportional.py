@@ -29,11 +29,11 @@ class ProportionalSCOT():
     def __init__(self, pert_embedding: str, model_params: dict):
         self.model = None
         self.numpy_model = True
-        self.bath_size = model_params["batch_size"]
+        self.batch_size = model_params["batch_size"]
         self.pert_embeddding = pert_embedding
 
     def train(self, adata: sc.AnnData, save_path: str):
-        """Does nothing because we are going to cheat"""
+        """Does nothing because weobsidian://open?vault=Obsidian&file=Life%2FAbugoot%2FThesis%2FProblem%20Statement.svg are going to cheat"""
         pass
 
 
@@ -42,7 +42,7 @@ class ProportionalSCOT():
 
         dset, _ = get_dataloader(adata, pert_ids=np.array(adata.obs[PERT_KEY].values), offline=False, pert_embedding=self.pert_embeddding, collate='ot')
 
-        for x in generate_batched_counterfactuals(self, dset):
+        for x in generate_batched_counterfactuals(self, dset, batch_size=self.batch_size):
             yield x
 
 

@@ -31,11 +31,9 @@ def main():
     parser.add_argument('--model_config', type=str, default='ood', help='Mode of the split config')
     parser.add_argument('--datasplit_config', type=str, default=None, help='Path to yaml config of the datasplit.')
     parser.add_argument('--etl_config', type=str, default=None, help='Path to yaml config file of the etl process.')
-    parser.add_argument('--batch_size', type=int, default=512, help='Batch size')
 
     args = parser.parse_args()
 
-    batch_size = args.batch_size
     config = Config.from_yamls(model_yaml = args.model_config,
                                etl_yaml   = args.etl_config, 
                                datasplit_yaml = args.datasplit_config)

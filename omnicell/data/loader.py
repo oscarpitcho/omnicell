@@ -207,20 +207,21 @@ class DataLoader:
 
 
         #Synthetic config is specified
-        if self.config.etl_config.synthetic is not None:
-            model_config_path = self.config.etl_config.synthetic.model_config_path
+        if self.config.etl_config.synthetic_model_config_path is not None:
+            model_config_path = self.config.etl_config.synthetic_model_config_path
+            
+            
             synthetic_model_config = ModelConfig.from_yaml(Path(model_config_path).resolve())
 
-            #Fetch the training config for the synthetic data, ETL and Split config should be the same, modulo the synthetic part
-            synthetic_data_config = self.config.etl_config.copy()
-            synthetic_data_config.synthetic = None
+            synthetic_data_etl_config = self.config.etl_config.copy()
+            synthetic_data_config.etl_config.synthetic_model_config_path = None
 
             synthetic_datasplit_config = self.config.datasplit_config.copy()
 
 
             #Config that should have been used to generate the synthetic data
             synthetic_data_config = Config(model_config=synthetic_model_config,
-                                            etl_config=synthetic_data_config,
+                                            etl_config=synthetic_data_etl_config,
                                             datasplit_config=synthetic_datasplit_config)
 
 
