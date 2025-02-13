@@ -65,7 +65,7 @@ def main():
     loader = DataLoader(config)
     adata, pert_embedding = loader.get_training_data()
     
-    input_dim = adata.obsm['embedding'].shape[1]
+    input_dim = adata.X.shape[1]
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     pert_ids = adata.obs[PERT_KEY].unique()
     

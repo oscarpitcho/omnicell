@@ -2,11 +2,14 @@ import torch
 import numpy as np
 
 from omnicell.models.utils.distribute_shift import sample_pert
+import logging
+
+logger = logging.getLogger(__name__)
 
 def sample_pert_from_model_numpy(model, ctrl, pert, max_rejections=100):
     mean_shift = pert.mean(axis=0) - ctrl.mean(axis=0)
     weighted_dist = model(ctrl, mean_shift)
-    return sample_pert(ctrl, weighted_dist, mean_shift, max_rejections)
+    return sample_pert(ctrl, weighted_dist, mean_shift, max_rejections, num_threads=8)
 
 def sample_pert_from_model(model, ctrl, pert, max_rejections=100, device=None):
     # if model hasattr numpy_model, use numpy model
@@ -24,6 +27,7 @@ def sample_pert_from_model(model, ctrl, pert, max_rejections=100, device=None):
 def batch_pert_sampling(model, ctrl, pert, max_rejections=100):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     n_batches = ctrl.shape[0] / pert.shape[0]
+    n_batches = max(1, int(np.ceil(ctrl.shape[0] / pert.shape[0])))
     preds = []
     for ctrl_data_batch in np.array_split(ctrl, n_batches):
         pred = sample_pert_from_model(model, ctrl_data_batch, pert, max_rejections, device)
@@ -35,20 +39,23 @@ def batch_pert_sampling(model, ctrl, pert, max_rejections=100):
 
 def generate_batched_counterfactuals(model, dset, batch_size=256, max_rejections=100):
     import time
+
+    
     for stratum in dset.strata:
+        logger.info(f"Generating synthetic data for stratum {stratum}")
+        stratum_start = time.time()
         source_batch = {} 
         synthetic_counterfactual_batch = {}
 
         num_ctrls = dset.source[stratum].shape[0]
 
         for i in range(0, num_ctrls, batch_size):   
+            batch_start = time.time()
             source_batch[stratum] = X_ctrl = dset.source[stratum][i:i+batch_size]
             synthetic_counterfactual_batch[stratum] = {}
             
             for j, pert in enumerate(dset.unique_pert_ids):
-                if j % 10 == 0:
-                    pert_start = time.time()
-                    print(f"{i} / {num_ctrls}, {j} / {len(dset.unique_pert_ids)}")
+                pert_start = time.time()
                 
                 X_pert = dset.target[stratum][pert]
                 
@@ -57,10 +64,16 @@ def generate_batched_counterfactuals(model, dset, batch_size=256, max_rejections
                 
                 synthetic_counterfactual_batch[stratum][pert] = preds.astype(np.int16)
                 
-                if (j + 1) % 10 == 0:
-                    pert_time = time.time() - pert_start
-                    print(f"Perturbation {j} took: {pert_time:.2f}s")
+                pert_time = time.time() - pert_start
+
+                logger.debug(f"Stratum {stratum} - Batch {i} - Perturbation {j}/{len(dset.unique_pert_ids)} took: {pert_time:.2f}s")
             
+            batch_time = time.time() - batch_start
+            logger.debug(f"Stratum {stratum} - Batch {i} took: {batch_time:.2f}s")
+
+        stratum_time = time.time() - stratum_start
+        logger.info(f"Stratum {stratum} took: {stratum_time:.2f}s")
+
         # Save timing data along with results
         data_dict = {
             'synthetic_counterfactuals': synthetic_counterfactual_batch,

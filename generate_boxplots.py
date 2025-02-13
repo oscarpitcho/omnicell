@@ -4,12 +4,30 @@ import seaborn as sns
 import pandas as pd
 from collections import defaultdict
 
-METRIC_CONFIG = {
+
+R2_METRIC_CONFIG = {
     'all_genes_mean_R2': 'R2 All Genes',
     'all_genes_var_R2': 'R2 Var Genes',
     'all_genes_mean_sub_diff_R2': 'R2 Means Genes',
     'Jaccard': 'DEG Overlap'
+
+
+    all_genes_mean_sub_diff_R2
+    all_genes_mean_fold_diff_R2
+    all_genes_mean_R2
+    all_genes_var_R2
+    all_genes_corr_mtx_R2
+all_genes_cov_mtx_R2
+Top_100_DEGs_sub_diff_R2
+Top_100_DEGs_fold_diff_R2
+Top_100_DEGs_mean_R2
+Top_100_DEGs_var_R2
+Top_100_DEGs_corr_mtx_R2
+Top_100_DEGs_cov_mtx_R2
+
+
 }
+
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Generate model comparison box plots')

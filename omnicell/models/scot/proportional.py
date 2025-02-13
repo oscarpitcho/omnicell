@@ -11,7 +11,7 @@ import time
 import numpy as np
 import scanpy as sc
 from omnicell.constants import PERT_KEY, CELL_KEY, CONTROL_PERT, logger
-from omnicell.models.distribute_shift import sample_pert, get_proportional_weighted_dist
+from omnicell.models.utils.distribute_shift import sample_pert, get_proportional_weighted_dist
 from omnicell.processing.utils import to_dense
 from omnicell.models.utils.datamodules import get_dataloader
 
@@ -33,13 +33,15 @@ class ProportionalSCOT():
         self.pert_embeddding = pert_embedding
 
     def train(self, adata: sc.AnnData, save_path: str):
-        """Does nothing because weobsidian://open?vault=Obsidian&file=Life%2FAbugoot%2FThesis%2FProblem%20Statement.svg are going to cheat"""
+        """Does nothing because we are going to cheat"""
         pass
 
 
     def generate_synthetic(self, adata: sc.AnnData):
         """Yields stratified synthetic data for each stratum in the training adata that is passed"""
 
+        logger.info(f"Fenerating synthetic data for Proportional scot, with - # control samples: {len(adata[(adata.obs[PERT_KEY] == CONTROL_PERT)])} - # perturbations {adata.obs[PERT_KEY].nunique()}")
+        
         dset, _ = get_dataloader(adata, pert_ids=np.array(adata.obs[PERT_KEY].values), offline=False, pert_embedding=self.pert_embeddding, collate='ot')
 
         for x in generate_batched_counterfactuals(self, dset, batch_size=self.batch_size):
