@@ -3,22 +3,26 @@ import numpy as np
 
 from omnicell.models.utils.distribute_shift import sample_pert
 import logging
+import time
+
 
 logger = logging.getLogger(__name__)
 
 def sample_pert_from_model_numpy(model, ctrl, pert, max_rejections=100):
     mean_shift = pert.mean(axis=0) - ctrl.mean(axis=0)
     weighted_dist = model(ctrl, mean_shift)
-    return sample_pert(ctrl, weighted_dist, mean_shift, max_rejections, num_threads=8)
+
+    return sample_pert(ctrl, weighted_dist, mean_shift, max_rejections, num_threads=2)
 
 def sample_pert_from_model(model, ctrl, pert, max_rejections=100, device=None):
     # if model hasattr numpy_model, use numpy model
     if hasattr(model, 'numpy_model') and model.numpy_model:
         return sample_pert_from_model_numpy(model, ctrl, pert, max_rejections)
+    
+    #For models that use GPU acceleration for inference
     mean_shift = pert.mean(axis=0) - ctrl.mean(axis=0)
     ctrl_tensor = torch.tensor(ctrl).to(device)
     mean_shift_tensor = torch.tensor(mean_shift).to(device)
-    # no grad
     with torch.no_grad():
         weighted_dist = model(ctrl_tensor, mean_shift_tensor).cpu()
     weighted_dist = weighted_dist.numpy()
@@ -38,7 +42,6 @@ def batch_pert_sampling(model, ctrl, pert, max_rejections=100):
     return preds
 
 def generate_batched_counterfactuals(model, dset, batch_size=256, max_rejections=100):
-    import time
 
     
     for stratum in dset.strata:

@@ -54,6 +54,6 @@ python generate_synthetic_data.py \
     --datasplit_config ${SPLIT_BASE_DIR}/${SPLIT_DIR}/split_config.yaml \
     --slurm_id ${SLURM_ARRAY_JOB_ID} \
     --slurm_array_task_id ${SLURM_ARRAY_TASK_ID} \
-    -l INFO
+    -l DEBUG
 
 echo "Synthetic data generation completed for ${SPLIT_DIR}"

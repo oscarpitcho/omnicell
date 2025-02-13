@@ -209,9 +209,11 @@ def sample_pert(np.ndarray[F32_t, ndim=2] ctrl,
     
     sampled_pert = np.zeros((n_rows, n_cols), dtype=np.float32)
     
-
-    sign = np.where(count_shift > 0, 1.0, -1.0)
-    sampled_pert = np.maximum(0, ctrl + samples * sign)
+    # Apply shifts with proper sign
+    for j in range(n_cols):
+        sign = 1.0 if count_shift[j] > 0 else -1.0
+        for i in range(n_rows):
+            sampled_pert[i, j] = max(0.0, ctrl[i, j] + sign * samples[i, j])
     
     return sampled_pert
 
