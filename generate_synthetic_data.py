@@ -80,6 +80,7 @@ def main():
     for i, data_dict in enumerate(model.generate_synthetic(adata=adata)):
         logger.debug(f"Saving batch {i} of synthetic data")
         with open(f'{datapath}/synthetic_counterfactuals_{i}.pkl', 'wb') as f:
+            logger.debug(f"Saving batch {i} of synthetic")
             pickle.dump(data_dict, f)
     
     logger.info("Saving configuration")

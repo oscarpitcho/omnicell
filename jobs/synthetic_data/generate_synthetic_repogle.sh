@@ -18,7 +18,7 @@ MODEL_CONFIG="${CONFIG_BASE_DIR}/models/scot/proportional_scot.yaml"
 MODEL_NAME="proportional_scot"
 
 ### CHANGE HERE TO SELECT ONLY THE RELEVANT ETL CONFIGS UNDER ${ETL_BASE_DIR} ###
-ETL_CONFIGS=("norm_log_drop_unmatched" "no_preproc_drop_unmatched")
+ETL_CONFIGS=("no_preproc_drop_unmatched")
 
 ### CHANGE HERE TO ONLY SELECT ONE OF THE RANDOM SPLITS ###
 SPLITS=(0 1) # 2 splits (0) or (1)

@@ -74,14 +74,13 @@ def generate_batched_counterfactuals(model, dset, batch_size=256, max_rejections
             batch_time = time.time() - batch_start
             logger.debug(f"Stratum {stratum} - Batch {i} took: {batch_time:.2f}s")
 
-        stratum_time = time.time() - stratum_start
-        logger.info(f"Stratum {stratum} took: {stratum_time:.2f}s")
+            # Save timing data along with results
+            data_dict = {
+                'synthetic_counterfactuals': synthetic_counterfactual_batch,
+                'source': source_batch,
+                'unique_pert_ids': dset.unique_pert_ids,
+                'strata': dset.strata,
+            }
+            yield data_dict
 
-        # Save timing data along with results
-        data_dict = {
-            'synthetic_counterfactuals': synthetic_counterfactual_batch,
-            'source': source_batch,
-            'unique_pert_ids': dset.unique_pert_ids,
-            'strata': dset.strata,
-        }
-        yield data_dict
+   
