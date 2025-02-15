@@ -235,7 +235,7 @@ class DataLoader:
             synthetic_data_files = os.listdir(synthetic_data_path)
 
             #We get the paths of all the files in this folder
-            synthetic_data_paths = [Path(f"{synthetic_data_path}/{file}").resolve() for file in synthetic_data_files]
+            synthetic_data_paths = [Path(f"{synthetic_data_path}/{file}").resolve() for file in synthetic_data_files if file.endswith(".pkl")]
 
             #We add them to the adata
             adata.uns[SYNTHETIC_DATA_PATHS_KEY] = synthetic_data_paths

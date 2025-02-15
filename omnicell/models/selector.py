@@ -77,7 +77,8 @@ def load_model(model_config: ModelConfig, loader: DataLoader, pert_embedding: Di
     elif "proportional_scot" in model_name:
         from omnicell.models.scot.proportional import ProportionalSCOT
         logger.info("Proportional SCOT model selected")
-        model = ProportionalSCOT(pert_embedding, model_parameters)
+        adata_cheat = loader.get_complete_training_dataset()
+        model = ProportionalSCOT(adata_cheat, pert_embedding, model_parameters)
 
     elif "scot" in model_name:
         from omnicell.models.scot.scot import SCOT

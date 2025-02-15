@@ -21,5 +21,7 @@ pert_embeddings:
 - ESM2_UCE_HomoSapiens
 pert_key: gene
 precomputed_DEGs: true
-synthetic_versions: []
+synthetic_versions:
+- proportional_scot_no_preproc_drop_unmatched_b924ee39
+- proportional_scot_no_preproc_drop_unmatched_7e2387f7
 var_names_key: null

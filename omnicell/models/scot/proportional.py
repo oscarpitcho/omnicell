@@ -26,11 +26,12 @@ class ProportionalSCOT():
 
 
     #TODO: FIX THIS, IT SHOULD NOT TAKE A PERT EMBEDDING, but we give it one because data loader needs it, but in fact we are not even using the data loader
-    def __init__(self, pert_embedding: str, model_params: dict):
+    def __init__(self, total_adata: sc.AnnData, pert_embedding: str, model_params: dict):
         self.model = None
         self.numpy_model = True
         self.batch_size = model_params["batch_size"]
         self.pert_embeddding = pert_embedding
+        self.total_adata = total_adata
 
     def train(self, adata: sc.AnnData, save_path: str):
         """Does nothing because we are going to cheat"""
