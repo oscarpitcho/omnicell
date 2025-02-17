@@ -2,7 +2,7 @@ import scanpy as sc
 from typing import Optional, List, Tuple
 from dataclasses import dataclass, field
 from omnicell.config.config import Config, ModelConfig
-from omnicell.constants import PERT_KEY, CELL_KEY, CONTROL_PERT, PERT_EMBEDDING_KEY, SYNTHETIC_DATA_PATHS_KEY
+from omnicell.constants import PERT_KEY, CELL_KEY, CONTROL_PERT, PERT_EMBEDDING_KEY, SYNTHETIC_DATA_PATHS_KEY, OMNICELL_ROOT
 from omnicell.data.catalogue import DatasetDetails, Catalogue
 import torch
 import logging
@@ -10,6 +10,7 @@ import numpy as np
 import json
 import pandas as pd
 from pathlib import Path
+import copy
 import os
 import hashlib
 import anndata
@@ -211,12 +212,12 @@ class DataLoader:
             model_config_path = self.config.etl_config.synthetic_model_config_path
             
             
-            synthetic_model_config = ModelConfig.from_yaml(Path(model_config_path).resolve())
+            synthetic_model_config = ModelConfig.from_yaml(Path(f"{OMNICELL_ROOT}/{model_config_path}").resolve())
 
-            synthetic_data_etl_config = self.config.etl_config.copy()
-            synthetic_data_config.etl_config.synthetic_model_config_path = None
+            synthetic_data_etl_config = copy.deepcopy(self.config.etl_config)
+            synthetic_data_etl_config.synthetic_model_config_path = None
 
-            synthetic_datasplit_config = self.config.datasplit_config.copy()
+            synthetic_datasplit_config = copy.deepcopy(self.config.datasplit_config)
 
 
             #Config that should have been used to generate the synthetic data
