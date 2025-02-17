@@ -230,6 +230,8 @@ class DataLoader:
             if synthetic_data_config.get_synthetic_config_ID() not in self.training_dataset_details.synthetic_versions:
                 raise ValueError(f"Could not find a config with name {synthetic_data_config.get_synthetic_config_ID()} for dataset {self.training_dataset_details.name}, please check that the synthetic data was generated with the same config.")
 
+
+            logger.info(f"Loading synthetic data with name {synthetic_data_config.get_synthetic_config_ID()}")
             #We load the synthetic data
             synthetic_data_path = f"{dataset_details.folder_path}/synthetic_data/{synthetic_data_config.get_synthetic_config_ID()}"
 
