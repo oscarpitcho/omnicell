@@ -10,17 +10,20 @@ from sklearn.decomposition import PCA
 
 
 
-EMBEDDING_NAME = 'GeneCorr_PCA256'
 N_COMPONENTS = 256
 
 def main():
-    parser = argparse.ArgumentParser(description='Generating Embeddings based on correlations of raw count matrix, takign the top 256 components')
+    parser = argparse.ArgumentParser(description='Generating Embeddings based on correlations of raw count matrix, taking the top 256 PCA components')
     parser.add_argument('--dataset_name', type=str, required=True, 
                        help='Name of the dataset')
-
-
-
+    parser.add_argument('--complete', action='store_true', help='Use the complete dataset for the correlation matrix, not just control cells.')
     args = parser.parse_args()
+ 
+
+    EMBEDDING_NAME = 'GeneCorr_PCA256' if not args.complete else 'GeneCorr_Complete_PCA256'
+
+
+
 
     # Load dataset details
     ds_details = Catalogue.get_dataset_details(args.dataset_name)
@@ -34,15 +37,17 @@ def main():
     
     # Load dataset
     adata = sc.read(ds_details.path)
+    perts = [p for p in adata.obs[ds_details.pert_key].unique() if p != ds_details.control]
+
+    if not args.complete:
+        # Not Complete, we keep only control cells
+        adata = adata[adata.obs[ds_details.pert_key] == ds_details.control]
+
     X = adata.X.toarray()
 
     print(f"Loaded dataset {args.dataset_name} with shape {X.shape}")
 
-    pert_key = ds_details.pert_key
-    control = ds_details.control
-    
     # Get perturbations (excluding control)
-    perts = [p for p in adata.obs[pert_key].unique() if p != control]
 
     corr_matrix = np.corrcoef(X.T)
 
@@ -71,7 +76,7 @@ def main():
 
     save_dir = f"{ds_details.folder_path}/pert_embeddings/"
 
-    embeddings = torch.from_numpy(embeddings[found_perts_idx])
+    embeddings = torch.from_numpy(embeddings[found_perts_idx].astype(np.float32))
     print(f"Embeddings shape: {embeddings.shape}")
     print(f"Variance ratio: {variance_ratio}")
 

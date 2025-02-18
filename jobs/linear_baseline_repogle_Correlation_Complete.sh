@@ -19,7 +19,7 @@ MODEL_CONFIG="${CONFIG_BASE_DIR}/models/linear_mean_model.yaml"
 MODEL_NAME="linear_mean_model"
 
 # Define embeddings
-EMBEDDING="pemb_GeneCorr_PCA256"
+EMBEDDING="pemb_GeneCorr_Complete_PCA256"
 EMBEDDING_CONFIG="${EMBEDIDNG_BASE_DIR}/${EMBEDDING}.yaml"
 
 # Define configs and splits

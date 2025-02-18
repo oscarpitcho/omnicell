@@ -43,9 +43,9 @@ def load_model(model_config: ModelConfig, loader: DataLoader, pert_embedding: Di
         model = CellEmbPredictor(model_parameters, input_dim)
 
     elif 'scVIDR' in model_name:
-        from omnicell.models.VAE.scVIDR_predictor import ScVIDRPredictor
+        from omnicell.models.VAE.scVIDR import scVIDRPredictor
         logger.info("scVIDR model selected")
-        model = ScVIDRPredictor(model_parameters, input_dim, device, pert_ids)
+        model = scVIDRPredictor(model_parameters, input_dim, device, pert_ids)
 
     elif "test" in model_name:
         from omnicell.models.dummy_predictors.perfect_predictor import PerfectPredictor
