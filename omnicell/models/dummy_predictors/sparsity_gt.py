@@ -20,5 +20,5 @@ class SparsityGroundTruthPredictor():
 
     def make_predict(self, adata: sc.AnnData, pert_id: str, cell_type: str) -> np.ndarray:
         ground_truth = self.total_adata[(self.total_adata.obs[PERT_KEY] == pert_id) & (self.total_adata.obs[CELL_KEY] == cell_type)]
-        return ground_truth.X > 0
+        return (ground_truth.X > 0).astype(np.float32)
     

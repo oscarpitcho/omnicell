@@ -19,6 +19,7 @@ pert_embeddings:
 - llamaPMC-13B
 - GenePT
 - ESM2_UCE_HomoSapiens
+- GeneCorr_PCA256
 pert_key: gene
 precomputed_DEGs: true
 synthetic_versions:
