@@ -2,7 +2,7 @@
 #SBATCH -t 12:00:00
 #SBATCH -n 1      #4 CPUS
 #SBATCH --cpus-per-task=8
-#SBATCH --mem=200GB
+#SBATCH --mem=500GB
 #SBATCH -p ou_bcs_low
 #SBATCH --gres=gpu:h100:1
 #SBATCH --array=0-1        # CHANGE HERE TO MATCH SIZE OF CROSS PRODUCT: 1 Gene Embeddings x 1 Embeding x 2 Splits = 2 combinations 
@@ -83,7 +83,6 @@ python train.py \
 
 EVAL_DIR="./results/${DATASET}/${EMBEDDING}/${ETL}/${MODEL_NAME}"
 
-echo "Generating evaluations for ./results/${DATASET}/${EMBEDDING_CONFIG_NAME}/${ETL_CONFIG_NAME}/${MODEL_NAME}"
 
 # Generate evaluations
 python generate_evaluations.py \

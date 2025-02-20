@@ -14,7 +14,7 @@ from omnicell.processing.utils import to_dense
 logger = logging.getLogger(__name__)
 
 
-class scgenPredictor():
+class ScgenPredictor():
 
     def __init__(self, config, input_dim, device, pert_ids):
 

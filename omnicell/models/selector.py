@@ -32,10 +32,10 @@ def load_model(model_config: ModelConfig, loader: DataLoader, pert_embedding: Di
         logger.info("Transformer model selected")
         model = LLMPredictor(model_parameters, input_dim, device, pert_ids)
         
-    elif 'vae' in model_name:
-        from omnicell.models.VAE.vae import VAE
+    elif 'vae_scgen' in model_name:
+        from omnicell.models.VAE.scgen import ScgenPredictor
         logger.info("VAE model selected")
-        model = VAE(model_parameters, input_dim, device, pert_ids)
+        model = ScgenPredictor(model_parameters, input_dim, device, pert_ids)
     
     elif 'cell_emb' in model_name:
         from omnicell.models.cell_emb.cell_emb_predictor import CellEmbPredictor

@@ -58,7 +58,7 @@ class scVIDRPredictor():
         logger.debug(f"VAE predictor initialized, perturbations: {self.perts}, perts to idx: {self.perts_to_idx}")
 
 
-    def train(self, adata):
+    def train(self, adata, **kwargs):
 
         self.cell_ids = adata.obs[CELL_KEY].unique()
         device = self.device
