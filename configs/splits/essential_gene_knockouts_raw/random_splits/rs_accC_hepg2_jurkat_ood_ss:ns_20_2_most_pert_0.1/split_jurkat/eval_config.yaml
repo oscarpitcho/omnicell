@@ -1,0 +1,43 @@
+dataset: essential_gene_knockouts_raw
+evaluation_targets:
+- - jurkat
+  - MTBP
+- - jurkat
+  - XRN1
+- - jurkat
+  - SRRT
+- - jurkat
+  - MTOR
+- - jurkat
+  - METTL3
+- - jurkat
+  - RPL26
+- - jurkat
+  - RPS3A
+- - jurkat
+  - SMN2
+- - jurkat
+  - MED11
+- - jurkat
+  - CCNH
+- - jurkat
+  - EXOSC2
+- - jurkat
+  - TIMM23B
+- - jurkat
+  - FAU
+- - jurkat
+  - EIF2B1
+- - jurkat
+  - BTF3
+- - jurkat
+  - GPS1
+- - jurkat
+  - INTS14
+- - jurkat
+  - MED6
+- - jurkat
+  - FUNDC2
+- - jurkat
+  - CPSF1
+name: rs_accC_hepg2_jurkat_ood_ss:ns_20_2_most_pert_0.1-eval_jurkat

@@ -114,7 +114,6 @@ def main():
 
             number_DEGs_per_pert = {}
             for pert in DEGs_target:
-                print(f"Pert {pert} has {len(DEGs_target[pert])} DEGs")
                 number_DEGs_per_pert[pert] = len(DEGs_target[pert])
     
 
