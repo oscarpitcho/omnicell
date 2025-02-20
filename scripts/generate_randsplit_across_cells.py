@@ -46,7 +46,9 @@ def main():
     ds_path = ds_details.path
 
     print(f"Loading dataset from {ds_path}")
-    adata = sc.read(ds_path, backed="r+")
+
+    with open(ds_path, 'rb') as f:
+        adata = sc.read_h5ad(f)
     
 
 
@@ -92,11 +94,14 @@ def main():
         candidate_perts = None
         if args.most_perturbative is not None:
             DEGs_path = f"{ds_details.folder_path}/DEGs.json"
+
+            print()
             DEGs_all = json.load(open(DEGs_path, 'r'))
 
 
-            perts_in_cell_type = sorted(list(DEGs_all[c].keys()))
 
+
+            #TODO: Standardize this logic, used in both scripts, also used in NN 
             DEGs_target = {}
             for pert in DEGs_all[c]:
                 if DEGs_all[c][pert] is not None:
@@ -105,13 +110,16 @@ def main():
                     DEGs_target[pert] = df
 
             
+
+
             number_DEGs_per_pert = {}
-            for pert in DEGs_target[pert].keys():
+            for pert in DEGs_target:
+                print(f"Pert {pert} has {len(DEGs_target[pert])} DEGs")
                 number_DEGs_per_pert[pert] = len(DEGs_target[pert])
     
-    
+
             #Select the most perturbative perts based on the number of DEGs
-            number_perts = int(len(perts_in_cell_type) * args.most_perturbative)
+            number_perts = int(len(DEGs_all[c]) * args.most_perturbative)
             candidate_perts = sorted(number_DEGs_per_pert, key=number_DEGs_per_pert.get, reverse=True)[:number_perts]
         
         else:

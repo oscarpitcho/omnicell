@@ -13,22 +13,26 @@ from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.decomposition import PCA
 from pathlib import Path
 from omnicell.models.mean_models.L4Regressor import L4Regressor
+from sklearn.model_selection import GridSearchCV
 
 from omnicell.models.utils.distribute_shift import sample_pert, get_proportional_weighted_dist
 
+import logging
+logger = logging.getLogger(__name__)
 
-def fit_supervised_model(X, Y, model_type='linear', **kwargs):
+def fit_supervised_model(X, Y, model_type='linear', param_grid=None, **kwargs):
     """
-    Fit a supervised model based on the specified model type.
+    Fit a supervised model, optionally performing hyperparameter tuning with GridSearchCV.
     
     Args:
-        X: Input features (gene embeddings)
-        Y: Target values (perturbation effects)
-        model_type: Type of model to fit ('linear', 'ridge', 'lasso', 'elastic_net', 'rf', 'svr')
-        **kwargs: Additional arguments to pass to the model constructor
-    
+        X: Input features.
+        Y: Target values.
+        model_type: Type of model to fit.
+        param_grid: Hyperparameters grid for GridSearchCV.
+        **kwargs: Fixed parameters for the model.
+        
     Returns:
-        fitted model, training MSE, R2 score
+        Fitted model, training MSE, R2 score.
     """
     models = {
         'linear': LinearRegression,
@@ -37,24 +41,28 @@ def fit_supervised_model(X, Y, model_type='linear', **kwargs):
         'elastic_net': ElasticNet,
         'rf': RandomForestRegressor,
         'svr': SVR,
-        'l4': L4Regressor  # Add the custom L4 regressor
-
+        'l4': L4Regressor
     }
     
     if model_type not in models:
-        raise ValueError(f"Model type {model_type} not supported. Choose from {list(models.keys())}")
+        raise ValueError(f"Model type {model_type} not supported.")
     
-
-
-    model = models[model_type](**kwargs)
-    model.fit(X, Y)
+    model_class = models[model_type]
+    base_model = model_class(n_jobs=8, **kwargs)
     
-    # Make predictions and calculate metrics
-    Y_pred = model.predict(X)
+    if param_grid:
+        logger.debug(f"Performing hyperparameter tuning with {model_type}, on param grid: {param_grid} with 2-fold CV")
+        grid_search = GridSearchCV(base_model, param_grid, cv=2, n_jobs = 8, scoring='neg_mean_squared_error')
+        grid_search.fit(X, Y)
+        best_model = grid_search.best_estimator_
+        logger.debug(f"Best parameters: {grid_search.best_params_}")
+    else:
+        best_model = base_model.fit(X, Y)
+    
+    Y_pred = best_model.predict(X)
     mse = mean_squared_error(Y, Y_pred)
     r2 = r2_score(Y, Y_pred)
-    
-    return model, mse, r2
+    return best_model, mse, r2
 
 def compute_cell_type_means(adata, cell_type):
     """Compute perturbation effect embeddings for a specific cell type"""
@@ -94,13 +102,32 @@ class MeanPredictor():
         self.model_type = model_config['model_type']
         self.pca_pert_embeddings = model_config['pca_pert_embeddings']
         self.pca_pert_embeddings_components = model_config['pca_pert_embeddings_components']
+        self.pca_cell_embeddings_components = model_config['pca_cell_emb_components']
         self.pert_embedding = pert_embedding
+        self.cell_embeddings = {}
+        self.param_grid = model_config.get('param_grid', None)
 
-    def train(self, adata: sc.AnnData, model_savepath: Path):
+
+    def train(self, adata: sc.AnnData, **kwargs):
         if self.pca_pert_embeddings:
             pca = PCA(n_components=self.pca_pert_embeddings_components)
             pert_emb_temp = pca.fit_transform(np.array(list(self.pert_embedding.values())))
             self.pert_embedding = {pert : pert_emb_temp[i] for i, pert in enumerate(self.pert_embedding.keys())}
+
+        
+        #Generating cell embeddings with PCA
+
+        self.pca_model_cells = PCA(n_components=self.pca_cell_embeddings_components)
+
+        X = adata.X
+        logger.debug(f"Training PCA model for cell embeddings with {X.shape[0]} cells")
+        self.pca_model_cells.fit(X)
+
+        logger.debug("Computing cell embeddings")
+        for cell_type in adata.obs[CELL_KEY].unique():
+            cell_data = adata[(adata.obs[CELL_KEY] == cell_type) & (adata.obs[PERT_KEY] == CONTROL_PERT)].X
+            self.cell_embeddings[cell_type] = np.mean(self.pca_model_cells.transform(cell_data), axis=0)
+
 
         # Get unique cell types
         cell_types = adata.obs[CELL_KEY].unique()
@@ -108,28 +135,36 @@ class MeanPredictor():
         # Compute embeddings for each cell type
         Xs = []
         Ys = []
+
+        #We append the data for each cell type, 
         for cell_type in cell_types:
+            logger.debug(f"Creating training data for {cell_type}")
             ctrl_mean, pert_deltas_dict = compute_cell_type_means(adata, cell_type)
+            
             
             # Get perturbation IDs for this cell type
             idxs = pert_deltas_dict.keys()
             
             # Create feature matrix X and target matrix Y
             Y = np.array([pert_deltas_dict[pert] for pert in idxs])
-            X = np.array([self.pert_embedding[g] for g in idxs])
+            X = np.array([np.concatenate([self.pert_embedding[g], self.cell_embeddings[cell_type]])  for g in idxs])
 
-            # Store the embeddings
             Xs.append(X)
             Ys.append(Y)
 
         # Now you can train a model for each cell type
         X = np.concatenate(Xs)
         Y = np.concatenate(Ys)
-        self.model, mse, r2 = fit_supervised_model(X, Y, model_type=self.model_type)
+        self.model, mse, r2 = fit_supervised_model(X, Y, model_type=self.model_type, param_grid=self.param_grid)
         
     def make_predict(self, adata: sc.AnnData, pert_id: str, cell_type: str) -> np.ndarray:
         ctrl_cells = adata[(adata.obs[PERT_KEY] == CONTROL_PERT) & (adata.obs[CELL_KEY] == cell_type)].X
-        X_new = np.array(self.pert_embedding[pert_id].reshape(1, -1))
+
+        cell_embedding = np.mean(self.pca_model_cells.transform(ctrl_cells), axis=0)
+
+        X_new = np.concatenate([self.pert_embedding[pert_id], cell_embedding])
+        X_new = X_new.reshape(1, -1)
+        
         mean_shift_pred = np.array(self.model.predict(X_new)).flatten().astype(np.float32)
         weighted_dist = get_proportional_weighted_dist(ctrl_cells)
         samples = sample_pert(ctrl_cells, weighted_dist, mean_shift_pred)

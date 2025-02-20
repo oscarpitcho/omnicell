@@ -102,11 +102,6 @@ def load_model(model_config: ModelConfig, loader: DataLoader, pert_embedding: Di
         adata_cheat = loader.get_complete_training_dataset()
         model = SparsityGroundTruthPredictor(adata_cheat)
 
-    elif 'RF_cellxpert_model' in model_name:
-        from omnicell.models.mean_models.across_cells_perts import CellxPertEmbMeanPredictor
-        logger.info("RF CellXpert model selected")
-        model = CellxPertEmbMeanPredictor(model_parameters, pert_embedding)
-
     else:
         raise ValueError(f'Unknown model name {model_name}')
     
