@@ -1,0 +1,5 @@
+dataset: essential_gene_knockouts_raw
+holdout_cells: hepg2
+holdout_perts: []
+mode: ood
+name: rs_accC_hepg2_jurkat_ood_ss:ns_20_2_most_pert_0.1-split_hepg2

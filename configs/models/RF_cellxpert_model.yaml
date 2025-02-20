@@ -1,0 +1,11 @@
+#version: This can be any text_field
+
+name: RF_cellxpert_model
+
+model_type: rf
+pca_pert_embeddings: True
+pca_pert_embeddings_components: 10
+pca_cell_emb_components: 50
+autofocus: False
+param_grid:
+  n_estimators: [100, 200, 400]

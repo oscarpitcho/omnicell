@@ -1,0 +1,43 @@
+dataset: essential_gene_knockouts_raw
+evaluation_targets:
+- - hepg2
+  - SRP68
+- - hepg2
+  - RPS2
+- - hepg2
+  - GTF2A1
+- - hepg2
+  - RPS8
+- - hepg2
+  - RPL7
+- - hepg2
+  - SNRPC
+- - hepg2
+  - POLR2H
+- - hepg2
+  - RPL4
+- - hepg2
+  - HSPA9
+- - hepg2
+  - INTS8
+- - hepg2
+  - EIF3B
+- - hepg2
+  - EIF2B5
+- - hepg2
+  - RPS7
+- - hepg2
+  - NLE1
+- - hepg2
+  - SNRNP200
+- - hepg2
+  - UTP15
+- - hepg2
+  - PSMA4
+- - hepg2
+  - RPL38
+- - hepg2
+  - RPL34
+- - hepg2
+  - RPL13
+name: rs_accC_hepg2_jurkat_ood_ss:ns_20_2_most_pert_0.1-eval_hepg2
