@@ -4,6 +4,7 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=200GB
 #SBATCH -p ou_bcs_low
+#SBATCH --gres=gpu:h100:1
 #SBATCH --array=0-1        # CHANGE HERE TO MATCH SIZE OF CROSS PRODUCT: 1 Gene Embeddings x 1 Embeding x 2 Splits = 2 combinations 
 
 
@@ -15,8 +16,8 @@ ETL_BASE_DIR="configs/ETL"
 EMB_BASE_DIR="configs/embeddings"
 
 ### CHANGE HERE FOR THE CORRECT MODEL CONFIG ###
-MODEL_CONFIG="${CONFIG_BASE_DIR}/models/RF_mean_model.yaml"
-MODEL_NAME="RF_mean_model"
+MODEL_CONFIG="${CONFIG_BASE_DIR}/models/vae_scgen.yaml"
+MODEL_NAME="vae_scgen"
 
 ### CHANGE HERE TO SELECT ONLY THE RELEVANT ETL CONFIGS UNDER ${ETL_BASE_DIR} ###
 ETL_CONFIGS=("no_preproc_drop_unmatched")
@@ -64,7 +65,7 @@ echo "- Dataset: ${DATASET}"
 echo "- ETL: ${ETL}"
 echo "- Embedding: ${EMBEDDING}"
 echo "- Cell Type: ${SPLIT}"
-echo "- Model: ${MODEL_NAME}"
+
 
 source ~/.bashrc
 conda activate omnicell

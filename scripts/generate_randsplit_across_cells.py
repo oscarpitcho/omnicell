@@ -130,7 +130,7 @@ def main():
         #Create the split config
 
         #Separating split_name and split number with hyphen ensures the splits will be grouped together (and only together) in the results directory
-        split_config = template_split_config(f"{split_name}-split_{c}", args.split_mode, args.dataset, str(c), [])
+        split_config = template_split_config(f"{split_name}-split_{c}", args.split_mode, args.dataset, [str(c)], [])
 
 
         eval_config = template_eval_config(f"{split_name}-eval_{c}", args.dataset, [[str(c), str(pert)] for pert in eval_perts])

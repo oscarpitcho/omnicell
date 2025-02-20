@@ -10,6 +10,10 @@
 hostname
 
 
+CONFIG_BASE_DIR="configs"
+ETL_BASE_DIR="configs/ETL"
+EMB_BASE_DIR="configs/embeddings"
+
 ### CHANGE HERE FOR THE CORRECT MODEL CONFIG ###
 MODEL_CONFIG="${CONFIG_BASE_DIR}/models/RF_mean_model.yaml"
 MODEL_NAME="RF_mean_model"
@@ -24,9 +28,7 @@ EMB_CONFIGS=("pemb_GenePT")
 SPLITS=("hepg2" "jurkat") # 2 splits (0) or (1)
 
 
-CONFIG_BASE_DIR="configs"
-ETL_BASE_DIR="configs/ETL"
-EMB_BASE_DIR="configs/embeddings"
+
 
 
 # ===== CONFIGURATION =====
@@ -62,13 +64,12 @@ echo "- Dataset: ${DATASET}"
 echo "- ETL: ${ETL}"
 echo "- Embedding: ${EMBEDDING}"
 echo "- Cell Type: ${SPLIT}"
+echo "- Model: ${MODEL_NAME}"
 
 
 source ~/.bashrc
 conda activate omnicell
 
-echo "Processing ETL config: ${ETL_CONFIG}"
-echo "Processing split: ${SPLIT_DIR}"
 
 # Run training
 python train.py \
