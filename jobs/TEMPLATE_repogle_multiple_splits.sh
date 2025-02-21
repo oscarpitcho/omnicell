@@ -31,8 +31,8 @@ EMB_BASE_DIR="configs/embeddings"
 
 # ===== CONFIGURATION =====
 DATASET="repogle_k562_essential_raw"
+SPLIT_NAME="rs_accP_k562_ood_ss:ns_20_2_most_pert_0.1"
 SPLIT_BASE_DIR="${CONFIG_BASE_DIR}/splits/${DATASET}/random_splits/rs_accP_k562_ood_ss:ns_20_2_most_pert_0.1"
-
 
 
 # Calculate indices for 3 dimensions
@@ -52,12 +52,20 @@ ETL_CONFIG="${ETL_BASE_DIR}/${ETL_CONFIGS[$etl_config_idx]}.yaml"
 EMB_CONFIG="${EMB_BASE_DIR}/${EMB_CONFIGS[$emb_config_idx]}.yaml"
 SPLIT_DIR="split_${SPLITS[$split_idx]}"
 
+ETL_NAME=${ETL_CONFIGS[$etl_config_idx]}
+EMBEDDING_NAME=${EMB_CONFIGS[$emb_config_idx]}
+SPLIT=${SPLITS[$split_idx]}
+
+echo "Processing:"
+echo "- Dataset: ${DATASET}"
+echo "- ETL: ${ETL_NAME}"
+echo "- Embedding: ${EMBEDDING_NAME}"
+echo "- Cell Type: ${SPLIT}"
 
 source ~/.bashrc
 conda activate omnicell
 
-echo "Processing ETL config: ${ETL_CONFIG}"
-echo "Processing split: ${SPLIT_DIR}"
+
 
 # Run training
 python train.py \
@@ -65,6 +73,7 @@ python train.py \
     --datasplit_config ${SPLIT_BASE_DIR}/${SPLIT_DIR}/split_config.yaml \
     --eval_config ${SPLIT_BASE_DIR}/${SPLIT_DIR}/eval_config.yaml \
     --model_config ${MODEL_CONFIG} \
+    --embedding_config ${EMB_CONFIG} \
     --slurm_id ${SLURM_ARRAY_JOB_ID} \
     --slurm_array_task_id ${SLURM_ARRAY_TASK_ID} \
     -l DEBUG
@@ -72,7 +81,8 @@ python train.py \
 echo "Generating evaluations for ./results/${DATASET}/${ETL}/${MODEL}"
 
 # Generate evaluations
+# Generate evaluations
 python generate_evaluations.py \
-    --root_dir ./results/${DATASET}/${ETL}/${MODEL}
+    --root_dir ./results/${DATASET}/${EMBEDDING_NAME}/${ETL_NAME}/${MODEL_NAME}/${SPLIT_NAME}/${SPLIT_NAME}-split_${SPLIT}
     
 echo "All jobs finished for ${SPLIT_DIR}"
