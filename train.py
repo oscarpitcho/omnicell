@@ -135,6 +135,9 @@ def main(*args):
             
             #No log1p in the config --> we need to log normalize the results before saving them for evals to work
             if not config.etl_config.log1p:
+
+                #We clip the predictions to 0, since we can't have negative values
+                preds = np.clip(preds, 0, None)
                 preds = np.log1p(preds)
                 control = np.log1p(control)
                 ground_truth = np.log1p(ground_truth)
