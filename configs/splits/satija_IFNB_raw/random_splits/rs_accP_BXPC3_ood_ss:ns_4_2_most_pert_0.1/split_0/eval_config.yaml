@@ -1,0 +1,11 @@
+dataset: satija_IFNB_raw
+evaluation_targets:
+- - BXPC3
+  - TYK2
+- - BXPC3
+  - USP18
+- - BXPC3
+  - JAK1
+- - BXPC3
+  - IFNAR2
+name: rs_accP_BXPC3_ood_ss:ns_4_2_most_pert_0.1-eval_0

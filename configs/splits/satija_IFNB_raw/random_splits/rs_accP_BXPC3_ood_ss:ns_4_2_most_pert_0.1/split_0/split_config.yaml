@@ -1,0 +1,9 @@
+dataset: satija_IFNB_raw
+holdout_cells: []
+holdout_perts:
+- TYK2
+- USP18
+- JAK1
+- IFNAR2
+mode: ood
+name: rs_accP_BXPC3_ood_ss:ns_4_2_most_pert_0.1-split_0

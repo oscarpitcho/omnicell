@@ -36,7 +36,7 @@ def main():
     parser.add_argument('--split_size', type=int, help='Size of the split, # of perts for evaluation')
     parser.add_argument('--number_splits', type=int, help='Number of splits')
     parser.add_argument('--target_cell', type=str, default='MAX', help='Target cell for the split, if MAX then the cell with the most observations is selected')
-    parser.add_argument('--most_perturbative', type=float, default=None, help='If set to a fraction then the heldout perts are sampled from the most perturbative perts')
+    parser.add_argument('--most_perturbative', type=float, default=0.1, help='If set to a fraction then the heldout perts are sampled from the most perturbative perts')
 
 
     args = parser.parse_args()
@@ -51,7 +51,7 @@ def main():
     ds_path = ds_details.path
 
     print(f"Loading dataset from {ds_path}")
-    adata = sc.read(ds_path)
+    adata = sc.read(ds_path, backed = "r+")
     
 
     target_cell = args.target_cell
