@@ -3,4 +3,4 @@ holdout_cells:
 - MCF7
 holdout_perts: []
 mode: ood
-name: rs-across-cells-ood-split-ss:10_split_MCF7
+name: rs_accC_A549_BXPC3_MCF7_ood_ss:ns_5_3_most_pert_0.1-split_MCF7

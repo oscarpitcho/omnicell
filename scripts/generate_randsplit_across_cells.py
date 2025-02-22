@@ -47,8 +47,7 @@ def main():
 
     print(f"Loading dataset from {ds_path}")
 
-    with open(ds_path, 'rb') as f:
-        adata = sc.read_h5ad(f)
+    adata = sc.read(ds_path, backed = 'r+')
     
 
 

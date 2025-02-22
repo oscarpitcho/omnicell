@@ -15,7 +15,7 @@ EMB_BASE_DIR="configs/embeddings"
 
 
 ### CHANGE HERE FOR THE CORRECT MODEL CONFIG ###
-MODEL_CONFIG="${CONFIG_BASE_DIR}/models/sclambda/sclambda_large_no_MI.yaml"
+MODEL_CONFIG="${CONFIG_BASE_DIR}/models/sclambda/sclambda_large.yaml"
 MODEL_NAME="sclambda_large"
 
 ### CHANGE HERE TO SELECT ONLY THE RELEVANT ETL CONFIGS UNDER ${ETL_BASE_DIR} ###

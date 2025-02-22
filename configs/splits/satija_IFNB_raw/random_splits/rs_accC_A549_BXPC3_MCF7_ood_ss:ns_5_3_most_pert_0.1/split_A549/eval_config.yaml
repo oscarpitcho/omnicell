@@ -1,0 +1,13 @@
+dataset: satija_IFNB_raw
+evaluation_targets:
+- - A549
+  - USP18
+- - A549
+  - TYK2
+- - A549
+  - STAT2
+- - A549
+  - IFNAR1
+- - A549
+  - IFNAR2
+name: rs_accC_A549_BXPC3_MCF7_ood_ss:ns_5_3_most_pert_0.1-eval_A549

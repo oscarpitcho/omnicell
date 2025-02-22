@@ -176,7 +176,7 @@ class ModelPredictor(object):
 
         temp = T(mean_z, s_marginal.detach())
 
-        # https://github.com/pytorch/pytorch/issues/121725
+        # https://github.com/pytorch/pytorch/issues/121725 --> We can't pass None to the dim argument
         MI_latent = torch.mean(T(mean_z, s.detach())) - torch.logsumexp(temp, dim=tuple(range(temp.dim())))
         loss = reconstruction_loss + KLD_z 
         if self.activate_MI:
@@ -190,7 +190,7 @@ class ModelPredictor(object):
     def loss_MINE(self, mean_z, s, s_marginal, T):
         temp = T(mean_z, s_marginal.detach())
 
-        #https://github.com/pytorch/pytorch/issues/121725
+        #https://github.com/pytorch/pytorch/issues/121725 --> We can't pass None to the dim argument
         MI_latent = torch.mean(T(mean_z, s.detach())) - torch.logsumexp(temp, dim=tuple(range(temp.dim())))
         return - MI_latent
 
@@ -206,7 +206,6 @@ class ModelPredictor(object):
         corr_val_best = 0
         self.Net.train()
         
-        past_gradient_norms = []
         for epoch in tqdm(range(self.training_epochs)):
             for x, p in self.train_dataloader:
                 # adversarial training on p
