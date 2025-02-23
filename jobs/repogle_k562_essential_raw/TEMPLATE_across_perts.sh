@@ -10,6 +10,11 @@
 hostname
 
 
+
+CONFIG_BASE_DIR="configs"
+ETL_BASE_DIR="configs/ETL"
+EMB_BASE_DIR="configs/embeddings"
+
 ### CHANGE HERE FOR THE CORRECT MODEL CONFIG ###
 MODEL_CONFIG="${CONFIG_BASE_DIR}/models/sclambda_normal.yaml"
 MODEL_NAME="sclambda_normal"
@@ -24,9 +29,6 @@ EMB_CONFIGS=("pemb_GenePT" "pemb_llamaPMC7B")
 SPLITS=(0 1) # 2 splits (0) or (1)
 
 
-CONFIG_BASE_DIR="configs"
-ETL_BASE_DIR="configs/ETL"
-EMB_BASE_DIR="configs/embeddings"
 
 
 # ===== CONFIGURATION =====
@@ -57,6 +59,7 @@ EMBEDDING_NAME=${EMB_CONFIGS[$emb_config_idx]}
 SPLIT=${SPLITS[$split_idx]}
 
 echo "Processing:"
+echo "- Model: ${MODEL_NAME}"
 echo "- Dataset: ${DATASET}"
 echo "- ETL: ${ETL_NAME}"
 echo "- Embedding: ${EMBEDDING_NAME}"
@@ -76,7 +79,6 @@ python train.py \
     --slurm_array_task_id ${SLURM_ARRAY_TASK_ID} \
     -l DEBUG
 
-echo "Generating evaluations for ./results/${DATASET}/${ETL}/${MODEL}"
 
 # Generate evaluations, if not using embeddings remove ${EMBEDDING_NAME} from the path
 python generate_evaluations.py \

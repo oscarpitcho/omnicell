@@ -1,10 +1,11 @@
 #!/bin/bash
 #SBATCH -t 12:00:00
 #SBATCH -n 1      
-#SBATCH --mem=700GB
-#SBATCH -p ou_bcs_low
+#SBATCH --mem=256GB         
+#SBATCH -p ou_bcs_low      # Change partion and CPU allocation as needed
 #SBATCH --gres=gpu:h100:1  # 1 h100 GPU
 #SBATCH --array=0-5        # CHANGE HERE TO MATCH SIZE OF CROSS PRODUCT: 3 Gene Embeddings x 2 Splits = 6 combinations 
+
 
 
 hostname
@@ -13,6 +14,7 @@ hostname
 CONFIG_BASE_DIR="configs"
 ETL_BASE_DIR="configs/ETL"
 EMB_BASE_DIR="configs/embeddings"
+
 
 ### CHANGE HERE FOR THE CORRECT MODEL CONFIG ###
 MODEL_CONFIG="${CONFIG_BASE_DIR}/models/sclambda_normal.yaml"
@@ -25,15 +27,14 @@ ETL_CONFIGS=("norm_log_drop_unmatched")
 EMB_CONFIGS=("pemb_GenePT" "pemb_llamaPMC7B")
 
 ### CHANGE HERE TO ONLY SELECT ONE OF THE RANDOM SPLITS ###
-SPLITS=("jurkat" "hepg2" "k562" "rpe1") # 4 splits 
-
+SPLITS=("A549" "BXPC3" "HAP1" "HT29" "K562" "MCF7") # 6 splits
 
 
 
 # ===== CONFIGURATION =====
-DATASET="essential_gene_knockouts_raw"
-SPLIT_NAME="rs_accC_jurkat_hepg2_k562_rpe1_ood_ss:ns_20_4_most_pert_0.1"
-SPLIT_BASE_DIR="${CONFIG_BASE_DIR}/splits/${DATASET}/random_splits/rs_accC_jurkat_hepg2_k562_rpe1_ood_ss:ns_20_4_most_pert_0.1"
+DATASET="satija_IFNB_raw"
+SPLIT_NAME="rs_accC_A549_BXPC3_HAP1_HT29_K562_MCF7_ood_ss:ns_5_6_most_pert_0.2"
+SPLIT_BASE_DIR="${CONFIG_BASE_DIR}/splits/${DATASET}/random_splits/rs_accC_A549_BXPC3_HAP1_HT29_K562_MCF7_ood_ss:ns_5_6_most_pert_0.2"
 
 
 # Calculate indices for 3 dimensions
@@ -81,6 +82,7 @@ python train.py \
     -l DEBUG
 
 
+# Generate evaluations
 # Generate evaluations
 python generate_evaluations.py \
     --root_dir ./results/${DATASET}/${EMBEDDING_NAME}/${ETL_NAME}/${MODEL_NAME}/${SPLIT_NAME}/${SPLIT_NAME}-split_${SPLIT}

@@ -22,15 +22,12 @@ class OracleNNPredictor():
         self.seen_pert_per_cell = None
         self.training_adata = None
 
-    
-
     def train(self, adata: sc.AnnData, model_savepath: Path):
-        """Does nothing because we are going to cheat"""
         self.seen_pert_per_cell = {}
         for cell in adata.obs[CELL_KEY].unique():
-            self.seen_pert_per_cell[cell] = [p for p in adata.obs[PERT_KEY].unique() if p != adata.uns[CONTROL_PERT]]
-
-
+            cell_mask = adata.obs[CELL_KEY] == cell
+            perts_in_cell = adata[cell_mask].obs[PERT_KEY].unique()
+            self.seen_pert_per_cell[cell] = [p for p in perts_in_cell if p != CONTROL_PERT]
 
         self.training_adata = adata
         self.DEGs = adata.uns['DEGs']
@@ -68,6 +65,7 @@ class OracleNNPredictor():
 
             nn_population = self.training_adata[(self.training_adata.obs[PERT_KEY] == closest_pert) & (self.training_adata.obs[CELL_KEY] == closest_cell)]
 
+            return nn_population.X
 
         #We are making a prediction within a cell type, across perts, finding seen pert with highest overlap with target pert
         else:

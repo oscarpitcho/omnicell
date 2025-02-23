@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH -t 12:00:00
-#SBATCH -n 1      
-#SBATCH --mem=700GB
-#SBATCH -p ou_bcs_low
+#SBATCH -n 1      #4 CPUS
+#SBATCH --mem=256GB         
+#SBATCH -p ou_bcs_low      # Change partion and CPU allocation as needed
 #SBATCH --gres=gpu:h100:1  # 1 h100 GPU
 #SBATCH --array=0-5        # CHANGE HERE TO MATCH SIZE OF CROSS PRODUCT: 3 Gene Embeddings x 2 Splits = 6 combinations 
 
@@ -25,15 +25,15 @@ ETL_CONFIGS=("norm_log_drop_unmatched")
 EMB_CONFIGS=("pemb_GenePT" "pemb_llamaPMC7B")
 
 ### CHANGE HERE TO ONLY SELECT ONE OF THE RANDOM SPLITS ###
-SPLITS=("jurkat" "hepg2" "k562" "rpe1") # 4 splits 
+SPLITS=(0 1) # 2 splits 
 
 
 
 
 # ===== CONFIGURATION =====
-DATASET="essential_gene_knockouts_raw"
-SPLIT_NAME="rs_accC_jurkat_hepg2_k562_rpe1_ood_ss:ns_20_4_most_pert_0.1"
-SPLIT_BASE_DIR="${CONFIG_BASE_DIR}/splits/${DATASET}/random_splits/rs_accC_jurkat_hepg2_k562_rpe1_ood_ss:ns_20_4_most_pert_0.1"
+DATASET="satija_IFNB_raw"
+SPLIT_NAME="rs_accP_BXPC3_ood_ss:ns_4_2_most_pert_0.1"
+SPLIT_BASE_DIR="${CONFIG_BASE_DIR}/splits/${DATASET}/random_splits/rs_accP_BXPC3_ood_ss:ns_4_2_most_pert_0.1"
 
 
 # Calculate indices for 3 dimensions
@@ -69,19 +69,18 @@ conda activate omnicell
 
 
 
-# Run training
+# Run training, remove # --emb_config ${EMB_CONFIG} if not using embeddings
 python train.py \
     --etl_config ${ETL_CONFIG} \
     --datasplit_config ${SPLIT_BASE_DIR}/${SPLIT_DIR}/split_config.yaml \
     --eval_config ${SPLIT_BASE_DIR}/${SPLIT_DIR}/eval_config.yaml \
     --model_config ${MODEL_CONFIG} \
-    --embedding_config ${EMB_CONFIG} \
     --slurm_id ${SLURM_ARRAY_JOB_ID} \
     --slurm_array_task_id ${SLURM_ARRAY_TASK_ID} \
     -l DEBUG
 
 
-# Generate evaluations
+# Generate evaluations, if not using embeddings remove ${EMBEDDING_NAME} from the path
 python generate_evaluations.py \
     --root_dir ./results/${DATASET}/${EMBEDDING_NAME}/${ETL_NAME}/${MODEL_NAME}/${SPLIT_NAME}/${SPLIT_NAME}-split_${SPLIT}
     

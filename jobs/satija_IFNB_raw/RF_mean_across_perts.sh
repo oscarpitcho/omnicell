@@ -3,30 +3,30 @@
 #SBATCH -n 1      #4 CPUS
 #SBATCH --mem=256GB         
 #SBATCH -p ou_bcs_low      # Change partion and CPU allocation as needed
-#SBATCH --gres=gpu:h100:1  # 1 h100 GPU
-#SBATCH --array=0-5        # CHANGE HERE TO MATCH SIZE OF CROSS PRODUCT: 3 Gene Embeddings x 2 Splits = 6 combinations 
+#SBATCH --array=0-1        # CHANGE HERE TO MATCH SIZE OF CROSS PRODUCT: 3 Gene Embeddings x 2 Splits = 6 combinations 
 
 
 hostname
 
 
+CONFIG_BASE_DIR="configs"
+ETL_BASE_DIR="configs/ETL"
+EMB_BASE_DIR="configs/embeddings"
+
 ### CHANGE HERE FOR THE CORRECT MODEL CONFIG ###
-MODEL_CONFIG="${CONFIG_BASE_DIR}/models/sclambda_normal.yaml"
-MODEL_NAME="sclambda_normal"
+MODEL_CONFIG="${CONFIG_BASE_DIR}/models/RF_mean_model.yaml"
+MODEL_NAME="RF_mean_model"
 
 ### CHANGE HERE TO SELECT ONLY THE RELEVANT ETL CONFIGS UNDER ${ETL_BASE_DIR} ###
-ETL_CONFIGS=("norm_log_drop_unmatched")
+ETL_CONFIGS=("log_drop_unmatched")
 
 ### CHANGE HERE TO SELECT ONLY THE RELEVANT EMBEDDING CONFIGS UNDER ${EMB_BASE_DIR} ###
-EMB_CONFIGS=("pemb_GenePT" "pemb_llamaPMC7B")
+EMB_CONFIGS=("pemb_GenePT")
 
 ### CHANGE HERE TO ONLY SELECT ONE OF THE RANDOM SPLITS ###
 SPLITS=(0 1) # 2 splits 
 
 
-CONFIG_BASE_DIR="configs"
-ETL_BASE_DIR="configs/ETL"
-EMB_BASE_DIR="configs/embeddings"
 
 
 # ===== CONFIGURATION =====
@@ -57,6 +57,7 @@ EMBEDDING_NAME=${EMB_CONFIGS[$emb_config_idx]}
 SPLIT=${SPLITS[$split_idx]}
 
 echo "Processing:"
+echo "- Model: ${MODEL_NAME}"
 echo "- Dataset: ${DATASET}"
 echo "- ETL: ${ETL_NAME}"
 echo "- Embedding: ${EMBEDDING_NAME}"

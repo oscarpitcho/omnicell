@@ -55,8 +55,7 @@ def load_model(model_config: ModelConfig, loader: DataLoader, pert_embedding: Di
     elif "nn_oracle" in model_name:
         from omnicell.models.dummy_predictors.oracle_nearest_neighbor import OracleNNPredictor
         logger.info("NN Oracle model selected")
-        adata_cheat = loader.get_complete_training_dataset()
-        model = OracleNNPredictor(adata_cheat, model_parameters)
+        model = OracleNNPredictor(model_parameters)
 
     elif "sclambda" in model_name:
         from omnicell.models.sclambda.model import ModelPredictor
