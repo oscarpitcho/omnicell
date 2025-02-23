@@ -5,7 +5,7 @@ model:
 
 training:
   dropout_rate: 0.2
-  learning_rate: 0.001
+  learning_rate: 0.00001
   alpha: 0.001
   epochs: 50
   delta_predictor_epochs: 300

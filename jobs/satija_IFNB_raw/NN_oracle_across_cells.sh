@@ -79,7 +79,6 @@ python train.py \
     --slurm_array_task_id ${SLURM_ARRAY_TASK_ID} \
     -l DEBUG
 
-echo "Generating evaluations for ./results/${DATASET}/${ETL}/${MODEL}"
 
 # Generate evaluations
 # Generate evaluations

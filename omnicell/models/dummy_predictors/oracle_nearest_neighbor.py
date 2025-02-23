@@ -12,12 +12,19 @@ logger = logging.getLogger(__name__)
 
 class OracleNNPredictor():
 
-    def __init__(self, model_config: dict):
+    def __init__(self, adata_complete: sc.AnnData, model_config: dict):
 
         self.model = None
         self.model_config = model_config
+        self.adata_complete = adata_complete
 
-        self.DEGs = None 
+        self.DEGs = adata_complete.uns['DEGs']
+
+        for cell in self.DEGs:
+            for pert in self.DEGs[cell]:
+                df = pd.DataFrame.from_dict(self.DEGs[cell][pert], orient='index')
+                df = df[df['pvals_adj'] <self.model_config['p_threshold']]
+                self.DEGs[cell][pert] = df
         self.number_top_DEGs_overlap = model_config["number_top_DEGs_overlap"]
         self.seen_pert_per_cell = None
         self.training_adata = None
@@ -30,13 +37,7 @@ class OracleNNPredictor():
             self.seen_pert_per_cell[cell] = [p for p in perts_in_cell if p != CONTROL_PERT]
 
         self.training_adata = adata
-        self.DEGs = adata.uns['DEGs']
 
-        for cell in self.DEGs:
-            for pert in self.DEGs[cell]:
-                df = pd.DataFrame.from_dict(self.DEGs[cell][pert], orient='index')
-                df = df[df['pvals_adj'] <self.model_config['p_threshold']]
-                self.DEGs[cell][pert] = df
 
 
 
@@ -57,14 +58,31 @@ class OracleNNPredictor():
                 for p in self.seen_pert_per_cell[c]:
                     DEG_p = self.DEGs[c][p]
                     DEG_overlaps[(c, p)] = len(DEG_target.index[:self.number_top_DEGs_overlap].intersection(DEG_p.index[:self.number_top_DEGs_overlap]))
-                
             
-            closest_cell, closest_pert = max(DEG_overlaps, key=DEG_overlaps.get)
-            logger.info(f"Selected perturbation {closest_pert} in cell type {closest_cell} as closest to {pert_id} in cell type {cell_type}, with {DEG_overlaps[(closest_cell, closest_pert)]} overlapping DEGs")
+            #We average the number of overlapping DEGs by the number of DEGs per cell_type to get a most similar perturbation
+
+            candidate_perts = [p for c, p in DEG_overlaps]
+            mean_overlaps = {}
+            for p in candidate_perts:
+                overlaps = []
+                for c in seen_cell_types:
+                    if (c, p) in DEG_overlaps:
+                        overlaps.append(DEG_overlaps[(c, p)])
+                
+                mean_overlap = np.mean(overlaps)
+                mean_overlaps[p] = mean_overlap
+            
+            closest_pert = max(mean_overlaps, key=mean_overlaps.get)
 
 
-            nn_population = self.training_adata[(self.training_adata.obs[PERT_KEY] == closest_pert) & (self.training_adata.obs[CELL_KEY] == closest_cell)]
 
+            logger.info(f"Selected perturbation {closest_pert} as closest pert, with {mean_overlaps[closest_pert]} average overlapping DEGs on seen cell types")
+
+
+            #We return the population of the most similar pert, what if it is not in the training set? TODO
+            nn_population = self.adata_complete[(self.adata_complete.obs[PERT_KEY] == closest_pert) & (self.adata_complete.obs[CELL_KEY] == cell_type)]
+            
+            logger.debug(f"Returning population of {len(nn_population)} cells")
             return nn_population.X
 
         #We are making a prediction within a cell type, across perts, finding seen pert with highest overlap with target pert
