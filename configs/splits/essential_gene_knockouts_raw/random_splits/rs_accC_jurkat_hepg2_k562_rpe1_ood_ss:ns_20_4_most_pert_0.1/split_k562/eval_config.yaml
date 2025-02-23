@@ -1,0 +1,43 @@
+dataset: essential_gene_knockouts_raw
+evaluation_targets:
+- - k562
+  - MED12
+- - k562
+  - RPS9
+- - k562
+  - RPS20
+- - k562
+  - PSMD6
+- - k562
+  - GPN3
+- - k562
+  - SNRPF
+- - k562
+  - MFAP1
+- - k562
+  - PRPF3
+- - k562
+  - MED6
+- - k562
+  - RPL38
+- - k562
+  - PHF5A
+- - k562
+  - RPL21
+- - k562
+  - LTV1
+- - k562
+  - BUD13
+- - k562
+  - CWC15
+- - k562
+  - FCF1
+- - k562
+  - SRRT
+- - k562
+  - NAA38
+- - k562
+  - SFPQ
+- - k562
+  - POLR2C
+name: rs_accC_jurkat_hepg2_k562_rpe1_ood_ss:ns_20_4_most_pert_0.1-eval_k562

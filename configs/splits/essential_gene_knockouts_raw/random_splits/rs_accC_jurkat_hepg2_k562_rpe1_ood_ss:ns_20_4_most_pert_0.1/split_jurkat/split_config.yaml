@@ -1,0 +1,6 @@
+dataset: essential_gene_knockouts_raw
+holdout_cells:
+- jurkat
+holdout_perts: []
+mode: ood
+name: rs_accC_jurkat_hepg2_k562_rpe1_ood_ss:ns_20_4_most_pert_0.1-split_jurkat

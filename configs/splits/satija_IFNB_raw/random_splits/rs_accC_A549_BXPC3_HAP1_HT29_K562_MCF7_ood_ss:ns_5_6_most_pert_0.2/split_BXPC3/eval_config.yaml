@@ -1,0 +1,13 @@
+dataset: satija_IFNB_raw
+evaluation_targets:
+- - BXPC3
+  - SP110
+- - BXPC3
+  - USP18
+- - BXPC3
+  - ETS1
+- - BXPC3
+  - STAT2
+- - BXPC3
+  - STAT1
+name: rs_accC_A549_BXPC3_HAP1_HT29_K562_MCF7_ood_ss:ns_5_6_most_pert_0.2-eval_BXPC3

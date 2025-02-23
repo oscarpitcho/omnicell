@@ -35,7 +35,7 @@ def main():
     parser.add_argument('--split_mode', type=str, default='ood', help='Mode of the split config')
     parser.add_argument('--split_size', type=int, help='Size of the split, # of perts for evaluation')
     parser.add_argument('--most_perturbative', type=float, default=0.1, help='If set to a fraction then the heldout perts are sampled from the most perturbative perts')
-    parser.add_argument('--target_cells', nargs="+", help='Cell type to hold out, if an int we randomly take that many cells, one heldout per split, if a list we hold out those cells each one being a different split')
+    parser.add_argument('--target_cells', nargs="+", help='Cell type to hold out, if an int we randomly take that many cells, one heldout per split, if a list we hold out those cells each one being a different split, if ALL we do one split per cell')
 
 
     args = parser.parse_args()
@@ -47,7 +47,8 @@ def main():
 
     print(f"Loading dataset from {ds_path}")
 
-    adata = sc.read(ds_path, backed = 'r+')
+    with open(ds_path, 'rb') as f:
+        adata = sc.read_h5ad(f)
     
 
 
@@ -55,14 +56,25 @@ def main():
     cells_types = adata.obs[ds_details.cell_key].unique()
    
 
-    if type(args.target_cells) is str:
-        target_cells = [args.target_cells]
-    elif type(args.target_cells) is int:
-        assert args.target_cell <= len(cells_types), "Number of heldout cells is greater than the number of cell types"
-        target_cells = np.random.choice(cells_types, args.target_cell, replace=False)
-    elif type(args.target_cells) is list:
-        assert len(args.target_cells) <= len(cells_types), "Number of heldout cells is greater than the number of cell types"
+    if len(args.target_cells) == 1 and args.target_cells[0].upper() == "ALL":
+        # If the user passed "ALL" (e.g. --target_cells ALL)
+        print("Holding out all cell types")
+        target_cells = [str(c) for c in cells_types]
+    elif len(args.target_cells) == 1 and args.target_cells[0].isdigit():
+        # If the user passed a single integer, e.g. --target_cells 3
+        # This means we randomly pick that many cell types.
+        target_cell_count = int(args.target_cells[0])
+        assert target_cell_count <= len(cells_types), \
+            "Number of held-out cells is greater than the number of cell types"
+        target_cells = list(np.random.choice(cells_types, target_cell_count, replace=False))
+        print(f"Randomly selected {target_cell_count} cell types to hold out: {target_cells}")
+    else:
+        # Otherwise, assume the user passed explicit cell-type names
+        # e.g. --target_cells B T NK
         target_cells = args.target_cells
+        assert len(target_cells) <= len(cells_types), \
+            "Number of held-out cells is greater than the number of cell types"
+        print(f"Explicitly selected cell types to hold out: {target_cells}")
 
     print(f"Selected cells {target_cells}")
 

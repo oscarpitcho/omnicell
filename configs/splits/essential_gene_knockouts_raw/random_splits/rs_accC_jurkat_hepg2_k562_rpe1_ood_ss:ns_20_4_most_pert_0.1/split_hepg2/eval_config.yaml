@@ -1,0 +1,43 @@
+dataset: essential_gene_knockouts_raw
+evaluation_targets:
+- - hepg2
+  - DDX51
+- - hepg2
+  - RPL26
+- - hepg2
+  - RPL34
+- - hepg2
+  - RPL24
+- - hepg2
+  - FAU
+- - hepg2
+  - SF3B5
+- - hepg2
+  - RRS1
+- - hepg2
+  - EIF2B4
+- - hepg2
+  - RPL17
+- - hepg2
+  - PHB2
+- - hepg2
+  - PSMB5
+- - hepg2
+  - C14orf178
+- - hepg2
+  - UTP15
+- - hepg2
+  - URI1
+- - hepg2
+  - PSMC2
+- - hepg2
+  - TSR2
+- - hepg2
+  - EIF3CL
+- - hepg2
+  - RPS19
+- - hepg2
+  - UBL5
+- - hepg2
+  - ZC3H13
+name: rs_accC_jurkat_hepg2_k562_rpe1_ood_ss:ns_20_4_most_pert_0.1-eval_hepg2

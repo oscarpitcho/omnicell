@@ -1,0 +1,43 @@
+dataset: essential_gene_knockouts_raw
+evaluation_targets:
+- - rpe1
+  - PSMB6
+- - rpe1
+  - PAF1
+- - rpe1
+  - LSM5
+- - rpe1
+  - NFYC
+- - rpe1
+  - RPL37A
+- - rpe1
+  - PSMB2
+- - rpe1
+  - NUP107
+- - rpe1
+  - RABGGTA
+- - rpe1
+  - METTL21A
+- - rpe1
+  - MFAP1
+- - rpe1
+  - DCTN4
+- - rpe1
+  - PMF1
+- - rpe1
+  - NFYB
+- - rpe1
+  - EIF3B
+- - rpe1
+  - SMC1A
+- - rpe1
+  - PHB
+- - rpe1
+  - INTS5
+- - rpe1
+  - CDC5L
+- - rpe1
+  - RRM2
+- - rpe1
+  - EIF3CL
+name: rs_accC_jurkat_hepg2_k562_rpe1_ood_ss:ns_20_4_most_pert_0.1-eval_rpe1

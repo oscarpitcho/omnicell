@@ -1,0 +1,43 @@
+dataset: essential_gene_knockouts_raw
+evaluation_targets:
+- - jurkat
+  - YARS
+- - jurkat
+  - TAF12
+- - jurkat
+  - PPP1R37
+- - jurkat
+  - RPS15A
+- - jurkat
+  - TFAM
+- - jurkat
+  - NOL8
+- - jurkat
+  - INTS14
+- - jurkat
+  - DDX47
+- - jurkat
+  - SEH1L
+- - jurkat
+  - MED20
+- - jurkat
+  - WTAP
+- - jurkat
+  - NACA
+- - jurkat
+  - GNL3
+- - jurkat
+  - RPSA
+- - jurkat
+  - MED4
+- - jurkat
+  - NOM1
+- - jurkat
+  - DDX6
+- - jurkat
+  - SYMPK
+- - jurkat
+  - TSR2
+- - jurkat
+  - GEMIN5
+name: rs_accC_jurkat_hepg2_k562_rpe1_ood_ss:ns_20_4_most_pert_0.1-eval_jurkat

@@ -1,0 +1,13 @@
+dataset: satija_IFNB_raw
+evaluation_targets:
+- - A549
+  - IFNAR1
+- - A549
+  - TYK2
+- - A549
+  - JAK1
+- - A549
+  - STAT6
+- - A549
+  - DRAP1
+name: rs_accC_A549_BXPC3_HAP1_HT29_K562_MCF7_ood_ss:ns_5_6_most_pert_0.2-eval_A549

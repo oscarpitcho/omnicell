@@ -1,0 +1,13 @@
+dataset: satija_IFNB_raw
+evaluation_targets:
+- - HT29
+  - DRAP1
+- - HT29
+  - IFNAR2
+- - HT29
+  - JAK1
+- - HT29
+  - USP18
+- - HT29
+  - STAT1
+name: rs_accC_A549_BXPC3_HAP1_HT29_K562_MCF7_ood_ss:ns_5_6_most_pert_0.2-eval_HT29

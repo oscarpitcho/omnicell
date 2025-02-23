@@ -1,0 +1,13 @@
+dataset: satija_IFNB_raw
+evaluation_targets:
+- - HAP1
+  - POU2F1
+- - HAP1
+  - JAK1
+- - HAP1
+  - IFNAR2
+- - HAP1
+  - TYK2
+- - HAP1
+  - IFNAR1
+name: rs_accC_A549_BXPC3_HAP1_HT29_K562_MCF7_ood_ss:ns_5_6_most_pert_0.2-eval_HAP1
