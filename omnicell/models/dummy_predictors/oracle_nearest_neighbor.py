@@ -18,13 +18,20 @@ class OracleNNPredictor():
         self.model_config = model_config
         self.adata_complete = adata_complete
 
-        self.DEGs = adata_complete.uns['DEGs']
+        temp = adata_complete.uns['DEGs']
+
+        self.DEGs = {}
+
 
         for cell in self.DEGs:
+            if cell not in self.DEGs:
+                self.DEGs[cell] = {}
             for pert in self.DEGs[cell]:
-                df = pd.DataFrame.from_dict(self.DEGs[cell][pert], orient='index')
-                df = df[df['pvals_adj'] <self.model_config['p_threshold']]
-                self.DEGs[cell][pert] = df
+                if self.DEGs[cell][pert] is not None:
+                    df = pd.DataFrame.from_dict(temp[cell][pert], orient='index')
+                    df = df[df['pvals_adj'] < self.model_config['p_threshold']]
+                    self.DEGs[cell][pert] = df
+
         self.number_top_DEGs_overlap = model_config["number_top_DEGs_overlap"]
         self.seen_pert_per_cell = None
         self.training_adata = None
